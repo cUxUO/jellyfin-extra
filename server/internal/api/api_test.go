@@ -47,6 +47,8 @@ func (fakeJF) PlaybackInfo(_ context.Context, _, _, id string) (*jellyfin.Playba
 		MediaStreams: []jellyfin.MediaStream{
 			{Type: "Video", Index: 0, Codec: "hevc", Width: 3840, Height: 2160, VideoRange: "HDR"},
 			{Type: "Audio", Index: 1, Codec: "eac3", Channels: 6},
+			{Type: "Subtitle", Index: 2, Codec: "subrip"},
+			{Type: "Subtitle", Index: 3, Codec: "PGSSUB"},
 		},
 	}}}, nil
 }
@@ -142,6 +144,7 @@ func TestCreateSessionErrors(t *testing.T) {
 		{"missing item", "good", `{"itemId":"ffffffffffffffffffffffffffffffff","profile":"zenpad10"}`, 404},
 		{"start past end", "good", `{"itemId":"` + itemID + `","profile":"zenpad10","startTimeTicks":6000000000}`, 400},
 		{"no runtime", "good", `{"itemId":"` + noRuntimeID + `","profile":"zenpad10"}`, 422},
+		{"burn text subtitle", "good", `{"itemId":"` + itemID + `","profile":"zenpad10","subtitleStreamIndex":2}`, 422},
 	}
 	for _, c := range cases {
 		if got := post(t, srv.URL, c.token, c.body).StatusCode; got != c.want {
@@ -212,5 +215,18 @@ func TestTokenFrom(t *testing.T) {
 		if got := tokenFrom(r); got != want {
 			t.Errorf("tokenFrom(%q) = %q, want %q", h, got, want)
 		}
+	}
+}
+
+func TestCreateSessionBurnsImageSubtitle(t *testing.T) {
+	srv, fs := newServer(t)
+	resp := post(t, srv.URL, "good", `{"itemId":"`+itemID+`","profile":"zenpad10","subtitleStreamIndex":3}`)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	var got createResponse
+	json.NewDecoder(resp.Body).Decode(&got)
+	if got.SubtitleStreamIndex != 3 || fs.started.Plan.SubtitleInput != 3 {
+		t.Errorf("subtitle = %d, plan input = %d", got.SubtitleStreamIndex, fs.started.Plan.SubtitleInput)
 	}
 }

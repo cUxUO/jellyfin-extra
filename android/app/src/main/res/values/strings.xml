@@ -23,4 +23,11 @@
     <string name="preparing">準備轉碼中…</string>
     <string name="direct_play">轉碼伺服器離線，改為直接播放</string>
     <string name="retry">重試</string>
+    <string name="subtitles">字幕</string>
+    <string name="subtitles_off">關閉字幕</string>
+    <string name="subtitle_image_suffix">（圖形，燒進畫面）</string>
+    <string name="subtitle_loading">字幕載入中…</string>
+    <string name="subtitle_loading_embedded">字幕載入中…（內嵌字幕第一次要讓 Jellyfin 讀完整個檔案，大檔可能要幾分鐘）</string>
+    <string name="subtitle_failed">字幕載入失敗：%1$s</string>
+    <string name="subtitle_image_needs_xcode">圖形字幕需要轉碼伺服器</string>
 </resources>

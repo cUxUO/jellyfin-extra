@@ -39,6 +39,9 @@ var Profiles = map[string]Profile{
 type Request struct {
 	AudioStreamIndex *int  // nil 表示用預設音軌
 	MaxBitrate       int64 // 0 表示不限，用於對外連線頻寬有限時
+	// SubtitleStreamIndex 是要燒進畫面的字幕（Jellyfin Index），nil 表示不燒。
+	// 只接受內嵌的圖形字幕；文字字幕由播放程式自己顯示（向 Jellyfin 取 WebVTT）。
+	SubtitleStreamIndex *int
 }
 
 // Plan 是一次轉碼的完整決定，ffmpeg 參數由它產生。
@@ -46,20 +49,29 @@ type Plan struct {
 	VideoIndex   int // Jellyfin 的 MediaStream.Index
 	AudioIndex   int // Jellyfin 的 MediaStream.Index，-1 表示沒有音軌
 	VideoInput   int // 對應到 ffmpeg 輸入檔的串流編號（-map 0:N）
+	SourceWidth  int // 片源影像尺寸，燒錄圖形字幕時當作字幕畫布大小
+	SourceHeight int
 	AudioInput   int // 同上，-1 表示沒有音軌
-	Width        int
-	Height       int
-	VideoBitrate int64
-	AudioBitrate int64
-	HWDecode     bool // NVDEC 解碼，整條濾鏡留在 GPU 上
-	Tonemap      bool // HDR 轉 SDR
-	H264Profile  string
-	H264Level    string
+	// 燒進畫面的圖形字幕，-1 表示沒有
+	SubtitleIndex int // Jellyfin 的 MediaStream.Index
+	SubtitleInput int // ffmpeg 輸入檔的串流編號
+	Width         int
+	Height        int
+	VideoBitrate  int64
+	AudioBitrate  int64
+	HWDecode      bool // NVDEC 解碼，整條濾鏡留在 GPU 上
+	Tonemap       bool // HDR 轉 SDR
+	H264Profile   string
+	H264Level     string
 }
 
 const minVideoBitrate = 1_000_000
 
-var ErrNoVideo = errors.New("profile: media source has no video stream")
+var (
+	ErrNoVideo = errors.New("profile: media source has no video stream")
+	// ErrSubtitle 表示要求燒錄的字幕不適用（找不到、是文字字幕、或是外掛的圖形字幕）
+	ErrSubtitle = errors.New("profile: subtitle cannot be burned in")
+)
 
 // Build 依裝置規格和片源決定轉碼計畫。
 func Build(p Profile, src jellyfin.MediaSource, req Request) (Plan, error) {
@@ -72,15 +84,19 @@ func Build(p Profile, src jellyfin.MediaSource, req Request) (Plan, error) {
 	}
 
 	plan := Plan{
-		VideoIndex:   video.Index,
-		VideoInput:   inputIndex(src.MediaStreams, video),
-		AudioIndex:   -1,
-		AudioInput:   -1,
-		HWDecode:     nvdecSupports(video),
-		Tonemap:      strings.EqualFold(video.VideoRange, "HDR"),
-		H264Profile:  p.H264Profile,
-		H264Level:    p.H264Level,
-		AudioBitrate: p.AudioBitrate,
+		VideoIndex:    video.Index,
+		VideoInput:    inputIndex(src.MediaStreams, video),
+		SourceWidth:   video.Width,
+		SourceHeight:  video.Height,
+		AudioIndex:    -1,
+		AudioInput:    -1,
+		SubtitleIndex: -1,
+		SubtitleInput: -1,
+		HWDecode:      nvdecSupports(video),
+		Tonemap:       strings.EqualFold(video.VideoRange, "HDR"),
+		H264Profile:   p.H264Profile,
+		H264Level:     p.H264Level,
+		AudioBitrate:  p.AudioBitrate,
 	}
 	if plan.Tonemap && !plan.HWDecode {
 		// HDR 片源幾乎都是 HEVC / AV1 / VP9，NVDEC 都能解；真的遇到再處理 CPU 版的 tonemap
@@ -94,9 +110,44 @@ func Build(p Profile, src jellyfin.MediaSource, req Request) (Plan, error) {
 		plan.AudioBitrate = 0
 	}
 
+	if req.SubtitleStreamIndex != nil {
+		sub, err := pickBurnSubtitle(src.MediaStreams, *req.SubtitleStreamIndex)
+		if err != nil {
+			return Plan{}, err
+		}
+		plan.SubtitleIndex = sub.Index
+		plan.SubtitleInput = inputIndex(src.MediaStreams, sub)
+	}
+
 	plan.Width, plan.Height = FitBox(video.Width, video.Height, p.MaxWidth, p.MaxHeight)
 	plan.VideoBitrate = videoBitrate(p, plan, video, req)
 	return plan, nil
+}
+
+// IsImageSubtitle 判斷是不是點陣圖字幕（藍光 PGS、DVD、DVB），這類字幕只能燒進畫面。
+func IsImageSubtitle(codec string) bool {
+	switch strings.ToLower(codec) {
+	case "pgssub", "hdmv_pgs_subtitle", "dvdsub", "dvd_subtitle", "dvbsub", "dvb_subtitle", "xsub":
+		return true
+	}
+	return false
+}
+
+func pickBurnSubtitle(streams []jellyfin.MediaStream, index int) (jellyfin.MediaStream, error) {
+	for _, s := range streams {
+		if s.Type != "Subtitle" || s.Index != index {
+			continue
+		}
+		switch {
+		case !IsImageSubtitle(s.Codec):
+			return s, fmt.Errorf("%w: %s is a text subtitle, the player renders it", ErrSubtitle, s.Codec)
+		case s.IsExternal:
+			// 外掛的 .sup 在 Jellyfin 主機上，轉碼伺服器讀不到
+			return s, fmt.Errorf("%w: external image subtitles are not supported", ErrSubtitle)
+		}
+		return s, nil
+	}
+	return jellyfin.MediaStream{}, fmt.Errorf("%w: subtitle stream %d not found", ErrSubtitle, index)
 }
 
 // inputIndex 把 Jellyfin 的 Index 換成 ffmpeg 輸入檔裡的串流編號。

@@ -69,8 +69,10 @@ type createRequest struct {
 	MediaSourceID    string `json:"mediaSourceId"`
 	Profile          string `json:"profile"`
 	AudioStreamIndex *int   `json:"audioStreamIndex"`
-	StartTimeTicks   int64  `json:"startTimeTicks"` // Jellyfin 的時間單位，1 tick = 100ns
-	MaxBitrate       int64  `json:"maxBitrate"`
+	// SubtitleStreamIndex 是要燒進畫面的圖形字幕；文字字幕由播放程式自己向 Jellyfin 取 WebVTT 顯示
+	SubtitleStreamIndex *int  `json:"subtitleStreamIndex"`
+	StartTimeTicks      int64 `json:"startTimeTicks"` // Jellyfin 的時間單位，1 tick = 100ns
+	MaxBitrate          int64 `json:"maxBitrate"`
 }
 
 type videoInfo struct {
@@ -85,11 +87,12 @@ type createResponse struct {
 	SessionID string `json:"sessionId"`
 	// Playlist 涵蓋整部片（0 秒就是片頭），播放端自行跳到 StartTimeTicks 開始播；
 	// 伺服器已先轉好那個位置的片段。
-	Playlist         string    `json:"playlist"`
-	StartTimeTicks   int64     `json:"startTimeTicks"`
-	RunTimeTicks     int64     `json:"runTimeTicks"`
-	AudioStreamIndex int       `json:"audioStreamIndex"` // -1 表示沒有音軌
-	Video            videoInfo `json:"video"`
+	Playlist            string    `json:"playlist"`
+	StartTimeTicks      int64     `json:"startTimeTicks"`
+	RunTimeTicks        int64     `json:"runTimeTicks"`
+	AudioStreamIndex    int       `json:"audioStreamIndex"`    // -1 表示沒有音軌
+	SubtitleStreamIndex int       `json:"subtitleStreamIndex"` // 燒進畫面的字幕，-1 表示沒有
+	Video               videoInfo `json:"video"`
 }
 
 const ticksPerSecond = 10_000_000
@@ -141,7 +144,11 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plan, err := profile.Build(prof, src, profile.Request{AudioStreamIndex: req.AudioStreamIndex, MaxBitrate: req.MaxBitrate})
+	plan, err := profile.Build(prof, src, profile.Request{
+		AudioStreamIndex:    req.AudioStreamIndex,
+		SubtitleStreamIndex: req.SubtitleStreamIndex,
+		MaxBitrate:          req.MaxBitrate,
+	})
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -164,11 +171,12 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, createResponse{
-		SessionID:        sess.ID,
-		Playlist:         "v1/sessions/" + sess.ID + "/" + ffmpeg.PlaylistName,
-		StartTimeTicks:   req.StartTimeTicks,
-		RunTimeTicks:     src.RunTimeTicks,
-		AudioStreamIndex: plan.AudioIndex,
+		SessionID:           sess.ID,
+		Playlist:            "v1/sessions/" + sess.ID + "/" + ffmpeg.PlaylistName,
+		StartTimeTicks:      req.StartTimeTicks,
+		RunTimeTicks:        src.RunTimeTicks,
+		AudioStreamIndex:    plan.AudioIndex,
+		SubtitleStreamIndex: plan.SubtitleIndex,
 		Video: videoInfo{
 			Width: plan.Width, Height: plan.Height, Bitrate: plan.VideoBitrate,
 			HWDecode: plan.HWDecode, Tonemap: plan.Tonemap,

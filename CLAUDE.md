@@ -65,6 +65,9 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - 真實 Jellyfin（12.1.0）：`xcode.json` 指向內網 8096（不經 NPM）。測試用 token 以 `tools/jf-login.sh <內網網址> <帳號>` 取得，存在容器的 `~/.config/jellyfin-extra/token`；讀取時用 `$(cat ~/.config/jellyfin-extra/token)`，不要印出、不要寫進檔案或 log。
 - 對外：Linux 主機上的 Nginx Proxy Manager（Docker）把 `https://<網域>/xcode/` 轉到 Windows 8097，設定在 Jellyfin Proxy Host 的 Advanced 分頁。
 - HLS：伺服器依 Jellyfin 的片長產生整部片的 VOD 清單（每段 3 秒），片段被請求時才轉出（`session.Manager.Segment`）：已轉出就回傳、在 ffmpeg 進度後 2 段內就等、否則從該段重新啟動 ffmpeg（`-ss` + `-output_ts_offset` + `-start_number`，時間戳記與編號對齊整部片，舊片段保留沿用）。播放端拖曳不需特別處理，起點也只是開播後跳過去。沒有片長（RunTimeTicks=0）的項目回 422。
+- 字幕：圖形字幕（PGS／DVD）由 xcode 燒錄（`subtitleStreamIndex`，GPU 路徑 `overlay_cuda`，同 Jellyfin）；燒錄時必須加 `-canvas_size`（片源尺寸），否則跳到附近沒有字幕的位置時整條濾鏡會卡住。文字字幕（SRT／ASS）由播放程式向 Jellyfin 取 `Stream.vtt` 自己顯示，xcode 不處理。
+- **不要**在轉碼的 ffmpeg 裡順便輸出字幕（多個稀疏的 WebVTT 輸出）：實測會讓影像輸出卡死（ffmpeg 排程器等待落後的字幕輸出）；獨立的純字幕 ffmpeg 行為也不穩定。已試過並放棄，細節見 git 歷史。
+- Jellyfin 抽內嵌文字字幕要讀完整個檔案：1GB 約 10 秒，60GB 藍光原盤約 8 分鐘（之後有快取）；外掛字幕約 0.1 秒。播放程式的請求不設讀取逾時，中途放棄會讓 Jellyfin 停掉抽取。
 - ffmpeg 用 jellyfin-ffmpeg 8.1.3 的 win64 版，放在 `C:\dev\jellyfin-extra-test\ffmpeg\`。
 - 3070 Ti：NVENC 可編 H.264 / HEVC（不能編 AV1），NVDEC 可解 H.264 / HEVC / VP9 / AV1。消費級驅動有同時編碼數上限。
 - 遠端預設 shell 是 cmd，主控台編碼是 Big5（cp950）：需要中文輸出時先 `chcp 65001`，或用 PowerShell。連線時的 post-quantum 警告是 Windows 內建 OpenSSH 較舊所致，可忽略。

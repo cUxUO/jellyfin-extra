@@ -21,13 +21,17 @@ class XcodeApi(
         val runTimeTicks: Long,
         val width: Int,
         val height: Int,
+        /** 燒進畫面的字幕（Jellyfin Index），-1 表示沒有。 */
+        val burnedSubtitle: Int,
     )
 
-    suspend fun create(itemId: String, profile: String, startTimeTicks: Long): Session {
+    /** [burnSubtitle] 是要燒進畫面的圖形字幕 Index；文字字幕不經轉碼伺服器。 */
+    suspend fun create(itemId: String, profile: String, startTimeTicks: Long, burnSubtitle: Int? = null): Session {
         val body = JSONObject()
             .put("itemId", itemId)
             .put("profile", profile)
             .put("startTimeTicks", startTimeTicks)
+        if (burnSubtitle != null) body.put("subtitleStreamIndex", burnSubtitle)
         val req = Request.Builder()
             .url(base.resolve("v1/sessions")!!)
             .header("Authorization", Http.authHeader(settings))
@@ -47,6 +51,7 @@ class XcodeApi(
             runTimeTicks = o.optLong("runTimeTicks"),
             width = video.optInt("width"),
             height = video.optInt("height"),
+            burnedSubtitle = o.optInt("subtitleStreamIndex", -1),
         )
     }
 

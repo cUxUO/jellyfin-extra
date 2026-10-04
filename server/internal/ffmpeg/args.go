@@ -39,22 +39,35 @@ func Args(j Job) []string {
 
 	a := []string{"-hide_banner", "-nostdin", "-loglevel", "warning", "-y"}
 	if p.HWDecode {
-		a = append(a, "-hwaccel", "cuda", "-hwaccel_output_format", "cuda")
+		// 具名的 CUDA 裝置讓解碼與濾鏡（字幕上傳到 GPU）共用同一個 context，做法同 Jellyfin
+		a = append(a, "-init_hw_device", "cuda=cu:0", "-filter_hw_device", "cu",
+			"-hwaccel", "cuda", "-hwaccel_device", "cu", "-hwaccel_output_format", "cuda")
 	}
 	// 一開始盡快轉出一段緩衝，之後限制在 2 倍速，避免整部片一口氣轉完佔滿 GPU 和硬碟
 	a = append(a, "-readrate", "2", "-readrate_initial_burst", "30")
 	if j.StartSegment > 0 {
 		a = append(a, "-ss", start)
 	}
+	if p.SubtitleInput >= 0 && p.SourceWidth > 0 && p.SourceHeight > 0 {
+		// 圖形字幕的畫布大小平常要等第一個字幕封包才知道；跳到中途時附近可能好幾分鐘都沒有字幕，
+		// 整條 overlay 濾鏡會一直等下去。直接指定成片源尺寸。
+		a = append(a, "-canvas_size", fmt.Sprintf("%dx%d", p.SourceWidth, p.SourceHeight))
+	}
 	a = append(a, "-i", j.Input)
 
-	a = append(a, "-map", fmt.Sprintf("0:%d", p.VideoInput))
+	if p.SubtitleInput >= 0 {
+		// 圖形字幕經 sub2video 變成畫面，縮放到輸出尺寸後疊在影像上
+		a = append(a, "-filter_complex", burnFilter(p), "-map", "[v]")
+	} else {
+		a = append(a, "-map", fmt.Sprintf("0:%d", p.VideoInput))
+	}
 	if p.AudioInput >= 0 {
 		a = append(a, "-map", fmt.Sprintf("0:%d", p.AudioInput))
 	}
 	a = append(a, "-sn", "-dn", "-map_metadata", "-1", "-map_chapters", "-1")
-
-	a = append(a, "-vf", videoFilter(p))
+	if p.SubtitleInput < 0 {
+		a = append(a, "-vf", videoFilter(p))
+	}
 	a = append(a,
 		"-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr",
 		"-b:v", strconv.FormatInt(p.VideoBitrate, 10),
@@ -125,6 +138,21 @@ func segmentSeconds(seg int) int {
 		return 3
 	}
 	return seg
+}
+
+// burnFilter 是燒錄圖形字幕時的 filter_complex。GPU 路徑的寫法同 Jellyfin：
+// 字幕在 CPU 端縮放並轉成帶透明度的 yuva420p，上傳到 GPU 後用 overlay_cuda 疊上去。
+func burnFilter(p profile.Plan) string {
+	video := fmt.Sprintf("[0:%d]", p.VideoInput)
+	sub := fmt.Sprintf("[0:%d]scale=%d:%d:flags=fast_bilinear,format=yuva420p", p.SubtitleInput, p.Width, p.Height)
+	if p.HWDecode {
+		return video + videoFilter(p) + "[main];" +
+			sub + ",hwupload[sub];" +
+			"[main][sub]overlay_cuda=eof_action=pass:repeatlast=0[v]"
+	}
+	return video + videoFilter(p) + "[main];" +
+		sub + "[sub];" +
+		"[main][sub]overlay=eof_action=pass:repeatlast=0,format=yuv420p[v]"
 }
 
 func videoFilter(p profile.Plan) string {

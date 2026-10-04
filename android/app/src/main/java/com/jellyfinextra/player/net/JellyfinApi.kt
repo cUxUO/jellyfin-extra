@@ -1,6 +1,8 @@
 package com.jellyfinextra.player.net
 
 import com.jellyfinextra.player.data.Settings
+import com.jellyfinextra.player.data.SubtitleTrack
+import java.util.concurrent.TimeUnit
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -96,6 +98,45 @@ class JellyfinApi(
     suspend fun item(id: String): Item {
         val u = url("Items/$id").addQueryParameter("userId", settings.userId).build()
         return Item.from(JSONObject(http.fetch(get(u))))
+    }
+
+    data class MediaInfo(val mediaSourceId: String, val subtitles: List<SubtitleTrack>)
+
+    suspend fun mediaInfo(itemId: String): MediaInfo {
+        val u = url("Items/$itemId/PlaybackInfo").addQueryParameter("userId", settings.userId).build()
+        val src = JSONObject(http.fetch(get(u))).getJSONArray("MediaSources").getJSONObject(0)
+        val streams = src.optJSONArray("MediaStreams") ?: JSONArray()
+        val subs = (0 until streams.length()).map { streams.getJSONObject(it) }
+            .filter { it.optString("Type") == "Subtitle" }
+            .map {
+                SubtitleTrack(
+                    index = it.getInt("Index"),
+                    title = it.optStringOrNull("DisplayTitle") ?: it.optString("Codec"),
+                    language = it.optStringOrNull("Language"),
+                    codec = it.optString("Codec"),
+                    isExternal = it.optBoolean("IsExternal"),
+                    isDefault = it.optBoolean("IsDefault"),
+                    isForced = it.optBoolean("IsForced"),
+                )
+            }
+        return MediaInfo(src.getString("Id"), subs)
+    }
+
+    /** 使用者在 Jellyfin 設定的字幕語言偏好（ISO 639-2，例如 chi），沒設定時回傳 null。 */
+    suspend fun subtitleLanguagePreference(): String? {
+        val o = JSONObject(http.fetch(get(url("Users/Me").build())))
+        return o.optJSONObject("Configuration")?.optStringOrNull("SubtitleLanguagePreference")?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * 文字字幕轉成 WebVTT。外掛字幕約 0.1 秒；內嵌字幕要讓 Jellyfin 讀完整個檔案抽出來
+     * （1GB 約 10 秒，60GB 的藍光原盤約 8 分鐘），之後 Jellyfin 會快取。
+     * 不設讀取逾時：中途放棄的請求會讓 Jellyfin 停掉抽取，下次又得從頭讀。
+     */
+    suspend fun subtitleVtt(itemId: String, mediaSourceId: String, index: Int): ByteArray {
+        val u = url("Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.vtt").build()
+        val slow = http.newBuilder().readTimeout(0, TimeUnit.MILLISECONDS).build()
+        return slow.fetch(get(u)).toByteArray()
     }
 
     /** 原始檔網址，轉碼伺服器離線時的退路；驗證靠請求標頭，網址裡不放 token。 */

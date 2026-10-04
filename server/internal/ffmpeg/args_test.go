@@ -19,7 +19,7 @@ func value(args []string, flag string) string {
 
 func basePlan() profile.Plan {
 	return profile.Plan{
-		VideoIndex: 1, AudioIndex: 3, VideoInput: 1, AudioInput: 3, Width: 1280, Height: 720,
+		VideoIndex: 1, AudioIndex: 3, VideoInput: 1, AudioInput: 3, SubtitleIndex: -1, SubtitleInput: -1, Width: 1280, Height: 720,
 		VideoBitrate: 4_000_000, AudioBitrate: 128_000,
 		HWDecode: true, H264Profile: "high", H264Level: "4.0",
 	}
@@ -84,6 +84,14 @@ func TestArgsTonemapAndSoftware(t *testing.T) {
 	}
 }
 
+func TestArgsNoCanvasWithoutBurnIn(t *testing.T) {
+	p := basePlan()
+	p.SourceWidth, p.SourceHeight = 3840, 2160
+	if slices.Contains(Args(Job{Input: "in", Plan: p}), "-canvas_size") {
+		t.Error("-canvas_size only applies when burning in subtitles")
+	}
+}
+
 func TestArgsNoAudio(t *testing.T) {
 	p := basePlan()
 	p.AudioIndex, p.AudioInput = -1, -1
@@ -114,5 +122,35 @@ func TestVODPlaylist(t *testing.T) {
 	// 一部 101 分鐘的片：2034 段
 	if n := SegmentCount(6101.12, 3); n != 2034 {
 		t.Errorf("SegmentCount = %d", n)
+	}
+}
+
+func TestArgsBurnSubtitle(t *testing.T) {
+	p := basePlan()
+	p.SubtitleIndex, p.SubtitleInput = 7, 5
+	p.SourceWidth, p.SourceHeight = 3840, 2160
+	a := Args(Job{Input: "in", Plan: p})
+	// 畫布大小是輸入選項，必須在 -i 之前
+	if cs, in := slices.Index(a, "-canvas_size"), slices.Index(a, "-i"); cs < 0 || cs > in || value(a, "-canvas_size") != "3840x2160" {
+		t.Errorf("-canvas_size missing or misplaced: %v", a)
+	}
+	fc := value(a, "-filter_complex")
+	want := "[0:1]scale_cuda=w=1280:h=720:format=yuv420p[main];" +
+		"[0:5]scale=1280:720:flags=fast_bilinear,format=yuva420p,hwupload[sub];" +
+		"[main][sub]overlay_cuda=eof_action=pass:repeatlast=0[v]"
+	if fc != want {
+		t.Errorf("filter_complex =\n%s\nwant\n%s", fc, want)
+	}
+	if slices.Contains(a, "-vf") || value(a, "-map") != "[v]" {
+		t.Errorf("burn-in must map the filter output and drop -vf: %v", a)
+	}
+	if value(a, "-filter_hw_device") != "cu" {
+		t.Error("hwupload needs the shared CUDA device")
+	}
+
+	p.HWDecode = false
+	fc = value(Args(Job{Input: "in", Plan: p}), "-filter_complex")
+	if !strings.HasSuffix(fc, "[main][sub]overlay=eof_action=pass:repeatlast=0,format=yuv420p[v]") || strings.Contains(fc, "cuda") {
+		t.Errorf("software burn filter = %s", fc)
 	}
 }

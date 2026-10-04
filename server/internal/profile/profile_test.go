@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"errors"
 	"testing"
 
 	"jellyfin-extra/server/internal/jellyfin"
@@ -128,5 +129,35 @@ func TestBuildMapsAroundExternalStreams(t *testing.T) {
 	plan, _ = Build(Profiles["zenpad10"], src, Request{})
 	if plan.VideoInput != 1 || plan.AudioInput != 2 {
 		t.Errorf("with cover art: inputs = v%d a%d, want v1 a2", plan.VideoInput, plan.AudioInput)
+	}
+}
+
+func TestBuildBurnSubtitle(t *testing.T) {
+	src := source(
+		jellyfin.MediaStream{Type: "Subtitle", Index: 0, Codec: "ass", IsExternal: true},
+		jellyfin.MediaStream{Type: "Video", Index: 1, Codec: "hevc", Width: 3840, Height: 2160},
+		jellyfin.MediaStream{Type: "Audio", Index: 2, Codec: "truehd"},
+		jellyfin.MediaStream{Type: "Subtitle", Index: 3, Codec: "subrip"},
+		jellyfin.MediaStream{Type: "Subtitle", Index: 4, Codec: "PGSSUB"},
+		jellyfin.MediaStream{Type: "Subtitle", Index: 5, Codec: "PGSSUB", IsExternal: true},
+	)
+	idx := func(i int) *int { return &i }
+
+	plan, err := Build(Profiles["zenpad10"], src, Request{SubtitleStreamIndex: idx(4)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 外掛 ass 排在 Index 0，PGS 在原始檔裡是第 3 條（video, audio, subrip, pgs）
+	if plan.SubtitleIndex != 4 || plan.SubtitleInput != 3 {
+		t.Errorf("subtitle = %d / input %d, want 4 / 3", plan.SubtitleIndex, plan.SubtitleInput)
+	}
+	plan, _ = Build(Profiles["zenpad10"], src, Request{})
+	if plan.SubtitleIndex != -1 || plan.SubtitleInput != -1 {
+		t.Errorf("no subtitle requested but got %d/%d", plan.SubtitleIndex, plan.SubtitleInput)
+	}
+	for _, i := range []int{0, 3, 5, 9} { // 外掛文字、內嵌文字、外掛圖形、不存在
+		if _, err := Build(Profiles["zenpad10"], src, Request{SubtitleStreamIndex: idx(i)}); !errors.Is(err, ErrSubtitle) {
+			t.Errorf("subtitle %d: err = %v, want ErrSubtitle", i, err)
+		}
 	}
 }
