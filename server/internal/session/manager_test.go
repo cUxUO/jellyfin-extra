@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,15 +19,19 @@ import (
 )
 
 // TestHelperProcess 不是真的測試：被 Manager 當成 ffmpeg 啟動，行為由環境變數決定。
+// "ok" 模式讀 -start_number，從那一段起寫出 4 段，模擬 ffmpeg 往後轉。
 func TestHelperProcess(t *testing.T) {
 	mode := os.Getenv("FAKE_FFMPEG")
 	if mode == "" {
 		return
 	}
+	args := os.Args[slices.Index(os.Args, "--")+1:]
 	switch mode {
 	case "ok":
-		os.WriteFile("seg_00000.ts", []byte("x"), 0o644)
-		os.WriteFile("index.m3u8", []byte("#EXTM3U\n#EXTINF:3,\nseg_00000.ts\n#EXTINF:3,\nseg_00001.ts\n"), 0o644)
+		start, _ := strconv.Atoi(args[slices.Index(args, "-start_number")+1])
+		for n := start; n < start+4; n++ {
+			os.WriteFile(fmt.Sprintf("seg_%05d.ts", n), []byte("x"), 0o644)
+		}
 		time.Sleep(time.Minute) // 直到被結束
 	case "fail":
 		fmt.Fprintln(os.Stderr, "Unknown decoder 'bogus'")
@@ -52,8 +58,8 @@ func newTestManager(t *testing.T, mode string, max int) (*Manager, *fakeRegistry
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.command = func(ctx context.Context, name string, _ ...string) *exec.Cmd {
-		cmd := exec.CommandContext(ctx, name, "-test.run=^TestHelperProcess$")
+	m.command = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		cmd := exec.CommandContext(ctx, name, append([]string{"-test.run=^TestHelperProcess$", "--"}, args...)...)
 		cmd.Env = append(os.Environ(), "FAKE_FFMPEG="+mode)
 		return cmd
 	}
@@ -62,23 +68,31 @@ func newTestManager(t *testing.T, mode string, max int) (*Manager, *fakeRegistry
 
 var plan = profile.Plan{Width: 1280, Height: 720, VideoBitrate: 3_000_000, AudioIndex: -1, AudioInput: -1, H264Profile: "high", H264Level: "4.0"}
 
-func TestStartReadyAndStop(t *testing.T) {
+// 300 秒的片，每段 3 秒，共 100 段
+func params(startSeconds float64) Params {
+	return Params{ItemID: "item", Token: "tok", StartSeconds: startSeconds, RunTimeSeconds: 300, Plan: plan}
+}
+
+func runStart(s *Session) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.run.startSeg
+}
+
+func TestStartAndStop(t *testing.T) {
 	m, reg := newTestManager(t, "ok", 1)
-	s, err := m.Start(context.Background(), Params{ItemID: "item", Token: "tok", Plan: plan})
+	s, err := m.Start(context.Background(), params(0))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !ValidID(s.ID) || !reg.registered[s.ID] {
-		t.Fatalf("id=%q registered=%v", s.ID, reg.registered)
+	if !ValidID(s.ID) || !reg.registered[s.ID] || s.Segments != 100 {
+		t.Fatalf("id=%q registered=%v segments=%d", s.ID, reg.registered, s.Segments)
 	}
-	if _, err := os.Stat(s.Path("index.m3u8")); err != nil {
-		t.Fatal(err)
+	if !strings.Contains(string(s.Playlist), "#EXT-X-ENDLIST") {
+		t.Error("playlist must be a complete VOD playlist")
 	}
-	if _, err := m.Start(context.Background(), Params{Plan: plan}); !errors.Is(err, ErrBusy) {
+	if _, err := m.Start(context.Background(), params(0)); !errors.Is(err, ErrBusy) {
 		t.Fatalf("second start err = %v, want ErrBusy", err)
-	}
-	if _, ok := m.Get(s.ID); !ok {
-		t.Fatal("Get failed")
 	}
 
 	if !m.Stop(s.ID) {
@@ -87,14 +101,67 @@ func TestStartReadyAndStop(t *testing.T) {
 	if _, err := os.Stat(s.Dir); !os.IsNotExist(err) {
 		t.Fatalf("session dir still exists: %v", err)
 	}
-	if reg.registered[s.ID] || !s.Finished() {
-		t.Fatal("not cleaned up")
+	if reg.registered[s.ID] {
+		t.Fatal("source not unregistered")
+	}
+}
+
+func TestStartMidwayAlignsToSegment(t *testing.T) {
+	m, _ := newTestManager(t, "ok", 1)
+	s, err := m.Start(context.Background(), params(31)) // 31 秒落在第 10 段（30–33 秒）
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := runStart(s); got != 10 {
+		t.Fatalf("started at seg %d, want 10", got)
+	}
+}
+
+func TestSegmentWaitReuseRestart(t *testing.T) {
+	m, _ := newTestManager(t, "ok", 1)
+	ctx := context.Background()
+	s, err := m.Start(ctx, params(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 已轉出的段落直接回傳
+	if p, err := m.Segment(ctx, s.ID, 1); err != nil || filepath.Base(p) != "seg_00001.ts" {
+		t.Fatalf("Segment(1) = %q, %v", p, err)
+	}
+	// 拖曳到遠處：從第 50 段重新啟動
+	if _, err := m.Segment(ctx, s.ID, 50); err != nil {
+		t.Fatal(err)
+	}
+	if got := runStart(s); got != 50 {
+		t.Fatalf("after seek run starts at %d, want 50", got)
+	}
+	// 往回拖到先前轉過的位置：沿用舊檔案，不重新啟動
+	if _, err := m.Segment(ctx, s.ID, 2); err != nil {
+		t.Fatal(err)
+	}
+	if got := runStart(s); got != 50 {
+		t.Fatalf("existing segment caused a restart (run starts at %d)", got)
+	}
+	// 往回拖到沒轉過的位置：重新啟動
+	if _, err := m.Segment(ctx, s.ID, 20); err != nil {
+		t.Fatal(err)
+	}
+	if got := runStart(s); got != 20 {
+		t.Fatalf("backward seek run starts at %d, want 20", got)
+	}
+	// 超出片長
+	if _, err := m.Segment(ctx, s.ID, 100); !errors.Is(err, ErrNoSegment) {
+		t.Fatalf("Segment(100) err = %v, want ErrNoSegment", err)
+	}
+	if _, err := m.Segment(ctx, "ffffffffffffffffffffffffffffffff", 0); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("unknown session err = %v", err)
 	}
 }
 
 func TestStartFailureReportsStderr(t *testing.T) {
 	m, reg := newTestManager(t, "fail", 1)
-	_, err := m.Start(context.Background(), Params{Plan: plan})
+	_, err := m.Start(context.Background(), params(0))
 	if err == nil || !strings.Contains(err.Error(), "Unknown decoder") {
 		t.Fatalf("err = %v, want ffmpeg stderr", err)
 	}
@@ -105,7 +172,7 @@ func TestStartFailureReportsStderr(t *testing.T) {
 
 func TestReapIdleAndStaleDirs(t *testing.T) {
 	m, _ := newTestManager(t, "ok", 2)
-	s, err := m.Start(context.Background(), Params{Plan: plan})
+	s, err := m.Start(context.Background(), params(0))
 	if err != nil {
 		t.Fatal(err)
 	}

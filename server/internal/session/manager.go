@@ -1,8 +1,7 @@
-// Package session 管理轉碼工作：啟動 ffmpeg、等第一批片段、閒置回收、清理暫存檔。
+// Package session 管理轉碼工作：依請求轉出片段、拖曳時重新啟動 ffmpeg、閒置回收、清理暫存檔。
 package session
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -24,14 +23,20 @@ import (
 )
 
 var (
-	ErrBusy     = errors.New("session: too many active sessions")
-	ErrNotReady = errors.New("session: transcode did not produce segments in time")
+	ErrBusy      = errors.New("session: too many active sessions")
+	ErrNotFound  = errors.New("session: not found")
+	ErrNoSegment = errors.New("session: segment out of range")
+	ErrNotReady  = errors.New("session: transcode did not produce the segment in time")
 )
 
 // idPattern 也用來辨識 WorkDir 裡哪些目錄是我們建立的，清理時只碰這些。
 var idPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 func ValidID(id string) bool { return idPattern.MatchString(id) }
+
+// lookahead：請求的片段在 ffmpeg 目前進度之後幾段以內就等它轉出，超過就從該段重新啟動。
+// ffmpeg 至少以 2 倍速前進，等兩段約 3 秒，和重新啟動的成本差不多。
+const lookahead = 2
 
 type Config struct {
 	FFmpegPath     string
@@ -43,43 +48,66 @@ type Config struct {
 }
 
 type Params struct {
-	UserID        string
-	ItemID        string
-	MediaSourceID string
-	Token         string // 只交給 source registry，不保存在 Session
-	StartSeconds  float64
-	Plan          profile.Plan
+	UserID         string
+	ItemID         string
+	MediaSourceID  string
+	Token          string // 只交給 source registry，不保存在 Session
+	StartSeconds   float64
+	RunTimeSeconds float64
+	Plan           profile.Plan
 }
 
 type Session struct {
-	ID           string
-	Dir          string
-	UserID       string
-	ItemID       string
-	StartSeconds float64
-	Plan         profile.Plan
+	ID       string
+	Dir      string
+	UserID   string
+	ItemID   string
+	Plan     profile.Plan
+	Segments int    // 播放清單裡的總段數
+	Playlist []byte // 給播放端的完整 VOD 清單
 
-	cancel     context.CancelFunc
-	done       chan struct{}
-	waitErr    error
-	stderr     *tail
+	input      string
+	mu         sync.Mutex // 保護 run 與重新啟動的決定
+	run        *run
 	lastAccess atomic.Int64
 }
 
-// Path 回傳 session 目錄內的檔案路徑；name 必須先經過呼叫端驗證。
-func (s *Session) Path(name string) string { return filepath.Join(s.Dir, name) }
+// run 是一次 ffmpeg 執行，從 startSeg 開始往後轉。
+type run struct {
+	startSeg int
+	cancel   context.CancelFunc
+	done     chan struct{}
+	err      error
+	stderr   *tail
+	next     int // 從 startSeg 起連續存在的下一段，快取用，只在 Session.mu 下讀寫
+}
 
-// Finished 表示 ffmpeg 已結束（轉完或失敗），檔案仍可讀到被回收為止。
-func (s *Session) Finished() bool {
+func (r *run) finished() bool {
 	select {
-	case <-s.done:
+	case <-r.done:
 		return true
 	default:
 		return false
 	}
 }
 
+// Path 回傳 session 目錄內的檔案路徑；name 必須先經過呼叫端驗證。
+func (s *Session) Path(name string) string { return filepath.Join(s.Dir, name) }
+
 func (s *Session) touch() { s.lastAccess.Store(time.Now().UnixNano()) }
+
+func (s *Session) segmentExists(n int) bool {
+	_, err := os.Stat(s.Path(ffmpeg.SegmentName(n)))
+	return err == nil
+}
+
+// frontier 回傳目前這次執行從起點連續轉出的下一段編號。呼叫端必須持有 s.mu。
+func (s *Session) frontier(r *run) int {
+	for r.next < s.Segments && s.segmentExists(r.next) {
+		r.next++
+	}
+	return r.next
+}
 
 type Manager struct {
 	cfg Config
@@ -116,6 +144,7 @@ func (m *Manager) removeStale() {
 	}
 }
 
+// Start 建立 session，從 StartSeconds 所在的段落開始轉，等那一段轉出後才回傳。
 func (m *Manager) Start(ctx context.Context, p Params) (*Session, error) {
 	m.mu.Lock()
 	if len(m.sessions)+m.pending >= m.cfg.MaxSessions {
@@ -130,19 +159,27 @@ func (m *Manager) Start(ctx context.Context, p Params) (*Session, error) {
 		m.mu.Unlock()
 	}()
 
+	seg := m.cfg.SegmentSeconds
 	s := &Session{
-		ID: newID(), UserID: p.UserID, ItemID: p.ItemID,
-		StartSeconds: p.StartSeconds, Plan: p.Plan,
-		done: make(chan struct{}), stderr: &tail{max: 4096},
+		ID: newID(), UserID: p.UserID, ItemID: p.ItemID, Plan: p.Plan,
+		Segments: ffmpeg.SegmentCount(p.RunTimeSeconds, seg),
+		Playlist: ffmpeg.VODPlaylist(p.RunTimeSeconds, seg),
 	}
 	s.Dir = filepath.Join(m.cfg.WorkDir, s.ID)
 	s.touch()
-
-	if err := m.launch(s, p); err != nil {
-		m.cleanup(s)
-		return nil, err
+	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
+		return nil, fmt.Errorf("session: %w", err)
 	}
-	if err := m.waitReady(ctx, s); err != nil {
+	s.input = m.src.Register(s.ID, p.ItemID, p.MediaSourceID, p.Token)
+
+	startSeg := min(int(p.StartSeconds)/seg, s.Segments-1)
+	s.mu.Lock()
+	err := m.startRun(s, startSeg)
+	s.mu.Unlock()
+	if err == nil {
+		err = m.waitSegment(ctx, s, startSeg)
+	}
+	if err != nil {
 		m.cleanup(s)
 		return nil, err
 	}
@@ -150,78 +187,122 @@ func (m *Manager) Start(ctx context.Context, p Params) (*Session, error) {
 	m.mu.Lock()
 	m.sessions[s.ID] = s
 	m.mu.Unlock()
-	m.log.Printf("session %s ready: item=%s user=%s start=%.1fs %dx%d %dkbps hw=%v tonemap=%v",
-		s.ID, s.ItemID, s.UserID, s.StartSeconds, s.Plan.Width, s.Plan.Height, s.Plan.VideoBitrate/1000, s.Plan.HWDecode, s.Plan.Tonemap)
+	m.log.Printf("session %s ready: item=%s user=%s start=seg%d/%d %dx%d %dkbps hw=%v tonemap=%v",
+		s.ID, s.ItemID, s.UserID, startSeg, s.Segments, s.Plan.Width, s.Plan.Height, s.Plan.VideoBitrate/1000, s.Plan.HWDecode, s.Plan.Tonemap)
 	return s, nil
 }
 
-func (m *Manager) launch(s *Session, p Params) error {
-	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
-		return fmt.Errorf("session: %w", err)
+// Segment 確保第 n 段存在並回傳檔案路徑。片段已轉出就直接回傳；在 ffmpeg 進度附近就等它；
+// 否則（使用者拖曳到遠處或往回拖到沒轉過的地方）從第 n 段重新啟動 ffmpeg。
+func (m *Manager) Segment(ctx context.Context, id string, n int) (string, error) {
+	s, ok := m.Get(id)
+	if !ok {
+		return "", ErrNotFound
 	}
-	input := m.src.Register(s.ID, p.ItemID, p.MediaSourceID, p.Token)
+	if n < 0 || n >= s.Segments {
+		return "", ErrNoSegment
+	}
+	if s.segmentExists(n) {
+		return s.Path(ffmpeg.SegmentName(n)), nil
+	}
+
+	s.mu.Lock()
+	if r := s.run; r == nil || n < r.startSeg || n > s.frontier(r)+lookahead || r.finished() {
+		// 已結束的執行不會再產生片段：成功結束代表 n 在這次起點之前，失敗則重試一次
+		if err := m.startRun(s, n); err != nil {
+			s.mu.Unlock()
+			return "", err
+		}
+	}
+	s.mu.Unlock()
+
+	if err := m.waitSegment(ctx, s, n); err != nil {
+		return "", err
+	}
+	return s.Path(ffmpeg.SegmentName(n)), nil
+}
+
+// startRun 停掉目前的 ffmpeg（若有），從第 startSeg 段重新啟動。呼叫端必須持有 s.mu。
+func (m *Manager) startRun(s *Session, startSeg int) error {
+	if old := s.run; old != nil {
+		old.cancel()
+		<-old.done
+		m.log.Printf("session %s: restart at seg %d (was from seg %d)", s.ID, startSeg, old.startSeg)
+	}
 	args := ffmpeg.Args(ffmpeg.Job{
-		Input: input, StartSeconds: p.StartSeconds,
-		SegmentSeconds: m.cfg.SegmentSeconds, Plan: p.Plan,
+		Input: s.input, StartSegment: startSeg,
+		SegmentSeconds: m.cfg.SegmentSeconds, Plan: s.Plan,
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
+	r := &run{startSeg: startSeg, cancel: cancel, done: make(chan struct{}), stderr: &tail{max: 4096}, next: startSeg}
 	cmd := m.command(ctx, m.cfg.FFmpegPath, args...)
 	cmd.Dir = s.Dir
-	cmd.Stderr = s.stderr
+	cmd.Stderr = r.stderr
 	cmd.WaitDelay = 5 * time.Second
 	// 參數裡沒有 token（輸入是本機 proxy），可以完整記錄
 	m.log.Printf("session %s: ffmpeg %s", s.ID, strings.Join(args, " "))
 	if err := cmd.Start(); err != nil {
 		cancel()
-		close(s.done)
+		close(r.done)
+		s.run = nil
 		return fmt.Errorf("session: start ffmpeg: %w", err)
 	}
-	s.cancel = cancel
+	s.run = r
 	go func() {
-		s.waitErr = cmd.Wait()
-		close(s.done)
-		if s.waitErr != nil && ctx.Err() == nil {
-			m.log.Printf("session %s: ffmpeg failed: %v: %s", s.ID, s.waitErr, s.stderr)
-		} else if ctx.Err() == nil {
-			m.log.Printf("session %s: ffmpeg finished", s.ID)
+		r.err = cmd.Wait()
+		close(r.done)
+		if r.err != nil && ctx.Err() == nil {
+			m.log.Printf("session %s: ffmpeg failed: %v: %s", s.ID, r.err, r.stderr)
 		}
 	}()
 	return nil
 }
 
-// waitReady 等到播放清單裡至少有兩段，播放端一開始就有緩衝。
-func (m *Manager) waitReady(ctx context.Context, s *Session) error {
+// waitSegment 等第 n 段出現；負責轉它的 ffmpeg 結束了還沒出現就回報錯誤。
+func (m *Manager) waitSegment(ctx context.Context, s *Session, n int) error {
 	timeout := time.NewTimer(m.cfg.ReadyTimeout)
 	defer timeout.Stop()
-	tick := time.NewTicker(200 * time.Millisecond)
+	tick := time.NewTicker(100 * time.Millisecond)
 	defer tick.Stop()
 	for {
-		if segmentCount(s.Path(ffmpeg.PlaylistName)) >= 2 {
+		if s.segmentExists(n) {
 			return nil
 		}
+		s.mu.Lock()
+		r := s.run
+		s.mu.Unlock()
+		var done <-chan struct{}
+		if r != nil {
+			done = r.done
+		}
 		select {
-		case <-s.done:
-			// 片子短於兩段時，ffmpeg 正常結束也算就緒
-			if s.waitErr == nil && segmentCount(s.Path(ffmpeg.PlaylistName)) >= 1 {
+		case <-done:
+			if s.segmentExists(n) {
 				return nil
 			}
-			return fmt.Errorf("session: ffmpeg exited: %v: %s", s.waitErr, s.stderr)
+			s.mu.Lock()
+			replaced := s.run != r
+			s.mu.Unlock()
+			if replaced {
+				// 被另一個請求的重新啟動取代（不是失敗），改等新的那次執行
+				continue
+			}
+			if r.err != nil {
+				return fmt.Errorf("session: ffmpeg exited: %v: %s", r.err, r.stderr)
+			}
+			// 成功結束卻沒有這一段：片長比 Jellyfin 記錄的短，最後一段不存在
+			return ErrNoSegment
 		case <-timeout.C:
-			return fmt.Errorf("%w: %s", ErrNotReady, s.stderr)
+			if r != nil {
+				return fmt.Errorf("%w: %s", ErrNotReady, r.stderr)
+			}
+			return ErrNotReady
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-tick.C:
 		}
 	}
-}
-
-func segmentCount(playlist string) int {
-	b, err := os.ReadFile(playlist)
-	if err != nil {
-		return 0
-	}
-	return bytes.Count(b, []byte("#EXTINF"))
 }
 
 // Get 取得 session，同時更新最後存取時間。
@@ -248,10 +329,12 @@ func (m *Manager) Stop(id string) bool {
 }
 
 func (m *Manager) cleanup(s *Session) {
-	if s.cancel != nil {
-		s.cancel()
+	s.mu.Lock()
+	if r := s.run; r != nil {
+		r.cancel()
+		<-r.done
 	}
-	<-s.done
+	s.mu.Unlock()
 	m.src.Unregister(s.ID)
 	removeAll(s.Dir)
 }

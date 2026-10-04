@@ -14,8 +14,9 @@ class XcodeApi(
 ) {
     data class Session(
         val id: String,
+        /** 整部片的 VOD 清單（0 秒就是片頭），可以拖曳到任何位置；片段在請求時才轉出。 */
         val playlist: HttpUrl,
-        /** 播放清單的 0 秒對應片中的這個位置。 */
+        /** 建立 session 時要求的起點，伺服器已先轉好這個位置；播放器要自己跳過去。 */
         val startTimeTicks: Long,
         val runTimeTicks: Long,
         val width: Int,

@@ -64,7 +64,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - 端對端測試：Windows 測試目錄已有 `clips\`（SDR HEVC 1080p、HDR10 HEVC 4K、10-bit H.264 各 60 秒）、`items.json`、指向 fakejf 的 `xcode.fake.json`。先跑 `fakejf.exe -items items.json`（token `devtoken`，聽 127.0.0.1:18096），再跑 `xcode.exe -config xcode.fake.json`。
 - 真實 Jellyfin（12.1.0）：`xcode.json` 指向內網 8096（不經 NPM）。測試用 token 以 `tools/jf-login.sh <內網網址> <帳號>` 取得，存在容器的 `~/.config/jellyfin-extra/token`；讀取時用 `$(cat ~/.config/jellyfin-extra/token)`，不要印出、不要寫進檔案或 log。
 - 對外：Linux 主機上的 Nginx Proxy Manager（Docker）把 `https://<網域>/xcode/` 轉到 Windows 8097，設定在 Jellyfin Proxy Host 的 Advanced 分頁。
-- HLS 播放清單由 API 加上 `#EXT-X-START:TIME-OFFSET=0`，否則轉碼中的 EVENT 清單會被播放端當直播，從最新片段開始播。
+- HLS：伺服器依 Jellyfin 的片長產生整部片的 VOD 清單（每段 3 秒），片段被請求時才轉出（`session.Manager.Segment`）：已轉出就回傳、在 ffmpeg 進度後 2 段內就等、否則從該段重新啟動 ffmpeg（`-ss` + `-output_ts_offset` + `-start_number`，時間戳記與編號對齊整部片，舊片段保留沿用）。播放端拖曳不需特別處理，起點也只是開播後跳過去。沒有片長（RunTimeTicks=0）的項目回 422。
 - ffmpeg 用 jellyfin-ffmpeg 8.1.3 的 win64 版，放在 `C:\dev\jellyfin-extra-test\ffmpeg\`。
 - 3070 Ti：NVENC 可編 H.264 / HEVC（不能編 AV1），NVDEC 可解 H.264 / HEVC / VP9 / AV1。消費級驅動有同時編碼數上限。
 - 遠端預設 shell 是 cmd，主控台編碼是 Big5（cp950）：需要中文輸出時先 `chcp 65001`，或用 PowerShell。連線時的 post-quantum 警告是 Windows 內建 OpenSSH 較舊所致，可忽略。

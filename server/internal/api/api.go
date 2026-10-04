@@ -1,7 +1,7 @@
 // Package api 是播放程式呼叫的 HTTP 介面。
 //
 //	POST   /v1/sessions               開始轉碼，回傳播放清單路徑
-//	GET    /v1/sessions/{id}/{file}   播放清單與片段
+//	GET    /v1/sessions/{id}/{file}   播放清單（整部片的 VOD 清單）與片段（請求時才轉出）
 //	DELETE /v1/sessions/{id}          停止轉碼
 //	GET    /healthz
 //
@@ -14,11 +14,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 
 	"jellyfin-extra/server/internal/ffmpeg"
@@ -37,6 +37,7 @@ type Jellyfin interface {
 type Sessions interface {
 	Start(ctx context.Context, p session.Params) (*session.Session, error)
 	Get(id string) (*session.Session, bool)
+	Segment(ctx context.Context, id string, n int) (string, error)
 	Stop(id string) bool
 }
 
@@ -49,9 +50,9 @@ type Server struct {
 
 var (
 	// Jellyfin 的 ID 是 32 位 hex，部分 API 會回傳帶連字號的 GUID 形式
-	jellyfinID = regexp.MustCompile(`^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-	fileName   = regexp.MustCompile(`^(index\.m3u8|seg_[0-9]{5}\.ts)$`)
-	tokenField = regexp.MustCompile(`(?i)\bToken="?([^",\s]+)"?`)
+	jellyfinID  = regexp.MustCompile(`^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	segmentName = regexp.MustCompile(`^seg_([0-9]{5})\.ts$`)
+	tokenField  = regexp.MustCompile(`(?i)\bToken="?([^",\s]+)"?`)
 )
 
 func (s *Server) Handler() http.Handler {
@@ -81,9 +82,11 @@ type videoInfo struct {
 }
 
 type createResponse struct {
-	SessionID        string    `json:"sessionId"`
+	SessionID string `json:"sessionId"`
+	// Playlist 涵蓋整部片（0 秒就是片頭），播放端自行跳到 StartTimeTicks 開始播；
+	// 伺服器已先轉好那個位置的片段。
 	Playlist         string    `json:"playlist"`
-	StartTimeTicks   int64     `json:"startTimeTicks"` // 播放清單的 0 秒對應片中的這個位置
+	StartTimeTicks   int64     `json:"startTimeTicks"`
 	RunTimeTicks     int64     `json:"runTimeTicks"`
 	AudioStreamIndex int       `json:"audioStreamIndex"` // -1 表示沒有音軌
 	Video            videoInfo `json:"video"`
@@ -128,7 +131,12 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "media source not found")
 		return
 	}
-	if req.StartTimeTicks < 0 || (src.RunTimeTicks > 0 && req.StartTimeTicks >= src.RunTimeTicks) {
+	if src.RunTimeTicks <= 0 {
+		// 沒有片長就無法預先列出所有片段，也就無法拖曳
+		writeError(w, http.StatusUnprocessableEntity, "media source has no runtime")
+		return
+	}
+	if req.StartTimeTicks < 0 || req.StartTimeTicks >= src.RunTimeTicks {
 		writeError(w, http.StatusBadRequest, "startTimeTicks out of range")
 		return
 	}
@@ -141,7 +149,9 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 
 	sess, err := s.Sessions.Start(ctx, session.Params{
 		UserID: user.ID, ItemID: req.ItemID, MediaSourceID: src.ID, Token: token,
-		StartSeconds: float64(req.StartTimeTicks) / ticksPerSecond, Plan: plan,
+		StartSeconds:   float64(req.StartTimeTicks) / ticksPerSecond,
+		RunTimeSeconds: float64(src.RunTimeTicks) / ticksPerSecond,
+		Plan:           plan,
 	})
 	switch {
 	case errors.Is(err, session.ErrBusy):
@@ -191,18 +201,43 @@ func (s *Server) jellyfinError(w http.ResponseWriter, err error) {
 // AVPlayer 不方便替每個片段請求加標頭，所以不在這裡驗 token。
 func (s *Server) serveFile(w http.ResponseWriter, r *http.Request) {
 	id, name := r.PathValue("id"), r.PathValue("file")
-	if !session.ValidID(id) || !fileName.MatchString(name) {
+	if !session.ValidID(id) {
 		http.NotFound(w, r)
 		return
 	}
-	sess, ok := s.Sessions.Get(id)
-	if !ok {
+	if name == ffmpeg.PlaylistName {
+		sess, ok := s.Sessions.Get(id)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(sess.Playlist))
+		return
+	}
+
+	m := segmentName.FindStringSubmatch(name)
+	if m == nil {
 		http.NotFound(w, r)
 		return
 	}
-	f, err := os.Open(sess.Path(name))
+	n, _ := strconv.Atoi(m[1])
+	// 還沒轉出的片段在這裡等 ffmpeg；拖曳到遠處時會從這一段重新啟動
+	path, err := s.Sessions.Segment(r.Context(), id, n)
+	switch {
+	case errors.Is(err, session.ErrNotFound), errors.Is(err, session.ErrNoSegment):
+		http.NotFound(w, r)
+		return
+	case errors.Is(err, context.Canceled):
+		return // 播放端已放棄這個請求（例如又拖曳了）
+	case err != nil:
+		s.Log.Printf("session %s segment %d: %v", id, n, err)
+		http.Error(w, "segment unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	f, err := os.Open(path)
 	if err != nil {
-		// 片段還沒轉出來，或已被回收
 		http.NotFound(w, r)
 		return
 	}
@@ -212,38 +247,9 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "stat failed", http.StatusInternalServerError)
 		return
 	}
-	if name == ffmpeg.PlaylistName {
-		b, err := io.ReadAll(f)
-		if err != nil {
-			http.Error(w, "read failed", http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeContent(w, r, name, st.ModTime(), bytes.NewReader(startAtBeginning(b)))
-		return
-	}
 	w.Header().Set("Content-Type", "video/mp2t")
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	http.ServeContent(w, r, name, st.ModTime(), f)
-}
-
-// startAtBeginning 在清單加上 EXT-X-START。轉碼中的 EVENT 清單還沒有 ENDLIST，
-// AVPlayer 和 ExoPlayer 都會把它當直播、從最新的幾段開始播，跳過開頭。
-func startAtBeginning(playlist []byte) []byte {
-	const tag = "#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n"
-	if bytes.Contains(playlist, []byte("#EXT-X-START")) {
-		return playlist
-	}
-	head, rest, ok := bytes.Cut(playlist, []byte("\n"))
-	if !ok || !bytes.HasPrefix(head, []byte("#EXTM3U")) {
-		return playlist
-	}
-	out := make([]byte, 0, len(playlist)+len(tag))
-	out = append(out, head...)
-	out = append(out, '\n')
-	out = append(out, tag...)
-	return append(out, rest...)
 }
 
 func (s *Server) deleteSession(w http.ResponseWriter, r *http.Request) {

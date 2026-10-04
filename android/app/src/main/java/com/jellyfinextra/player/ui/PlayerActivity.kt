@@ -52,8 +52,6 @@ class PlayerActivity : AppCompatActivity() {
     private var xcode: XcodeApi? = null
     private var session: XcodeApi.Session? = null
 
-    /** 播放器的 0 秒對應片中的這個位置（轉碼從 startTicks 開始，直接播放則是 0）。 */
-    private var baseTicks = 0L
     private var playMethod = "Transcode"
     private val playSessionId = UUID.randomUUID().toString()
     private var reportedStart = false
@@ -88,7 +86,8 @@ class PlayerActivity : AppCompatActivity() {
             .setDefaultRequestProperties(mapOf("Authorization" to Http.authHeader(app.settings)))
 
         val mediaItem: MediaItem
-        var startPositionMs = 0L
+        // 轉碼與直接播放的時間軸都是整部片，從要求的位置開始播即可
+        val startPositionMs = startTicks / TICKS_PER_MS
         val xcodeBase = Endpoints.xcode(app)
         if (xcodeBase != null) {
             val api = XcodeApi(app.http, app.settings, xcodeBase)
@@ -100,20 +99,13 @@ class PlayerActivity : AppCompatActivity() {
                 return
             }
             session = s
-            baseTicks = s.startTimeTicks
             mediaItem = MediaItem.Builder()
                 .setUri(s.playlist.toString())
                 .setMimeType(MimeTypes.APPLICATION_M3U8)
-                // 轉碼中的清單是 EVENT 型態，ExoPlayer 會當直播處理；固定 1 倍速，避免它為了追直播邊緣而加速
-                .setLiveConfiguration(
-                    MediaItem.LiveConfiguration.Builder().setMinPlaybackSpeed(1f).setMaxPlaybackSpeed(1f).build()
-                )
                 .build()
         } else {
             status.text = getString(R.string.direct_play)
             playMethod = "DirectPlay"
-            baseTicks = 0
-            startPositionMs = startTicks / TICKS_PER_MS
             mediaItem = MediaItem.fromUri(jf.directStreamUrl(itemId).toString())
         }
 
@@ -151,13 +143,19 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            // 片長以 Jellyfin 記錄為準，實際檔案可能短一點點，最後一段不存在時當作播完
+            val p = player
+            if (p != null && p.duration > 0 && p.currentPosition > p.duration - END_TOLERANCE_MS) {
+                finish()
+                return
+            }
             fail("播放錯誤：${error.errorCodeName}")
         }
     }
 
     private fun currentReport(): PlaybackReport {
         val p = player
-        val pos = baseTicks + (p?.currentPosition ?: 0) * TICKS_PER_MS
+        val pos = (p?.currentPosition ?: 0) * TICKS_PER_MS
         return PlaybackReport(itemId, playSessionId, pos, isPaused = p?.isPlaying != true, playMethod = playMethod)
     }
 
@@ -218,6 +216,7 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_ITEM_ID = "item_id"
         private const val EXTRA_START_TICKS = "start_ticks"
+        private const val END_TOLERANCE_MS = 10_000L
 
         fun intent(context: Context, item: JellyfinApi.Item, startTicks: Long) =
             Intent(context, PlayerActivity::class.java)
