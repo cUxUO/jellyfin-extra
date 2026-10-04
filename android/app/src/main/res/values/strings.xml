@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Jellyfin Extra</string>
+    <string name="login_title">連線設定</string>
+    <string name="lan_jellyfin">內網 Jellyfin 位址</string>
+    <string name="lan_jellyfin_hint">http://192.168.x.x:8096</string>
+    <string name="lan_xcode">內網轉碼伺服器位址</string>
+    <string name="lan_xcode_hint">http://192.168.x.x:8097</string>
+    <string name="external">外部網址（選填）</string>
+    <string name="external_hint">https://example.com</string>
+    <string name="profile">裝置規格</string>
+    <string name="username">帳號</string>
+    <string name="password">密碼</string>
+    <string name="login">登入</string>
+    <string name="logging_in">連線中…</string>
+    <string name="logout">登出</string>
+    <string name="settings">連線設定</string>
+    <string name="refresh">重新整理</string>
+    <string name="empty">這裡沒有項目</string>
+    <string name="resume_title">繼續播放？</string>
+    <string name="resume_from">從 %1$s 繼續</string>
+    <string name="from_start">從頭播放</string>
+    <string name="preparing">準備轉碼中…</string>
+    <string name="direct_play">轉碼伺服器離線，改為直接播放</string>
+    <string name="retry">重試</string>
+</resources>

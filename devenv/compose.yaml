@@ -1,0 +1,63 @@
+services:
+  dev:
+    build:
+      context: .
+      args:
+        UID: ${HOST_UID:-1000}
+        FRIDA_TOOLS_VERSION: ${FRIDA_TOOLS_VERSION:-}
+    image: devenv:latest
+    hostname: devbox
+    init: true
+    tty: true
+    stdin_open: true
+    working_dir: /work
+    command: sleep infinity        # 常駐，用 docker compose exec dev bash 進入
+
+    # 安全：不用 --privileged。若某些工具因此出問題，再逐項放寬，不要直接 privileged
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    # USB：放行 char major 189（USB 裝置節點），讓 adb 能存取 Android 手機
+    device_cgroup_rules:
+      - "c 189:* rmw"
+
+    environment:
+      SSH_AUTH_SOCK: /ssh-agent
+
+    volumes:
+      # 專案原始碼：上一層（專案根目錄）掛到 /work
+      - ..:/work
+
+      # 具名 volume：所有工具鏈與快取都在這裡，主機保持乾淨
+      - android-sdk:/home/dev/Android
+      - gradle-cache:/home/dev/.gradle
+      - android-keys:/home/dev/.android      # adb 授權金鑰，免得每次重新授權手機
+      - theos:/home/dev/theos                # Theos、toolchain、iOS SDK
+      - go:/home/dev/go                      # Go module 與 build 快取
+      - claude-config:/home/dev/.claude      # Claude Code 登入狀態與設定
+      - dev-ssh:/home/dev/.ssh               # known_hosts 與 ssh config
+
+      # 主機 ssh-agent：只掛 socket，容器內看不到私鑰檔本身
+      - type: bind
+        source: ${SSH_AUTH_SOCK:?請先啟動 ssh-agent 並 ssh-add 你的金鑰}
+        target: /ssh-agent
+
+      # USB 裝置節點（create_host_path: false 表示路徑不存在時報錯，而不是由 Docker 自動建立）
+      - type: bind
+        source: /dev/bus/usb
+        target: /dev/bus/usb
+        bind:
+          create_host_path: false
+
+      # iPad 的 usbmuxd socket 在 compose.ios.yaml，做 iOS 時才加上
+
+volumes:
+  android-sdk:
+  gradle-cache:
+  android-keys:
+  theos:
+  go:
+  claude-config:
+  dev-ssh:

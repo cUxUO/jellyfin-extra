@@ -1,0 +1,13 @@
+# iOS 開發時才疊加：docker compose -f compose.yaml -f compose.ios.yaml up -d
+# 必須在 iPad 接上、越獄完成、usbmuxd 已在跑（ls /run/usbmuxd 有東西）之後再啟動
+services:
+  dev:
+    volumes:
+      # 主機的 usbmuxd socket，讓容器內的 idevicesyslog / iproxy 能連 iPad
+      # 注意：usbmuxd 重啟或在裝置拔除後退出，socket 會被重建，容器內的掛載會失效，
+      # 此時 docker compose -f compose.yaml -f compose.ios.yaml restart 即可
+      - type: bind
+        source: /run/usbmuxd
+        target: /run/usbmuxd
+        bind:
+          create_host_path: false

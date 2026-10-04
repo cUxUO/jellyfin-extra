@@ -1,0 +1,10 @@
+{
+  "listen": ":8097",
+  "jellyfinUrl": "http://<Jellyfin 主機的內網位址>:8096",
+  "ffmpegPath": "ffmpeg\\ffmpeg.exe",
+  "workDir": "sessions",
+  "maxSessions": 3,
+  "idleTimeoutSeconds": 120,
+  "readyTimeoutSeconds": 30,
+  "segmentSeconds": 3
+}

@@ -1,0 +1,132 @@
+package profile
+
+import (
+	"testing"
+
+	"jellyfin-extra/server/internal/jellyfin"
+)
+
+func TestFitBox(t *testing.T) {
+	cases := []struct{ w, h, maxW, maxH, wantW, wantH int }{
+		{1920, 1080, 1920, 1080, 1920, 1080},
+		{3840, 2160, 1920, 1080, 1920, 1080},
+		{3840, 2160, 1280, 800, 1280, 720},   // 16:9 進 16:10 框，寬受限
+		{1440, 1080, 1280, 800, 1066, 800},   // 4:3 進 16:10 框，高受限
+		{1920, 800, 1280, 800, 1280, 532},    // 2.4:1 電影
+		{720, 480, 1920, 1080, 720, 480},     // 不放大
+		{1921, 1081, 4000, 4000, 1920, 1080}, // 奇數取偶
+	}
+	for _, c := range cases {
+		w, h := FitBox(c.w, c.h, c.maxW, c.maxH)
+		if w != c.wantW || h != c.wantH {
+			t.Errorf("FitBox(%d,%d,%d,%d) = %d×%d, want %d×%d", c.w, c.h, c.maxW, c.maxH, w, h, c.wantW, c.wantH)
+		}
+	}
+}
+
+func source(streams ...jellyfin.MediaStream) jellyfin.MediaSource {
+	return jellyfin.MediaSource{ID: "ms", MediaStreams: streams}
+}
+
+func TestBuildHDRToZenPad(t *testing.T) {
+	src := source(
+		jellyfin.MediaStream{Type: "Video", Index: 0, Codec: "mjpeg", Width: 600, Height: 900},
+		jellyfin.MediaStream{Type: "Video", Index: 1, Codec: "hevc", Width: 3840, Height: 2160, BitDepth: 10, VideoRange: "HDR"},
+		jellyfin.MediaStream{Type: "Audio", Index: 2, Codec: "truehd", Channels: 8},
+		jellyfin.MediaStream{Type: "Audio", Index: 3, Codec: "ac3", Channels: 6, IsDefault: true},
+	)
+	plan, err := Build(Profiles["zenpad10"], src, Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.VideoIndex != 1 || plan.AudioIndex != 3 {
+		t.Errorf("streams = v%d a%d, want v1 a3", plan.VideoIndex, plan.AudioIndex)
+	}
+	if !plan.HWDecode || !plan.Tonemap {
+		t.Errorf("HWDecode=%v Tonemap=%v, want both", plan.HWDecode, plan.Tonemap)
+	}
+	if plan.Width != 1280 || plan.Height != 720 {
+		t.Errorf("size = %d×%d", plan.Width, plan.Height)
+	}
+	// 1280×720 在 1280×800 框的 90%
+	if plan.VideoBitrate != 3_600_000 {
+		t.Errorf("bitrate = %d", plan.VideoBitrate)
+	}
+}
+
+func TestBuildAudioSelectionAndCaps(t *testing.T) {
+	two := 2
+	src := source(
+		jellyfin.MediaStream{Type: "Video", Index: 0, Codec: "h264", Width: 1920, Height: 1080, BitDepth: 10, BitRate: 3_000_000},
+		jellyfin.MediaStream{Type: "Audio", Index: 1, Codec: "aac"},
+		jellyfin.MediaStream{Type: "Audio", Index: 2, Codec: "aac"},
+	)
+	plan, err := Build(Profiles["ipad-air1"], src, Request{AudioStreamIndex: &two})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.AudioIndex != 2 {
+		t.Errorf("audio = %d, want 2", plan.AudioIndex)
+	}
+	if plan.HWDecode {
+		t.Error("10-bit H.264 must not use NVDEC")
+	}
+	if plan.VideoBitrate != 3_000_000 {
+		t.Errorf("bitrate = %d, want capped at source 3M", plan.VideoBitrate)
+	}
+
+	plan, _ = Build(Profiles["ipad-air1"], src, Request{MaxBitrate: 1_500_000})
+	if plan.AudioIndex != 1 {
+		t.Errorf("default audio = %d, want first (1)", plan.AudioIndex)
+	}
+	if plan.VideoBitrate != 1_500_000-192_000 {
+		t.Errorf("bitrate = %d, want total cap minus audio", plan.VideoBitrate)
+	}
+
+	plan, _ = Build(Profiles["ipad-air1"], src, Request{MaxBitrate: 800_000})
+	if plan.VideoBitrate != minVideoBitrate {
+		t.Errorf("bitrate = %d, want floor %d", plan.VideoBitrate, minVideoBitrate)
+	}
+}
+
+func TestBuildNoAudioNoVideo(t *testing.T) {
+	plan, err := Build(Profiles["ipad-air1"], source(jellyfin.MediaStream{Type: "Video", Codec: "vp9", Width: 640, Height: 360}), Request{})
+	if err != nil || plan.AudioIndex != -1 || plan.AudioInput != -1 || plan.AudioBitrate != 0 {
+		t.Fatalf("plan = %+v, err = %v", plan, err)
+	}
+	if _, err := Build(Profiles["ipad-air1"], source(jellyfin.MediaStream{Type: "Audio", Codec: "flac"}), Request{}); err != ErrNoVideo {
+		t.Fatalf("err = %v, want ErrNoVideo", err)
+	}
+}
+
+// Jellyfin 12.1 把外掛字幕排在 Index 0，內嵌串流往後推；ffmpeg 要用原始檔裡的編號。
+// 實際案例：Platinum.Data.mkv（外掛 srt + h264 + ac3）。
+func TestBuildMapsAroundExternalStreams(t *testing.T) {
+	src := source(
+		jellyfin.MediaStream{Type: "Subtitle", Index: 0, Codec: "subrip", IsExternal: true},
+		jellyfin.MediaStream{Type: "Video", Index: 1, Codec: "h264", Width: 1920, Height: 1080, BitDepth: 8},
+		jellyfin.MediaStream{Type: "Audio", Index: 2, Codec: "ac3", Channels: 6, IsDefault: true},
+	)
+	plan, err := Build(Profiles["zenpad10"], src, Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.VideoIndex != 1 || plan.AudioIndex != 2 {
+		t.Errorf("jellyfin indexes = v%d a%d, want v1 a2", plan.VideoIndex, plan.AudioIndex)
+	}
+	if plan.VideoInput != 0 || plan.AudioInput != 1 {
+		t.Errorf("ffmpeg inputs = v%d a%d, want v0 a1", plan.VideoInput, plan.AudioInput)
+	}
+
+	// 內嵌封面是原始檔裡的串流，要計入；外部串流夾在中間也不影響
+	src = source(
+		jellyfin.MediaStream{Type: "EmbeddedImage", Index: 0, Codec: "mjpeg"},
+		jellyfin.MediaStream{Type: "Video", Index: 1, Codec: "hevc", Width: 1920, Height: 1080},
+		jellyfin.MediaStream{Type: "Subtitle", Index: 2, Codec: "ass", IsExternal: true},
+		jellyfin.MediaStream{Type: "Audio", Index: 3, Codec: "aac"},
+	)
+	plan, _ = Build(Profiles["zenpad10"], src, Request{})
+	if plan.VideoInput != 1 || plan.AudioInput != 2 {
+		t.Errorf("with cover art: inputs = v%d a%d, want v1 a2", plan.VideoInput, plan.AudioInput)
+	}
+}
