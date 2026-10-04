@@ -33,7 +33,7 @@ func loadConfig(path string) (config, error) {
 		MaxSessions:         3,
 		IdleTimeoutSeconds:  120,
 		ReadyTimeoutSeconds: 30,
-		StallTimeoutSeconds: 8,
+		StallTimeoutSeconds: 5,
 		SegmentSeconds:      3,
 	}
 	b, err := os.ReadFile(path)

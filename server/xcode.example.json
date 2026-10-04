@@ -6,6 +6,6 @@
   "maxSessions": 3,
   "idleTimeoutSeconds": 120,
   "readyTimeoutSeconds": 30,
-  "stallTimeoutSeconds": 8,
+  "stallTimeoutSeconds": 5,
   "segmentSeconds": 3
 }
