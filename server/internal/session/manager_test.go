@@ -33,6 +33,17 @@ func TestHelperProcess(t *testing.T) {
 			os.WriteFile(fmt.Sprintf("seg_%05d.ts", n), []byte("x"), 0o644)
 		}
 		time.Sleep(time.Minute) // 直到被結束
+	case "stall-once":
+		// 第一次執行卡住不輸出（模擬索引不完整的跳轉），之後的執行正常
+		if _, err := os.Stat("stalled"); err != nil {
+			os.WriteFile("stalled", nil, 0o644)
+			time.Sleep(time.Minute)
+		}
+		start, _ := strconv.Atoi(args[slices.Index(args, "-start_number")+1])
+		for n := start; n < start+4; n++ {
+			os.WriteFile(fmt.Sprintf("seg_%05d.ts", n), []byte("x"), 0o644)
+		}
+		time.Sleep(time.Minute)
 	case "fail":
 		fmt.Fprintln(os.Stderr, "Unknown decoder 'bogus'")
 		os.Exit(1)
@@ -53,7 +64,7 @@ func newTestManager(t *testing.T, mode string, max int) (*Manager, *fakeRegistry
 	reg := &fakeRegistry{registered: map[string]bool{}}
 	m, err := NewManager(Config{
 		FFmpegPath: os.Args[0], WorkDir: t.TempDir(), MaxSessions: max,
-		IdleTimeout: time.Minute, ReadyTimeout: 5 * time.Second, SegmentSeconds: 3,
+		IdleTimeout: time.Minute, ReadyTimeout: 5 * time.Second, StallTimeout: 500 * time.Millisecond, SegmentSeconds: 3,
 	}, reg, log.New(io.Discard, "", 0))
 	if err != nil {
 		t.Fatal(err)
@@ -196,5 +207,26 @@ func TestReapIdleAndStaleDirs(t *testing.T) {
 	}
 	if _, err := os.Stat(keep); err != nil {
 		t.Error("unrelated dir removed")
+	}
+}
+
+func TestStalledRunIsRestarted(t *testing.T) {
+	m, _ := newTestManager(t, "stall-once", 1)
+	start := time.Now()
+	s, err := m.Start(context.Background(), params(31))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := runStart(s); got != 10 {
+		t.Fatalf("retry started at seg %d, want 10", got)
+	}
+	s.mu.Lock()
+	attempt := s.run.attempt
+	s.mu.Unlock()
+	if attempt != 1 {
+		t.Fatalf("attempt = %d, want 1", attempt)
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Fatalf("took %s; stall retry should kick in after StallTimeout", d)
 	}
 }

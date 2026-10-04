@@ -47,6 +47,9 @@ func run(configPath string, logger *log.Logger) error {
 		return err
 	}
 	proxy := source.NewProxy(jf)
+	if cfg.LogSource {
+		proxy.Log = logger
+	}
 	if err := proxy.Start(); err != nil {
 		return err
 	}

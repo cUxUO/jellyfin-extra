@@ -38,12 +38,19 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 // ffmpeg 至少以 2 倍速前進，等兩段約 3 秒，和重新啟動的成本差不多。
 const lookahead = 2
 
+// maxStallRetries：一次執行超過 StallTimeout 還沒轉出任何一段時，從同一段重新啟動的次數上限。
+const maxStallRetries = 2
+
 type Config struct {
-	FFmpegPath     string
-	WorkDir        string
-	MaxSessions    int // NVENC 消費級驅動有同時編碼數上限
-	IdleTimeout    time.Duration
-	ReadyTimeout   time.Duration
+	FFmpegPath   string
+	WorkDir      string
+	MaxSessions  int // NVENC 消費級驅動有同時編碼數上限
+	IdleTimeout  time.Duration
+	ReadyTimeout time.Duration
+	// StallTimeout：一次 ffmpeg 執行在這段時間內一段都沒轉出就重新啟動（0 表示不重試）。
+	// FFmpeg 經 HTTP 跳轉大型 MKV 時，延後解析的 Cues 索引有機率不完整（上游問題，8.1 與 9.0 皆然），
+	// 只能從較前面的位置循序讀到目標，大檔要讀好幾 GB；同樣的跳轉重新啟動通常就正常。
+	StallTimeout   time.Duration
 	SegmentSeconds int
 }
 
@@ -75,6 +82,8 @@ type Session struct {
 // run 是一次 ffmpeg 執行，從 startSeg 開始往後轉。
 type run struct {
 	startSeg int
+	started  time.Time
+	attempt  int // 因停滯重新啟動的次數
 	cancel   context.CancelFunc
 	done     chan struct{}
 	err      error
@@ -224,6 +233,10 @@ func (m *Manager) Segment(ctx context.Context, id string, n int) (string, error)
 
 // startRun 停掉目前的 ffmpeg（若有），從第 startSeg 段重新啟動。呼叫端必須持有 s.mu。
 func (m *Manager) startRun(s *Session, startSeg int) error {
+	return m.startRunAttempt(s, startSeg, 0)
+}
+
+func (m *Manager) startRunAttempt(s *Session, startSeg, attempt int) error {
 	if old := s.run; old != nil {
 		old.cancel()
 		<-old.done
@@ -235,7 +248,7 @@ func (m *Manager) startRun(s *Session, startSeg int) error {
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r := &run{startSeg: startSeg, cancel: cancel, done: make(chan struct{}), stderr: &tail{max: 4096}, next: startSeg}
+	r := &run{startSeg: startSeg, started: time.Now(), attempt: attempt, cancel: cancel, done: make(chan struct{}), stderr: &tail{max: 4096}, next: startSeg}
 	cmd := m.command(ctx, m.cfg.FFmpegPath, args...)
 	cmd.Dir = s.Dir
 	cmd.Stderr = r.stderr
@@ -301,7 +314,26 @@ func (m *Manager) waitSegment(ctx context.Context, s *Session, n int) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-tick.C:
+			m.retryIfStalled(s, r)
 		}
+	}
+}
+
+// retryIfStalled 在 r 超過 StallTimeout 仍一段都沒轉出時，從同一段重新啟動。
+// 多個等待者可能同時發現；只有 r 仍是目前的執行時才重新啟動。
+func (m *Manager) retryIfStalled(s *Session, r *run) {
+	if r == nil || m.cfg.StallTimeout <= 0 || r.attempt >= maxStallRetries || time.Since(r.started) < m.cfg.StallTimeout {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.run != r || r.finished() || s.frontier(r) > r.startSeg {
+		return
+	}
+	m.log.Printf("session %s: no segment from seg %d after %s, retrying (%d/%d)",
+		s.ID, r.startSeg, m.cfg.StallTimeout, r.attempt+1, maxStallRetries)
+	if err := m.startRunAttempt(s, r.startSeg, r.attempt+1); err != nil {
+		m.log.Printf("session %s: retry: %v", s.ID, err)
 	}
 }
 
