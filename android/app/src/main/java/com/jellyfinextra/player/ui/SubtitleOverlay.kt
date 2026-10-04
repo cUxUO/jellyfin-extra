@@ -76,7 +76,7 @@ class SubtitleOverlay(private val view: SubtitleView) {
     }
 
     private companion object {
-        const val RAISE_DP = 72f
+        const val RAISE_DP = 100f
     }
 
     private fun render() {

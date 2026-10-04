@@ -23,15 +23,29 @@ class XcodeApi(
         val height: Int,
         /** 燒進畫面的字幕（Jellyfin Index），-1 表示沒有。 */
         val burnedSubtitle: Int,
+        /** 實際轉出的音軌（Jellyfin Index），-1 表示沒有音軌。 */
+        val audioIndex: Int,
+        /** GPU（NVDEC）解碼；false 表示片源格式要用 CPU 解碼。 */
+        val hwDecode: Boolean,
     )
 
-    /** [burnSubtitle] 是要燒進畫面的圖形字幕 Index；文字字幕不經轉碼伺服器。 */
-    suspend fun create(itemId: String, profile: String, startTimeTicks: Long, burnSubtitle: Int? = null): Session {
+    /**
+     * [burnSubtitle] 是要燒進畫面的圖形字幕 Index；文字字幕不經轉碼伺服器。
+     * [audioIndex] 是音軌 Index，null 表示由伺服器挑預設音軌。
+     */
+    suspend fun create(
+        itemId: String,
+        profile: String,
+        startTimeTicks: Long,
+        burnSubtitle: Int? = null,
+        audioIndex: Int? = null,
+    ): Session {
         val body = JSONObject()
             .put("itemId", itemId)
             .put("profile", profile)
             .put("startTimeTicks", startTimeTicks)
         if (burnSubtitle != null) body.put("subtitleStreamIndex", burnSubtitle)
+        if (audioIndex != null) body.put("audioStreamIndex", audioIndex)
         val req = Request.Builder()
             .url(base.resolve("v1/sessions")!!)
             .header("Authorization", Http.authHeader(settings))
@@ -52,6 +66,8 @@ class XcodeApi(
             width = video.optInt("width"),
             height = video.optInt("height"),
             burnedSubtitle = o.optInt("subtitleStreamIndex", -1),
+            audioIndex = o.optInt("audioStreamIndex", -1),
+            hwDecode = video.optBoolean("hwDecode", true),
         )
     }
 

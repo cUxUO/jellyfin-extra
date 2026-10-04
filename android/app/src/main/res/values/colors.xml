@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 深色主題與琥珀色強調色，對應設計稿（Jellyfin Extra Android UI）。 -->
+<resources>
+    <color name="bg">#0E1014</color>
+    <color name="surface">#171A20</color>
+    <color name="surface_high">#20242C</color>
+    <color name="line">#2A2F38</color>
+    <color name="divider">#1E222A</color>
+    <color name="outline">#4A505B</color>
+    <color name="text">#F1EFEA</color>
+    <color name="text_secondary">#A9AEB7</color>
+    <color name="text_tertiary">#8A909A</color>
+    <color name="text_body">#C9CDD4</color>
+    <color name="accent">#F2A93B</color>
+    <color name="on_accent">#1A1206</color>
+    <color name="accent_soft">#2EF2A93B</color>
+    <color name="progress_track">#3A3F49</color>
+    <color name="placeholder">#232832</color>
+    <color name="scrim">#B30E1014</color>
+</resources>

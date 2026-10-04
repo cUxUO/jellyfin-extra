@@ -43,6 +43,10 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.datasource.okhttp)
     implementation(libs.okhttp)
+    implementation(libs.material)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.coil)
+    implementation(libs.coil.network.okhttp)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
 }

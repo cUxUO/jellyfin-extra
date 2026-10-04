@@ -2,6 +2,15 @@ package com.jellyfinextra.player
 
 import android.app.Application
 import android.content.Context
+import androidx.fragment.app.Fragment
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.jellyfinextra.player.data.Settings
 import com.jellyfinextra.player.net.Http
 import kotlinx.coroutines.CoroutineScope
@@ -11,7 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 
-class App : Application() {
+class App : Application(), SingletonImageLoader.Factory {
     lateinit var settings: Settings
         private set
 
@@ -32,6 +41,19 @@ class App : Application() {
         super.onCreate()
         settings = Settings(this)
     }
+
+    /**
+     * 圖片共用同一個 OkHttp。這台平板的 app 只有 128MB heap，記憶體快取壓在 20%，
+     * 磁碟快取讓重開 app 時海報不必重抓。
+     */
+    override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context)
+        .components { add(OkHttpNetworkFetcherFactory(callFactory = { http })) }
+        .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
+        .diskCache { DiskCache.Builder().directory(cacheDir.resolve("images")).maxSizeBytes(150L * 1024 * 1024).build() }
+        .crossfade(150)
+        .build()
 }
 
 val Context.app: App get() = applicationContext as App
+
+val Fragment.app: App get() = requireContext().app

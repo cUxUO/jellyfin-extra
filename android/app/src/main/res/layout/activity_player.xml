@@ -9,8 +9,10 @@
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        app:controller_layout_id="@layout/player_controls"
         app:show_buffering="when_playing"
-        app:show_subtitle_button="false" />
+        app:show_subtitle_button="false"
+        app:show_timeout="4000" />
 
     <!-- 文字字幕由 app 自己畫（SubtitleOverlay），不用 PlayerView 內建的字幕層 -->
     <androidx.media3.ui.SubtitleView
@@ -23,20 +25,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="104dp"
         android:background="#99000000"
         android:padding="8dp"
-        android:textColor="@android:color/white"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/subtitleButton"
-        style="?android:attr/borderlessButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_margin="12dp"
-        android:text="@string/subtitles"
         android:textColor="@android:color/white"
         android:visibility="gone" />
 
@@ -47,4 +39,64 @@
         android:layout_gravity="center"
         android:padding="16dp"
         android:textColor="@android:color/white" />
+
+    <!-- 音軌／字幕面板：從右側滑入，點面板外關閉 -->
+    <FrameLayout
+        android:id="@+id/panelScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#4D000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/panel"
+            android:layout_width="360dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:background="@color/surface"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="24dp"
+                android:paddingEnd="12dp">
+
+                <TextView
+                    android:id="@+id/panelTitle"
+                    style="@style/Text.Title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <ImageButton
+                    android:id="@+id/panelClose"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="關閉"
+                    android:src="@drawable/ic_close"
+                    app:tint="@color/text_secondary" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/line" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/panelList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false" />
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

@@ -1,9 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Player" parent="Theme.AppCompat.DayNight.DarkActionBar" />
+    <style name="Theme.Player" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorOnPrimary">@color/on_accent</item>
+        <item name="colorPrimaryContainer">@color/surface_high</item>
+        <item name="colorOnPrimaryContainer">@color/accent</item>
+        <item name="colorSecondaryContainer">@color/surface_high</item>
+        <item name="colorOnSecondaryContainer">@color/accent</item>
+        <item name="colorSurface">@color/bg</item>
+        <item name="colorOnSurface">@color/text</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorSurfaceContainer">@color/surface</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_high</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/line</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+    </style>
 
-    <style name="Theme.Player.Fullscreen" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.Player.Fullscreen">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <!-- 共用文字樣式 -->
+    <style name="Text.Title" parent="">
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="Text.Body" parent="">
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+    <style name="Text.Secondary" parent="">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- 主要（琥珀）與次要（外框）膠囊按鈕 -->
+    <style name="Button.Primary" parent="Widget.Material3.Button">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@color/accent</item>
+        <item name="android:textColor">@color/on_accent</item>
+        <item name="iconTint">@color/on_accent</item>
+        <item name="iconSize">18dp</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">24dp</item>
+    </style>
+    <style name="Button.Outline" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="strokeColor">@color/outline</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">22dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Rounded10" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">10dp</item>
+    </style>
+    <style name="ShapeAppearance.Rounded8" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <!-- 圖片底部的觀看進度條 -->
+    <style name="Progress.Thin" parent="Widget.Material3.LinearProgressIndicator">
+        <item name="trackThickness">4dp</item>
+        <item name="trackCornerRadius">0dp</item>
+        <item name="indicatorColor">@color/accent</item>
+        <item name="trackColor">#80000000</item>
+        <item name="trackStopIndicatorSize">0dp</item>
+        <item name="indicatorTrackGapSize">0dp</item>
+    </style>
+    <style name="Progress.Inline" parent="Progress.Thin">
+        <item name="trackCornerRadius">2dp</item>
+        <item name="trackColor">@color/progress_track</item>
     </style>
 </resources>

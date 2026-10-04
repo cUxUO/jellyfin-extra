@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="RatioImageView">
+        <!-- 高 = 寬 × ratio；海報 1.5，橫式縮圖 0.5625 -->
+        <attr name="ratio" format="float"/>
+    </declare-styleable>
+</resources>

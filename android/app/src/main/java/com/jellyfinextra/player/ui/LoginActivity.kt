@@ -58,7 +58,7 @@ class LoginActivity : AppCompatActivity() {
                 result.onSuccess {
                     settings.saveLogin(it.token, it.userId, it.userName)
                     startActivity(
-                        Intent(this@LoginActivity, BrowseActivity::class.java)
+                        Intent(this@LoginActivity, MainActivity::class.java)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     )
                     finish()

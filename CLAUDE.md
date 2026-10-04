@@ -76,9 +76,14 @@ ssh Windows 'taskkill /f /im xcode.exe'
 
 ## Android 播放程式
 
-專案在 `android/`：Kotlin、View 系統（不用 Compose，舊平板較輕）、Media3 ExoPlayer + OkHttp、JSON 用內建 `org.json`。
-套件 `com.jellyfinextra.player`；`ui/`（Browse、Login、Player）、`net/`（Endpoints 內網優先、JellyfinApi、XcodeApi）、`data/Settings`。
-版本：AGP 9.4.1（內建 Kotlin，不另外套用 kotlin-android 外掛）、Gradle 9.8.0（wrapper 已鎖 SHA-256）、compileSdk 37（androidx.core 1.19 要求）、targetSdk 34、minSdk 24。版本集中在 `gradle/libs.versions.toml`。
+專案在 `android/`：Kotlin、View 系統（不用 Compose，舊平板較輕）、Material Components、Media3 ExoPlayer + OkHttp、Coil 3 載圖、JSON 用內建 `org.json`。
+套件 `com.jellyfinextra.player`：
+- `ui/MainActivity`：左側 NavigationRail（首頁、各媒體庫、搜尋、設定，媒體庫項目依 UserViews 產生）＋ Fragment 內容區；詳情頁走返回堆疊，播放另開 `PlayerActivity`。
+- 畫面：`HomeFragment`（主打＋繼續觀看／下一集／各庫最新）、`LibraryFragment`（海報格線、排序、類型篩選）、`MovieFragment`、`SeriesFragment`、`GridFragments`（播放清單、搜尋）、`SettingsFragment`、`LoginActivity`。
+- `PlayerActivity`：自訂 Media3 控制列 `player_controls.xml`（`exo_rew`／`exo_ffwd`／`exo_play_pause` 必須是 ImageView 系列，Media3 會強制轉型）、右側音軌／字幕面板。
+- `net/`（Endpoints 內網優先、JellyfinApi、XcodeApi）、`data/`（Settings、SubtitleTrack／SubtitleChooser、AudioTrack）。
+- 視覺：深色底＋琥珀色強調（`values/colors.xml`），對照設計稿 artifact「Jellyfin Extra Android UI」。圖片一律帶 `maxWidth` 向 Jellyfin 要縮圖（heap 只有 128MB）。
+版本：AGP 9.4.1（內建 Kotlin）、Kotlin 編譯器 2.4.20（根目錄 `apply false` 放上 classpath，Coil 3.6 需要）、Gradle 9.8.0（wrapper 已鎖 SHA-256）、compileSdk 37（androidx.core 1.19 要求）、targetSdk 34、minSdk 24。版本集中在 `gradle/libs.versions.toml`。
 
 ```bash
 cd android
