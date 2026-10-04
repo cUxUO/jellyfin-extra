@@ -69,6 +69,8 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - **不要**在轉碼的 ffmpeg 裡順便輸出字幕（多個稀疏的 WebVTT 輸出）：實測會讓影像輸出卡死（ffmpeg 排程器等待落後的字幕輸出）；獨立的純字幕 ffmpeg 行為也不穩定。已試過並放棄，細節見 git 歷史。
 - Jellyfin 抽內嵌文字字幕要讀完整個檔案：1GB 約 10 秒，60GB 藍光原盤約 8 分鐘（之後有快取）；外掛字幕約 0.1 秒。播放程式的請求不設讀取逾時，中途放棄會讓 Jellyfin 停掉抽取。
 - ffmpeg 用 jellyfin-ffmpeg 8.1.3 的 win64 版，放在 `C:\dev\jellyfin-extra-test\ffmpeg\`。
+- 已知上游問題：FFmpeg 經 HTTP 讀大型 MKV 並 `-ss` 跳轉時，延後到跳轉才解析的 Cues 索引有約三到五成機率不完整，只能從較前面的位置循序讀到目標（58GB 的 4K 片要讀好幾 GB，數十秒）。原版 FFmpeg 8.1、9.0 都會，讀本機檔案不會；與 Jellyfin、proxy、解碼、`-readrate`、HTTP 選項無關（2026-10 實測）。目前的對策是 `stallTimeoutSeconds`（預設 8）：一次執行這麼久一段都沒轉出就從同一段重啟，最多重試 2 次。根本解法是改直接讀 NAS（SMB，影片來源介面本來就預留），需要使用者提供分享路徑與帳號；SSH（金鑰登入）的工作階段沒有網路認證，`net view \\NAS` 會被拒。
+- 除錯：`xcode.json` 加 `"logSource": true` 會記錄每個原始檔請求（Range、狀態、位元組數、耗時，不含 token）。
 - 3070 Ti：NVENC 可編 H.264 / HEVC（不能編 AV1），NVDEC 可解 H.264 / HEVC / VP9 / AV1。消費級驅動有同時編碼數上限。
 - 遠端預設 shell 是 cmd，主控台編碼是 Big5（cp950）：需要中文輸出時先 `chcp 65001`，或用 PowerShell。連線時的 post-quantum 警告是 Windows 內建 OpenSSH 較舊所致，可忽略。
 - 無法操作 GUI；需要 GUI 才能看的問題，請整理成文字描述請使用者查看。用 Event Log、PowerShell 等命令列方式診斷。
@@ -111,18 +113,19 @@ adb logcat --pid=$(adb shell pidof -s <package>) -d
 
 ## iOS 播放程式（Theos app）
 
-```makefile
-ARCHS = arm64
-TARGET := iphone:clang:12.4:12.0
-INSTALL_TARGET_PROCESSES = <App 名稱>
-include $(THEOS)/makefiles/common.mk
-APPLICATION_NAME = <App 名稱>
-include $(THEOS_MAKE_PATH)/application.mk
-```
+專案在 `ios/`：Theos application（`APPLICATION_NAME = JellyfinExtra`，套件 `com.jellyfinextra.player`，裝到 `/Applications/JellyfinExtra.app`），Objective-C + ARC、UIKit 純程式碼排版（沒有 storyboard），類別前綴 `JX`。畫面與行為對照 Android 版：
+- `App/`：`JXAppDelegate`（URL 快取、AVAudioSession）。
+- `Net/`：`JXHTTP`（驗證標頭、錯誤）、`JXEndpoints`（內網優先探測）、`JXJellyfin`、`JXXcode`。
+- `Model/`：`JXSettings`（NSUserDefaults）、`JXItem`、`JXTracks`（音軌／字幕與 `JXSubtitleChooser`，規則同 Android 的 SubtitleChooser）、`JXFormat`。
+- `UI/`：`JXRootViewController`（左側導覽列＋內容區的 UINavigationController，`JXRoot()` 取得）、首頁、媒體庫、資料夾／搜尋、電影、影集、設定、登入；`JXTheme`（顏色同 Android）、`JXIcons`（UIBezierPath 畫的圖示）、`UIImageView+JX`（背景解碼的圖片載入，iPad Air 1 只有 1GB 記憶體）。
+- `Player/`：`JXPlayerViewController`（AVPlayer、自訂控制列、右側音軌／字幕面板、播放回報）、`JXSubtitles`（WebVTT 解析）。文字字幕用兩層 UILabel：底層只畫黑邊、上層白字（同一層用負的 stroke 會吃掉細的中文筆畫，看起來發灰）。
+- 圖示與啟動圖由 `tools/make_images.py` 產生（純 Python），放在 `Resources/`；用 `UILaunchImages~ipad` 才會以原生解析度執行。
+- 開播位置：建立 AVPlayerItem 後、載入前就 `seekToTime`，避免先向轉碼伺服器要第 0 段（會讓 ffmpeg 從片頭重轉）。
 
 ```bash
+cd ios
 make clean package                           # 產生 .deb 到 packages/
-make package install THEOS_DEVICE_IP=ipad    # 安裝到裝置
+make package install THEOS_DEVICE_IP=ipad    # 安裝到裝置（after-install 會跑 uicache）
 ssh ipad uicache                             # 主畫面沒出現圖示時
 idevicesyslog | grep -i <關鍵字>              # 即時 log（USB，需 usbmuxd socket 有效，容器要用 compose.ios.yaml 啟動）
 ```

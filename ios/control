@@ -1,0 +1,9 @@
+Package: com.jellyfinextra.player
+Name: Jellyfin Extra
+Version: 0.1.0
+Architecture: iphoneos-arm
+Description: Jellyfin player for old iPads, using a Windows GPU transcode server.
+Maintainer: Jack
+Author: Jack
+Section: Multimedia
+Depends: firmware (>= 12.0)
