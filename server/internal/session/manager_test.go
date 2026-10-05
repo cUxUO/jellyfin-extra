@@ -230,3 +230,46 @@ func TestStalledRunIsRestarted(t *testing.T) {
 		t.Fatalf("took %s; stall retry should kick in after StallTimeout", d)
 	}
 }
+
+func TestSnapshotCountsRestartsAndServed(t *testing.T) {
+	m, _ := newTestManager(t, "ok", 2)
+	ctx := context.Background()
+	p := params(0)
+	p.Title, p.UserName, p.Client, p.Profile = "Movie (2024)", "alice", "192.168.0.9", "zenpad10"
+	s, err := m.Start(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Segment(ctx, s.ID, 50); err != nil { // 跳到遠處：重新啟動一次
+		t.Fatal(err)
+	}
+	m.RecordServed(s, 50, 1000)
+	if _, err := m.Start(ctx, params(0)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Start(ctx, params(0)); !errors.Is(err, ErrBusy) {
+		t.Fatalf("third start err = %v", err)
+	}
+
+	snap := m.Snapshot()
+	if snap.MaxSessions != 2 || len(snap.Sessions) != 2 {
+		t.Fatalf("snapshot: max=%d sessions=%d", snap.MaxSessions, len(snap.Sessions))
+	}
+	got := snap.Sessions[0] // 依建立時間排序
+	if got.ID != s.ID || got.Title != "Movie (2024)" || got.UserName != "alice" || got.Client != "192.168.0.9" || got.Profile != "zenpad10" {
+		t.Errorf("display fields = %+v", got)
+	}
+	if got.Restarts != 1 || got.RunStart != 50 || got.LastSegment != 50 || got.SegmentsServed != 1 || got.BytesServed != 1000 {
+		t.Errorf("counters = %+v", got)
+	}
+	if !got.Running || got.Frontier <= got.RunStart {
+		t.Errorf("run state: running=%v start=%d frontier=%d", got.Running, got.RunStart, got.Frontier)
+	}
+	tot := snap.Totals
+	if tot.Started != 2 || tot.Busy != 1 || tot.Restarts != 1 || tot.SegmentsServed != 1 || tot.BytesServed != 1000 {
+		t.Errorf("totals = %+v", tot)
+	}
+	if m.WorkDirUsage() <= 0 {
+		t.Error("work dir usage should count segment files")
+	}
+}

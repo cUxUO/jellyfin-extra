@@ -58,6 +58,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
   - `cmd/xcode`：主程式，設定檔 `xcode.json`（不進版控，範本 `server/xcode.example.json`）。用 Job Object 讓 ffmpeg 跟著 xcode.exe 結束。
   - `cmd/fakejf`：開發用假 Jellyfin，讀 `items.json` 用本機檔案當片源，只供端對端測試。
   - `internal/api`：`POST /v1/sessions`、`GET /v1/sessions/{id}/{file}`、`DELETE /v1/sessions/{id}`，回傳相對路徑。
+  - `internal/dashboard`：監控頁 `http://<Windows 內網 IP>:8097/dashboard`（每 2 秒向 `/dashboard/data` 取 JSON）：GPU（`internal/gpu` 呼叫 `nvidia-smi`，快取 2 秒）、各 session 的片名／使用者／播放端／輸出規格／播放位置與已轉範圍／轉碼速度／重啟次數／流量、累計數據、最近 200 行 log（`internal/logring`）。頁面含使用者與片名，只開放內網直接連線：帶 `X-Forwarded-For` 等代理標頭（經 NPM 的 `/xcode/dashboard`）或非私有位址一律 403。監控頁的請求不寫入請求 log。頁面要能在 iPad Safari 12、Chrome 64 一類的舊瀏覽器顯示：不用 `?.`、`??`、`Array.flat`、flex `gap`。
   - `internal/jellyfin`：Jellyfin API 子集。`internal/source`：127.0.0.1 上的原始檔 proxy，替 ffmpeg 附 token。
   - `internal/profile`：裝置規格與轉碼計畫。輸出編碼依裝置：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps），`zenpad10` 送 HEVC（Main、1280×800、4 Mbps，`hevc_nvenc`）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
 - 測試：`cd server && go test -race ./...`（容器內，Linux）。Windows 專屬程式碼至少要過 `GOOS=windows go vet ./...`。

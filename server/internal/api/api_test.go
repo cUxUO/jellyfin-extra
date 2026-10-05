@@ -34,6 +34,10 @@ func (fakeJF) CurrentUser(_ context.Context, token string) (*jellyfin.User, erro
 	return &jellyfin.User{ID: "u1"}, nil
 }
 
+func (fakeJF) Item(_ context.Context, _, _, id string) (*jellyfin.Item, error) {
+	return &jellyfin.Item{Name: "Test Movie", ProductionYear: 2024}, nil
+}
+
 func (fakeJF) PlaybackInfo(_ context.Context, _, _, id string) (*jellyfin.PlaybackInfo, error) {
 	if id != itemID && id != noRuntimeID {
 		return nil, jellyfin.ErrNotFound
@@ -58,6 +62,7 @@ type fakeSessions struct {
 	started   *session.Params
 	stopped   string
 	requested []int
+	served    []int
 }
 
 func (f *fakeSessions) Start(_ context.Context, p session.Params) (*session.Session, error) {
@@ -85,6 +90,10 @@ func (f *fakeSessions) Segment(_ context.Context, id string, n int) (string, err
 }
 
 func (f *fakeSessions) Stop(id string) bool { f.stopped = id; return id == sessID }
+
+func (f *fakeSessions) RecordServed(_ *session.Session, n int, _ int64) {
+	f.served = append(f.served, n)
+}
 
 func newServer(t *testing.T) (*httptest.Server, *fakeSessions) {
 	t.Helper()
@@ -127,6 +136,10 @@ func TestCreateSession(t *testing.T) {
 	p := fs.started
 	if p == nil || p.Token != "good" || p.UserID != "u1" || p.StartSeconds != 90 || p.RunTimeSeconds != 600 || p.MediaSourceID != itemID {
 		t.Errorf("params = %+v", p)
+	}
+	// 監控頁用的資訊
+	if p.Title != "Test Movie (2024)" || p.Client != "127.0.0.1" || p.Profile != "zenpad10" {
+		t.Errorf("display params: title=%q client=%q profile=%q", p.Title, p.Client, p.Profile)
 	}
 }
 
@@ -185,6 +198,10 @@ func TestServeFile(t *testing.T) {
 	check("/v1/sessions/"+strings.Repeat("0", 32)+"/index.m3u8", 404, "")
 	if !slices.Equal(fs.requested, []int{0, 2, 99}) {
 		t.Errorf("segments requested from manager = %v", fs.requested)
+	}
+	// 只有實際送出的片段計入監控數據
+	if !slices.Equal(fs.served, []int{0, 2}) {
+		t.Errorf("segments recorded as served = %v", fs.served)
 	}
 }
 

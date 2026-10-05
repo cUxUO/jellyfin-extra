@@ -102,6 +102,53 @@ func (c *Client) PlaybackInfo(ctx context.Context, token, userID, itemID string)
 	return &info, nil
 }
 
+// Item 是監控頁顯示片名需要的欄位。
+type Item struct {
+	Name              string `json:"Name"`
+	Type              string `json:"Type"`
+	SeriesName        string `json:"SeriesName"`
+	ParentIndexNumber int    `json:"ParentIndexNumber"`
+	IndexNumber       int    `json:"IndexNumber"`
+	ProductionYear    int    `json:"ProductionYear"`
+}
+
+// DisplayTitle 例如「荒野機器人 (2024)」「黑岩射手 S1E2 第 2 集」。
+func (it Item) DisplayTitle() string {
+	if it.Type == "Episode" && it.SeriesName != "" {
+		if it.IndexNumber > 0 {
+			return fmt.Sprintf("%s S%dE%d %s", it.SeriesName, max(it.ParentIndexNumber, 1), it.IndexNumber, it.Name)
+		}
+		return it.SeriesName + " " + it.Name
+	}
+	if it.ProductionYear > 0 {
+		return fmt.Sprintf("%s (%d)", it.Name, it.ProductionYear)
+	}
+	return it.Name
+}
+
+func (c *Client) Item(ctx context.Context, token, userID, itemID string) (*Item, error) {
+	var it Item
+	q := url.Values{"userId": {userID}}
+	if err := c.getJSON(ctx, token, "/Items/"+url.PathEscape(itemID), q, &it); err != nil {
+		return nil, err
+	}
+	return &it, nil
+}
+
+// PublicInfo 是不需驗證的伺服器資訊，監控頁用來確認 Jellyfin 是否連得上。
+type PublicInfo struct {
+	ServerName string `json:"ServerName"`
+	Version    string `json:"Version"`
+}
+
+func (c *Client) PublicInfo(ctx context.Context) (*PublicInfo, error) {
+	var info PublicInfo
+	if err := c.getJSON(ctx, "", "/System/Info/Public", nil, &info); err != nil {
+		return nil, err
+	}
+	return &info, nil
+}
+
 // StreamURL 是不經轉碼的原始檔網址，支援 Range。
 func (c *Client) StreamURL(itemID, mediaSourceID string) string {
 	u := *c.base
@@ -122,7 +169,9 @@ func (c *Client) getJSON(ctx context.Context, token, path string, q url.Values, 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", AuthHeader(token))
+	if token != "" {
+		req.Header.Set("Authorization", AuthHeader(token))
+	}
 	req.Header.Set("Accept", "application/json")
 	resp, err := c.http.Do(req)
 	if err != nil {

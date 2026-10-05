@@ -15,10 +15,12 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"jellyfin-extra/server/internal/ffmpeg"
@@ -31,6 +33,7 @@ import (
 type Jellyfin interface {
 	CurrentUser(ctx context.Context, token string) (*jellyfin.User, error)
 	PlaybackInfo(ctx context.Context, token, userID, itemID string) (*jellyfin.PlaybackInfo, error)
+	Item(ctx context.Context, token, userID, itemID string) (*jellyfin.Item, error)
 }
 
 // Sessions 是 api 用到的 session 管理功能，測試時可替換。
@@ -39,6 +42,7 @@ type Sessions interface {
 	Get(id string) (*session.Session, bool)
 	Segment(ctx context.Context, id string, n int) (string, error)
 	Stop(id string) bool
+	RecordServed(s *session.Session, n int, size int64)
 }
 
 type Server struct {
@@ -155,11 +159,18 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 片名只用於監控頁，查不到就顯示 ID
+	title := req.ItemID
+	if item, err := s.JF.Item(ctx, token, user.ID, req.ItemID); err == nil && item.Name != "" {
+		title = item.DisplayTitle()
+	}
+
 	sess, err := s.Sessions.Start(ctx, session.Params{
 		UserID: user.ID, ItemID: req.ItemID, MediaSourceID: src.ID, Token: token,
 		StartSeconds:   float64(req.StartTimeTicks) / ticksPerSecond,
 		RunTimeSeconds: float64(src.RunTimeTicks) / ticksPerSecond,
 		Plan:           plan,
+		Title:          title, UserName: user.Name, Client: clientAddr(r), Profile: prof.Name,
 	})
 	switch {
 	case errors.Is(err, session.ErrBusy):
@@ -259,6 +270,9 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "video/mp2t")
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	http.ServeContent(w, r, name, st.ModTime(), f)
+	if sess, ok := s.Sessions.Get(id); ok {
+		s.Sessions.RecordServed(sess, n, st.Size())
+	}
 }
 
 func (s *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
@@ -268,6 +282,19 @@ func (s *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// clientAddr 是監控頁顯示的播放端位址；經反向代理時取 X-Forwarded-For 的第一個位址。
+func clientAddr(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		first, _, _ := strings.Cut(fwd, ",")
+		return strings.TrimSpace(first) + "（經反向代理）"
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 func tokenFrom(r *http.Request) string {

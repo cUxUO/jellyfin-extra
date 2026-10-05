@@ -14,6 +14,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"jellyfin-extra/server/internal/jellyfin"
@@ -28,6 +29,8 @@ type Registry interface {
 type entry struct {
 	upstream *url.URL
 	token    string
+	read     *atomic.Int64 // 已轉給 ffmpeg 的位元組數（監控頁用）
+	total    *atomic.Int64 // Proxy 的累計
 }
 
 type entryKey struct{}
@@ -43,6 +46,7 @@ type Proxy struct {
 
 	mu      sync.Mutex
 	entries map[string]entry
+	total   atomic.Int64 // 啟動以來從 Jellyfin 讀取的總量
 }
 
 func NewProxy(jf *jellyfin.Client) *Proxy {
@@ -79,12 +83,12 @@ func NewProxy(jf *jellyfin.Client) *Proxy {
 			return
 		}
 		ctx := context.WithValue(r.Context(), entryKey{}, e)
+		cw := &countingWriter{ResponseWriter: w, read: e.read, total: e.total}
 		if p.Log == nil {
-			rp.ServeHTTP(w, r.WithContext(ctx))
+			rp.ServeHTTP(cw, r.WithContext(ctx))
 			return
 		}
 		t := &trace{start: time.Now()}
-		cw := &countingWriter{ResponseWriter: w}
 		func() {
 			// 用戶端中途斷線時 ReverseProxy 以 ErrAbortHandler 結束，記錄後照樣往上拋
 			defer func() {
@@ -117,6 +121,8 @@ type countingWriter struct {
 	http.ResponseWriter
 	status int
 	bytes  int64
+	read   *atomic.Int64
+	total  *atomic.Int64
 }
 
 func (c *countingWriter) WriteHeader(code int) {
@@ -130,6 +136,8 @@ func (c *countingWriter) Write(b []byte) (int, error) {
 	}
 	n, err := c.ResponseWriter.Write(b)
 	c.bytes += int64(n)
+	c.read.Add(int64(n))
+	c.total.Add(int64(n))
 	return n, err
 }
 
@@ -173,10 +181,24 @@ func (p *Proxy) Register(sessionID, itemID, mediaSourceID, token string) string 
 		panic(err)
 	}
 	p.mu.Lock()
-	p.entries[sessionID] = entry{upstream: u, token: token}
+	p.entries[sessionID] = entry{upstream: u, token: token, read: new(atomic.Int64), total: &p.total}
 	p.mu.Unlock()
 	return "http://" + p.addr + "/src/" + sessionID
 }
+
+// BytesRead 回傳某個 session 已從 Jellyfin 讀取並轉給 ffmpeg 的位元組數。
+func (p *Proxy) BytesRead(sessionID string) int64 {
+	p.mu.Lock()
+	e, ok := p.entries[sessionID]
+	p.mu.Unlock()
+	if !ok {
+		return 0
+	}
+	return e.read.Load()
+}
+
+// TotalRead 是啟動以來從 Jellyfin 讀取的總位元組數（包含已結束的 session）。
+func (p *Proxy) TotalRead() int64 { return p.total.Load() }
 
 func (p *Proxy) Unregister(sessionID string) {
 	p.mu.Lock()

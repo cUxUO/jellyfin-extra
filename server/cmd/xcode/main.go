@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +14,10 @@ import (
 	"time"
 
 	"jellyfin-extra/server/internal/api"
+	"jellyfin-extra/server/internal/dashboard"
+	"jellyfin-extra/server/internal/gpu"
 	"jellyfin-extra/server/internal/jellyfin"
+	"jellyfin-extra/server/internal/logring"
 	"jellyfin-extra/server/internal/profile"
 	"jellyfin-extra/server/internal/session"
 	"jellyfin-extra/server/internal/source"
@@ -24,13 +28,15 @@ func main() {
 	configPath := flag.String("config", filepath.Join(filepath.Dir(exe), "xcode.json"), "config file")
 	flag.Parse()
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
-	if err := run(*configPath, logger); err != nil {
+	// 最近的 log 同時留在記憶體，給監控頁的事件列表
+	events := logring.New(200)
+	logger := log.New(io.MultiWriter(os.Stderr, events), "", log.LstdFlags)
+	if err := run(*configPath, logger, events); err != nil {
 		logger.Fatal(err)
 	}
 }
 
-func run(configPath string, logger *log.Logger) error {
+func run(configPath string, logger *log.Logger, events *logring.Ring) error {
 	cfg, err := loadConfig(configPath)
 	if err != nil {
 		return err
@@ -68,9 +74,18 @@ func run(configPath string, logger *log.Logger) error {
 		close(mgrDone)
 	}()
 
+	dash := &dashboard.Server{
+		Sessions: mgr, Source: proxy, JF: jf, JellyfinURL: cfg.JellyfinURL,
+		GPU: gpu.NewMonitor(), Events: events, Started: time.Now(),
+	}
+	// 監控頁另外掛，不經 api 的請求記錄（每 2 秒輪詢會洗掉事件列表）
+	mux := http.NewServeMux()
+	mux.Handle("/dashboard", dash.Handler())
+	mux.Handle("/dashboard/", dash.Handler())
+	mux.Handle("/", (&api.Server{JF: jf, Sessions: mgr, Profiles: profile.Profiles, Log: logger}).Handler())
 	srv := &http.Server{
 		Addr:              cfg.Listen,
-		Handler:           (&api.Server{JF: jf, Sessions: mgr, Profiles: profile.Profiles, Log: logger}).Handler(),
+		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {
@@ -80,7 +95,7 @@ func run(configPath string, logger *log.Logger) error {
 		srv.Shutdown(shutdownCtx)
 	}()
 
-	logger.Printf("xcode listening on %s, jellyfin=%s, workDir=%s, maxSessions=%d", cfg.Listen, cfg.JellyfinURL, cfg.WorkDir, cfg.MaxSessions)
+	logger.Printf("xcode listening on %s, jellyfin=%s, workDir=%s, maxSessions=%d, dashboard at /dashboard", cfg.Listen, cfg.JellyfinURL, cfg.WorkDir, cfg.MaxSessions)
 	err = srv.ListenAndServe()
 	stop()
 	<-mgrDone // 停掉所有 ffmpeg、清掉暫存

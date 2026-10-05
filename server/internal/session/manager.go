@@ -62,6 +62,12 @@ type Params struct {
 	StartSeconds   float64
 	RunTimeSeconds float64
 	Plan           profile.Plan
+
+	// 以下只用於監控頁顯示
+	Title    string // 片名（集數含影集名稱）
+	UserName string
+	Client   string // 播放端位址；經反向代理時是轉送前的位址
+	Profile  string
 }
 
 type Session struct {
@@ -72,6 +78,13 @@ type Session struct {
 	Plan     profile.Plan
 	Segments int    // 播放清單裡的總段數
 	Playlist []byte // 給播放端的完整 VOD 清單
+	Created  time.Time
+	Title    string
+	UserName string
+	Client   string
+	Profile  string
+
+	stats sessionStats
 
 	input      string
 	mu         sync.Mutex // 保護 run 與重新啟動的決定
@@ -129,6 +142,8 @@ type Manager struct {
 	mu       sync.Mutex
 	sessions map[string]*Session
 	pending  int // 啟動中、尚未就緒的數量，也佔名額
+
+	totals totals
 }
 
 func NewManager(cfg Config, src source.Registry, logger *log.Logger) (*Manager, error) {
@@ -158,6 +173,7 @@ func (m *Manager) Start(ctx context.Context, p Params) (*Session, error) {
 	m.mu.Lock()
 	if len(m.sessions)+m.pending >= m.cfg.MaxSessions {
 		m.mu.Unlock()
+		m.totals.busy.Add(1)
 		return nil, ErrBusy
 	}
 	m.pending++
@@ -170,7 +186,8 @@ func (m *Manager) Start(ctx context.Context, p Params) (*Session, error) {
 
 	seg := m.cfg.SegmentSeconds
 	s := &Session{
-		ID: newID(), UserID: p.UserID, ItemID: p.ItemID, Plan: p.Plan,
+		ID: newID(), UserID: p.UserID, ItemID: p.ItemID, Plan: p.Plan, Created: time.Now(),
+		Title: p.Title, UserName: p.UserName, Client: p.Client, Profile: p.Profile,
 		Segments: ffmpeg.SegmentCount(p.RunTimeSeconds, seg),
 		Playlist: ffmpeg.VODPlaylist(p.RunTimeSeconds, seg),
 	}
@@ -190,12 +207,15 @@ func (m *Manager) Start(ctx context.Context, p Params) (*Session, error) {
 	}
 	if err != nil {
 		m.cleanup(s)
+		m.totals.failed.Add(1)
 		return nil, err
 	}
 
 	m.mu.Lock()
 	m.sessions[s.ID] = s
 	m.mu.Unlock()
+	m.totals.started.Add(1)
+	s.stats.lastSegment.Store(int64(startSeg))
 	m.log.Printf("session %s ready: item=%s user=%s start=seg%d/%d %dx%d %dkbps hw=%v tonemap=%v",
 		s.ID, s.ItemID, s.UserID, startSeg, s.Segments, s.Plan.Width, s.Plan.Height, s.Plan.VideoBitrate/1000, s.Plan.HWDecode, s.Plan.Tonemap)
 	return s, nil
@@ -241,6 +261,13 @@ func (m *Manager) startRunAttempt(s *Session, startSeg, attempt int) error {
 		old.cancel()
 		<-old.done
 		m.log.Printf("session %s: restart at seg %d (was from seg %d)", s.ID, startSeg, old.startSeg)
+		if attempt > 0 {
+			s.stats.stallRetries.Add(1)
+			m.totals.stallRetries.Add(1)
+		} else {
+			s.stats.restarts.Add(1)
+			m.totals.restarts.Add(1)
+		}
 	}
 	args := ffmpeg.Args(ffmpeg.Job{
 		Input: s.input, StartSegment: startSeg,

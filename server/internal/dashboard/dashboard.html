@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>轉碼伺服器監控</title>
+<style>
+:root {
+  --bg: #0E1014; --surface: #171A20; --surface-high: #20242C; --line: #2A2F38; --outline: #4A505B;
+  --text: #F1EFEA; --text2: #A9AEB7; --text3: #8A909A; --body: #C9CDD4;
+  --accent: #F2A93B; --on-accent: #1A1206; --track: #3A3F49;
+  --ok: #7BC67E; --warn: #F2A93B; --bad: #E57373; --blue: #5CB8E4; --pink: #E57A9A;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", sans-serif; }
+main { max-width: 1280px; margin: 0 auto; padding: 20px 24px 48px; }
+header { display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+header > * { margin-right: 14px; }
+header > .chips { margin-right: 0; }
+.logo { width: 40px; height: 40px; border-radius: 11px; background: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.logo svg { width: 18px; height: 18px; fill: var(--on-accent); }
+h1 { font-size: 22px; margin: 0; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; margin-left: auto; }
+.chips > * { margin: 2px 0 2px 8px; }
+.chip { padding: 4px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--text2); font-size: 13px; white-space: nowrap; }
+.chip b { color: var(--text); font-weight: 500; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 6px; background: var(--ok); vertical-align: 1px; }
+.dot.bad { background: var(--bad); }
+h2 { font-size: 16px; margin: 28px 0 12px; font-weight: 700; display: flex; align-items: center; }
+h2 > * { margin-left: 12px; }
+h2 .note { font-size: 13px; color: var(--text3); font-weight: 400; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); grid-gap: 12px; gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.card .label { color: var(--text3); font-size: 12px; }
+.card .value { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .value small { font-size: 14px; color: var(--text2); font-weight: 400; margin-left: 2px; }
+.card .sub { color: var(--text2); font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { height: 4px; border-radius: 2px; background: var(--track); margin-top: 8px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); grid-gap: 12px; gap: 12px; margin-top: 12px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px 10px; }
+.chart .head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+.chart .title { color: var(--text2); font-size: 13px; }
+.legend { display: flex; flex-wrap: wrap; font-size: 12px; color: var(--text2); }
+.legend span { margin-left: 12px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: 3px; background: var(--c); }
+canvas { display: block; width: 100%; height: 140px; margin-top: 6px; }
+.sessions { display: grid; grid-gap: 12px; gap: 12px; }
+.session { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.s-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.s-top > div { margin-right: 12px; }
+.s-title { font-size: 17px; font-weight: 700; }
+.s-meta { color: var(--text2); font-size: 13px; margin-top: 2px; }
+.s-state { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--surface-high); color: var(--text2); white-space: nowrap; }
+.s-state.run { color: var(--ok); }
+.tags { display: flex; flex-wrap: wrap; margin-top: 10px; }
+.tags .tag { margin: 0 6px 6px 0; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--surface-high); color: var(--body); }
+.tag.hi { background: rgba(242,169,59,0.15); color: var(--accent); }
+.timeline { position: relative; height: 10px; border-radius: 5px; background: var(--track); margin: 16px 0 6px; }
+.timeline .done { position: absolute; top: 0; bottom: 0; background: rgba(242,169,59,0.45); border-radius: 5px; min-width: 3px; }
+.timeline .pos { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; background: var(--text); border-radius: 2px; }
+.tl-labels { display: flex; justify-content: space-between; color: var(--text2); font-size: 12px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.s-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); grid-gap: 8px 16px; gap: 8px 16px; margin-top: 12px; }
+.s-stats div { font-size: 12px; color: var(--text3); }
+.s-stats b { display: block; font-size: 15px; color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--text3); }
+.events { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 0; max-height: 420px; overflow: auto; font: 12px/1.6 ui-monospace, Consolas, "Cascadia Mono", monospace; }
+.events div { padding: 1px 16px; white-space: pre-wrap; word-break: break-all; color: var(--body); }
+.events .t { color: var(--text3); }
+.events .warn { color: var(--warn); }
+.events .bad { color: var(--bad); }
+.events .cmd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text3); }
+label.toggle { font-size: 13px; color: var(--text2); font-weight: 400; display: flex; align-items: center; cursor: pointer; }
+label.toggle input { margin: 0 6px 0 0; }
+input[type=checkbox] { accent-color: var(--accent); }
+.err { color: var(--bad); }
+@media (max-width: 600px) { main { padding: 16px; } .chips { margin-left: 0; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg></div>
+    <h1>轉碼伺服器</h1>
+    <div class="chips">
+      <span class="chip" id="conn"><span class="dot"></span>連線中…</span>
+      <span class="chip">版本 <b id="version">—</b></span>
+      <span class="chip">已執行 <b id="uptime">—</b></span>
+    </div>
+  </header>
+
+  <section class="cards" id="cards"></section>
+
+  <section class="charts">
+    <div class="chart">
+      <div class="head"><span class="title">GPU 使用率（最近 5 分鐘）</span>
+        <div class="legend"><span style="--c:#F2A93B">整體</span><span style="--c:#5CB8E4">NVENC 編碼</span><span style="--c:#7BC67E">NVDEC 解碼</span></div></div>
+      <canvas id="gpuChart"></canvas>
+    </div>
+    <div class="chart">
+      <div class="head"><span class="title">流量 Mbps（最近 5 分鐘）</span>
+        <div class="legend"><span style="--c:#F2A93B">送出給播放端</span><span style="--c:#E57A9A">讀取原始檔</span></div></div>
+      <canvas id="netChart"></canvas>
+    </div>
+  </section>
+
+  <h2>進行中的轉碼 <span class="note" id="sessNote"></span></h2>
+  <div class="sessions" id="sessions"></div>
+
+  <h2>累計 <span class="note">自伺服器啟動</span></h2>
+  <section class="cards" id="totals"></section>
+
+  <h2>最近事件
+    <label class="toggle"><input type="checkbox" id="showSeg">顯示片段請求</label>
+  </h2>
+  <div class="events" id="events"></div>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const HISTORY = 150; // 每 2 秒一點，約 5 分鐘
+const gpuHist = [], netHist = [];
+let prev = null; // 上一次的資料，用來算速率
+let showSeg = false;
+try { showSeg = localStorage.getItem("showSeg") === "1"; } catch (e) {}
+$("showSeg").checked = showSeg;
+$("showSeg").addEventListener("change", (e) => {
+  showSeg = e.target.checked;
+  try { localStorage.setItem("showSeg", showSeg ? "1" : "0"); } catch (err) {}
+  if (prev) renderEvents(prev.events);
+});
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function bytes(n) {
+  if (n == null || n < 0) return "—";
+  const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i === 0 ? n : n.toFixed(n >= 100 ? 0 : 1)) + " " + u[i];
+}
+function mbps(bitsPerSec) { return bitsPerSec >= 0 ? (bitsPerSec / 1e6).toFixed(bitsPerSec >= 1e8 ? 0 : 1) + " Mbps" : "—"; }
+function clock(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
+}
+function ago(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return s + " 秒";
+  if (s < 3600) return Math.floor(s / 60) + " 分";
+  return Math.floor(s / 3600) + " 小時 " + Math.floor(s % 3600 / 60) + " 分";
+}
+function num(v, unit, digits = 0) { return v == null || v < 0 ? "—" : v.toFixed(digits) + (unit ? `<small>${unit}</small>` : ""); }
+
+function card(label, value, sub, pct) {
+  const bar = pct == null ? "" : `<div class="bar"><i style="width:${Math.min(100, Math.max(0, pct))}%"></i></div>`;
+  return `<div class="card"><div class="label">${label}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ""}${bar}</div>`;
+}
+
+function render(d) {
+  const now = new Date(d.now).getTime();
+  $("version").textContent = d.server.version;
+  $("uptime").textContent = ago(now - new Date(d.server.started).getTime());
+  $("conn").innerHTML = `<span class="dot"></span>即時更新`;
+
+  // 速率：兩次取樣之間的差
+  const dt = prev ? (now - new Date(prev.now).getTime()) / 1000 : 0;
+  const srcTotal = d.sessions.active.reduce((a, s) => a + s.sourceBytes, 0);
+  let outRate = -1, inRate = -1;
+  if (prev && dt > 0) {
+    outRate = Math.max(0, (d.sessions.totals.bytesServed - prev.sessions.totals.bytesServed) * 8 / dt);
+    // 原始檔讀取量依 session 個別計算，session 結束時不會變成負的
+    const prevSrc = new Map(prev.sessions.active.map((s) => [s.id, s.sourceBytes]));
+    inRate = d.sessions.active.reduce((a, s) => a + Math.max(0, s.sourceBytes - (prevSrc.has(s.id) ? prevSrc.get(s.id) : s.sourceBytes)), 0) * 8 / dt;
+  }
+
+  const g = d.gpu.available && d.gpu.list.length ? d.gpu.list[0] : null;
+  const s = d.sessions;
+  const cards = [];
+  cards.push(card("轉碼工作", `${s.active.length}<small>/ ${s.maxSessions}</small>`, s.starting ? `${s.starting} 個啟動中` : "同時上限 " + s.maxSessions, s.active.length / s.maxSessions * 100));
+  if (g) {
+    cards.push(card("GPU", num(g.utilization, "%"), esc(g.name.replace("NVIDIA GeForce ", "")) + (g.clockMHz >= 0 ? ` · ${g.clockMHz} MHz` : ""), g.utilization));
+    // 消費級顯卡在 Windows 上 nvidia-smi 的編碼工作階段數不可靠（常為 0），不顯示
+    cards.push(card("NVENC 編碼", num(g.encoder, "%"), g.encFps > 0 ? `平均 ${g.encFps} fps` : "硬體編碼器", g.encoder));
+    cards.push(card("NVDEC 解碼", num(g.decoder, "%"), "硬體解碼器", g.decoder));
+    cards.push(card("顯示記憶體", num(g.memoryUsed / 1024, "GB", 1), `共 ${(g.memoryTotal / 1024).toFixed(0)} GB`, g.memoryUsed / g.memoryTotal * 100));
+    cards.push(card("溫度 · 功耗", num(g.temperature, "°C"), `${g.power >= 0 ? g.power.toFixed(0) : "—"} W / ${g.powerLimit >= 0 ? g.powerLimit.toFixed(0) : "—"} W` + (g.fan >= 0 ? ` · 風扇 ${g.fan}%` : ""), g.power >= 0 && g.powerLimit > 0 ? g.power / g.powerLimit * 100 : null));
+  } else {
+    cards.push(card("GPU", "—", `<span class="err">${esc(d.gpu.error || "無法取得")}</span>`));
+  }
+  cards.push(card("目前流量", outRate >= 0 ? mbps(outRate).replace(" Mbps", "<small>Mbps</small>") : "—", `讀取原始檔 ${inRate >= 0 ? mbps(inRate) : "—"}`));
+  const disk = d.disk;
+  cards.push(card("暫存空間", bytes(disk.usedBytes).replace(/ (\w+)$/, "<small>$1</small>"), disk.freeBytes >= 0 ? `磁碟剩餘 ${bytes(disk.freeBytes)}` : esc(disk.workDir)));
+  const jf = d.jellyfin;
+  cards.push(card("Jellyfin", jf.ok ? `${jf.latencyMs}<small>ms</small>` : `<span class="err">離線</span>`,
+    jf.ok ? `${esc(jf.name)} · ${esc(jf.version)}` : esc(jf.error || jf.url)));
+  $("cards").innerHTML = cards.join("");
+
+  // 圖表歷史
+  gpuHist.push(g ? [g.utilization, g.encoder, g.decoder] : [null, null, null]);
+  netHist.push([outRate >= 0 ? outRate / 1e6 : null, inRate >= 0 ? inRate / 1e6 : null]);
+  while (gpuHist.length > HISTORY) gpuHist.shift();
+  while (netHist.length > HISTORY) netHist.shift();
+  drawChart($("gpuChart"), gpuHist, ["#F2A93B", "#5CB8E4", "#7BC67E"], 100, "%");
+  const netMax = Math.max(10, ...[].concat(...netHist).filter((v) => v != null));
+  drawChart($("netChart"), netHist, ["#F2A93B", "#E57A9A"], niceMax(netMax), "");
+
+  renderSessions(d, now, dt);
+  renderTotals(d.sessions.totals, d.sessions.sourceBytesRead);
+  renderEvents(d.events);
+  prev = d;
+}
+
+function niceMax(v) {
+  const steps = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+  return steps.find((s) => s >= v) || Math.ceil(v / 1000) * 1000;
+}
+
+function renderSessions(d, now, dt) {
+  const list = d.sessions.active;
+  $("sessNote").textContent = list.length ? `${list.length} 個` : "";
+  if (!list.length) {
+    $("sessions").innerHTML = `<div class="empty">目前沒有轉碼工作${d.sessions.starting ? `（${d.sessions.starting} 個啟動中）` : ""}</div>`;
+    return;
+  }
+  const prevMap = new Map((prev ? prev.sessions.active : []).map((s) => [s.id, s]));
+  $("sessions").innerHTML = list.map((s) => {
+    const seg = s.segmentSeconds, total = s.segments * seg;
+    const pos = s.lastSegment * seg;
+    const doneFrom = s.runStart * seg, doneTo = s.frontier * seg;
+    const ahead = Math.max(0, doneTo - (pos + seg));
+    const p = prevMap.get(s.id);
+    const inRate = p && dt > 0 ? Math.max(0, s.sourceBytes - p.sourceBytes) * 8 / dt : -1;
+    const codec = s.codec === "hevc" ? "HEVC" : "H.264";
+    const tags = [
+      `<span class="tag hi">${codec} ${s.width}×${s.height} · ${mbps(s.videoBitrate)}</span>`,
+      `<span class="tag">片源 ${s.sourceWidth}×${s.sourceHeight}</span>`,
+      `<span class="tag">${s.hwDecode ? "GPU 解碼" : "CPU 解碼"}</span>`,
+      s.tonemap ? `<span class="tag">HDR → SDR</span>` : "",
+      s.subtitleIndex >= 0 ? `<span class="tag">燒錄字幕 #${s.subtitleIndex}</span>` : "",
+      s.audioIndex >= 0 ? `<span class="tag">音軌 #${s.audioIndex} · AAC ${Math.round(s.audioBitrate / 1000)}k</span>` : `<span class="tag">無音軌</span>`,
+    ].join("");
+    const state = s.running ? `<span class="s-state run">轉碼中 ${s.speed.toFixed(1)}×</span>` : `<span class="s-state">ffmpeg 已停（等待請求）</span>`;
+    const pct = (v) => total > 0 ? Math.min(100, v / total * 100) : 0;
+    return `<div class="session">
+      <div class="s-top">
+        <div><div class="s-title">${esc(s.title || s.itemId)}</div>
+          <div class="s-meta">${esc(s.userName || "—")} · ${esc(s.client || "—")} · ${esc(s.profile)} · 開始於 ${new Date(s.created).toLocaleTimeString("zh-TW", { hour12: false })}（${ago(now - new Date(s.created).getTime())}前）</div></div>
+        ${state}
+      </div>
+      <div class="tags">${tags}</div>
+      <div class="timeline" title="灰色是整部片，琥珀色是這次 ffmpeg 已轉出的範圍，白線是播放位置">
+        <div class="done" style="left:${pct(doneFrom)}%;width:${Math.max(0, pct(doneTo) - pct(doneFrom))}%"></div>
+        <div class="pos" style="left:${pct(pos)}%"></div>
+      </div>
+      <div class="tl-labels"><span>播放位置 ${clock(pos)} / ${clock(total)}</span><span>已轉到 ${clock(doneTo)}（領先 ${clock(ahead)}）</span></div>
+      <div class="s-stats">
+        <div>送出<b>${bytes(s.bytesServed)}</b></div>
+        <div>片段數<b>${s.segmentsServed}</b></div>
+        <div>讀取原始檔<b>${bytes(s.sourceBytes)}</b></div>
+        <div>原始檔讀取速率<b>${inRate >= 0 ? mbps(inRate) : "—"}</b></div>
+        <div>跳轉重啟<b>${s.restarts}</b></div>
+        <div>停滯重試<b>${s.stallRetries}</b></div>
+        <div>最後請求<b>${ago(now - new Date(s.lastAccess).getTime())}前</b></div>
+        <div>Session<b title="${esc(s.id)}">${esc(s.id.slice(0, 8))}</b></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderTotals(t, sourceRead) {
+  $("totals").innerHTML = [
+    card("已建立", t.started, "成功開始的轉碼"),
+    card("啟動失敗", t.failed, "ffmpeg 沒轉出第一段"),
+    card("忙碌拒絕", t.busy, "超過同時上限"),
+    card("跳轉重啟", t.restarts, "拖曳到沒轉過的位置"),
+    card("停滯重試", t.stallRetries, "一段都沒轉出而重啟"),
+    card("送出片段", t.segmentsServed, "播放端取走的片段"),
+    card("送出流量", bytes(t.bytesServed).replace(/ (\w+)$/, "<small>$1</small>"), "給播放端"),
+    card("讀取原始檔", bytes(sourceRead).replace(/ (\w+)$/, "<small>$1</small>"), "經 Jellyfin 讀取"),
+  ].join("");
+}
+
+const segLine = /\s(GET|HEAD) \/v1\/sessions\/[0-9a-f]+\/(seg_\d+\.ts|index\.m3u8) /;
+function renderEvents(lines) {
+  const box = $("events");
+  const atTop = box.scrollTop < 8;
+  const shown = (lines || []).filter((l) => showSeg || !segLine.test(l)).slice().reverse();
+  box.innerHTML = shown.length ? shown.map((l) => {
+    const m = /^(\d{4}\/\d\d\/\d\d )?(\d\d:\d\d:\d\d) (.*)$/.exec(l);
+    const text = m ? m[3] : l;
+    let cls = /failed|error|panic| 50[23] /i.test(text) ? "bad" : /retrying|restart|idle|busy| 4\d\d /i.test(text) ? "warn" : "";
+    // ffmpeg 參數很長，單行截斷，滑鼠移上去看完整內容
+    if (/: ffmpeg -/.test(text)) cls += " cmd";
+    return `<div class="${cls}" title="${cls.indexOf("cmd") >= 0 ? esc(text) : ""}">${m ? `<span class="t">${m[2]}</span> ` : ""}${esc(text)}</div>`;
+  }).join("") : `<div class="t">（沒有事件）</div>`;
+  if (atTop) box.scrollTop = 0;
+}
+
+function drawChart(canvas, hist, colors, max, unit) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const left = 44, right = 4, top = 6, bottom = 6;
+  const pw = w - left - right, ph = h - top - bottom;
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.fillStyle = "#8A909A"; ctx.strokeStyle = "#2A2F38"; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = top + ph * (1 - i / 4);
+    ctx.beginPath(); ctx.moveTo(left, Math.round(y) + 0.5); ctx.lineTo(w - right, Math.round(y) + 0.5); ctx.stroke();
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillText(Math.round(max * i / 4) + (i === 4 ? unit : ""), left - 6, y);
+  }
+  const n = hist.length;
+  colors.forEach((c, k) => {
+    ctx.strokeStyle = c; ctx.lineWidth = 1.8; ctx.lineJoin = "round";
+    ctx.beginPath();
+    let started = false;
+    hist.forEach((row, i) => {
+      const v = row[k];
+      if (v == null) { started = false; return; }
+      const x = left + pw * (HISTORY - n + i) / (HISTORY - 1);
+      const y = top + ph * (1 - Math.min(v, max) / max);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+
+async function tick() {
+  try {
+    const r = await fetch("dashboard/data", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    render(await r.json());
+  } catch (e) {
+    $("conn").innerHTML = `<span class="dot bad"></span>連線中斷（${esc(e.message)}）`;
+  } finally {
+    setTimeout(tick, 2000);
+  }
+}
+tick();
+window.addEventListener("resize", () => {
+  drawChart($("gpuChart"), gpuHist, ["#F2A93B", "#5CB8E4", "#7BC67E"], 100, "%");
+  const netMax = Math.max(10, ...[].concat(...netHist).filter((v) => v != null));
+  drawChart($("netChart"), netHist, ["#F2A93B", "#E57A9A"], niceMax(netMax), "");
+});
+</script>
+</body>
+</html>
