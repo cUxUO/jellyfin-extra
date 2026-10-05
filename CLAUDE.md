@@ -59,7 +59,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
   - `cmd/fakejf`：開發用假 Jellyfin，讀 `items.json` 用本機檔案當片源，只供端對端測試。
   - `internal/api`：`POST /v1/sessions`、`GET /v1/sessions/{id}/{file}`、`DELETE /v1/sessions/{id}`，回傳相對路徑。
   - `internal/jellyfin`：Jellyfin API 子集。`internal/source`：127.0.0.1 上的原始檔 proxy，替 ffmpeg 附 token。
-  - `internal/profile`：裝置規格與轉碼計畫。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
+  - `internal/profile`：裝置規格與轉碼計畫。輸出編碼依裝置：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps），`zenpad10` 送 HEVC（Main、1280×800、4 Mbps，`hevc_nvenc`）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
 - 測試：`cd server && go test -race ./...`（容器內，Linux）。Windows 專屬程式碼至少要過 `GOOS=windows go vet ./...`。
 - 端對端測試：Windows 測試目錄已有 `clips\`（SDR HEVC 1080p、HDR10 HEVC 4K、10-bit H.264 各 60 秒）、`items.json`、指向 fakejf 的 `xcode.fake.json`。先跑 `fakejf.exe -items items.json`（token `devtoken`，聽 127.0.0.1:18096），再跑 `xcode.exe -config xcode.fake.json`。
 - 真實 Jellyfin（12.1.0）：`xcode.json` 指向內網 8096（不經 NPM）。測試用 token 以 `tools/jf-login.sh <內網網址> <帳號>` 取得，存在容器的 `~/.config/jellyfin-extra/token`；讀取時用 `$(cat ~/.config/jellyfin-extra/token)`，不要印出、不要寫進檔案或 log。
@@ -101,8 +101,8 @@ adb logcat --pid=$(adb shell pidof -s <package>) -d
 - 確認解碼器：debug 版把解碼器名稱、格式、掉幀寫進 app 私有的 `files/playback.log`（每次播放覆寫），用 `adb shell run-as com.jellyfinextra.player cat files/playback.log` 讀。硬解為 `OMX.MTK.VIDEO.DECODER.*`。這台的 logcat 緩衝很小，不要依賴 logcat。
 - 開發時預填連線設定：debug 版可用 `adb shell run-as com.jellyfinextra.player` 寫入 `shared_prefs/settings.xml`（只放位址與 profile，不放 token；密碼由使用者在裝置上輸入）。
 - Java 8+ API（如 `java.time`）靠 core library desugaring，不要假設 API 26 以上才有的 API 可用。
-- Android 7.0 沒有原生 TLS 1.3，系統憑證庫也沒有 Let's Encrypt 的 ISRG Root X1（7.1.1 才加入）：連 HTTPS 時用 `network_security_config` 內建所需根憑證。`targetSdk >= 24` 預設不信任使用者安裝的 CA。
-- 實測 ZenPad 系統 TLS（Conscrypt）的 ClientHello：只有 TLS 1.0–1.2，曲線**只有 P-256**（沒有 X25519、P-384）。目前網域憑證是 ECDSA P-384，系統 TLS 握手必定失敗（alert 40）。播放程式的所有 HTTPS（Jellyfin 與 xcode）要走 app 內建的 Conscrypt + OkHttp，ExoPlayer 用 OkHttpDataSource，不要用系統的 HttpURLConnection。
+- Android 7.0 沒有原生 TLS 1.3，系統憑證庫也沒有 Let's Encrypt 的 ISRG Root X1（7.1.1 才加入）：`network_security_config` 內建 ISRG Root X1／X2（`res/raw/`，取自容器的 Ubuntu CA，指紋已核對）。`targetSdk >= 24` 預設不信任使用者安裝的 CA。
+- 實測 ZenPad 系統 TLS（Conscrypt）的 ClientHello：只有 TLS 1.0–1.2，曲線**只有 P-256**（沒有 X25519、P-384）。目前網域憑證是 ECDSA P-384，系統 TLS 握手必定失敗（alert 40）。已改用 app 內建的 Conscrypt（`org.conscrypt:conscrypt-android`，見 `net/Http.kt`）：OkHttp 的 TLS 走 Conscrypt，憑證信任仍用系統 TrustManager（套用 network_security_config）；Jellyfin、xcode、ExoPlayer（OkHttpDataSource）、Coil 共用同一個 client。新增網路請求一律用這個 client，不要用系統的 HttpURLConnection。外部 https（經 NPM 的 Jellyfin 與 `/xcode/`）已在 ZenPad 實測可播放。
 - 裝置實際支援的硬體解碼格式以 `MediaCodecList` 實測為準，不要只憑規格表。目前實測（`/system/etc/media_codecs*.xml` 與 logcat）：
   - 影像硬解：H.264（`OMX.MTK.VIDEO.DECODER.AVC`，最高 1920×1088）、HEVC（`OMX.MTK.VIDEO.DECODER.HEVC`，最高 1920×1088）、MPEG-4、H.263。VP8 / VP9 只有軟解，沒有 AV1。
   - 音訊：AAC、MP3、FLAC、Vorbis、Opus、DTS；沒有 AC3 / E-AC3。

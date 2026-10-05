@@ -2,12 +2,15 @@
 <!--
   內網優先：在家直連 Jellyfin 與轉碼伺服器的內網 IP，走 http。
   內網位址由使用者設定、無法在建置時列舉，所以全域允許明文；外部網址一律用 https。
-  外部 https 在 Android 7.0 的問題（ISRG Root X1、P-384 憑證）留待第二版內建 Conscrypt 處理。
+  Android 7.0 的系統憑證庫沒有 Let's Encrypt 的根憑證（7.1.1 才加入 ISRG Root X1），一併內建。
+  TLS 本身改用 app 內建的 Conscrypt（見 net/Http.kt），信任判斷仍走這裡的設定。
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="@raw/isrg_root_x1" />
+            <certificates src="@raw/isrg_root_x2" />
         </trust-anchors>
     </base-config>
 </network-security-config>

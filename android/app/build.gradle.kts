@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.datasource.okhttp)
     implementation(libs.okhttp)
+    implementation(libs.conscrypt.android)
     implementation(libs.material)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.coil)

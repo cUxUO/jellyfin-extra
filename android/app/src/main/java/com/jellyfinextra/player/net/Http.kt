@@ -11,9 +11,14 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.conscrypt.Conscrypt
 import org.json.JSONObject
 import java.io.IOException
+import java.security.KeyStore
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.X509TrustManager
 
 /** 伺服器回傳非 2xx。message 是給使用者看的說明，不含 token。 */
 class HttpException(val code: Int, message: String) : IOException(message)
@@ -25,7 +30,23 @@ object Http {
         .connectTimeout(5, TimeUnit.SECONDS)
         // 轉碼伺服器建立 session 時要等第一批片段，最長約 30 秒
         .readTimeout(40, TimeUnit.SECONDS)
+        .useConscrypt()
         .build()
+
+    /**
+     * TLS 改用 app 內建的 Conscrypt（BoringSSL）：這台 Android 7.0 的系統 TLS 只有 TLS 1.0–1.2、
+     * 曲線只有 P-256，對目前的 ECDSA P-384 憑證必定握手失敗（alert 40）。
+     * 憑證信任仍用系統的 TrustManager，所以 network_security_config（內建的 ISRG 根憑證）照樣生效。
+     * Jellyfin、轉碼伺服器、ExoPlayer 與 Coil 都共用這個 client。
+     */
+    private fun OkHttpClient.Builder.useConscrypt(): OkHttpClient.Builder {
+        val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+        tmf.init(null as KeyStore?)
+        val trust = tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
+        val tls = SSLContext.getInstance("TLS", Conscrypt.newProvider())
+        tls.init(null, arrayOf(trust), null)
+        return sslSocketFactory(tls.socketFactory, trust)
+    }
 
     /** 探測位址用：連不上就快速放棄，改試下一個位址。 */
     fun probeClient(base: OkHttpClient): OkHttpClient = base.newBuilder()

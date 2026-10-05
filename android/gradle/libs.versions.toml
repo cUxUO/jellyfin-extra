@@ -14,6 +14,8 @@ junit = "4.13.2"
 material = "1.14.0"
 fragment = "1.9.1"
 coil = "3.6.3"
+# Android 7.0 系統 TLS 只到 1.2、曲線只有 P-256，連不上 P-384 憑證；改用內建的 BoringSSL
+conscrypt = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
@@ -32,6 +34,7 @@ material = { module = "com.google.android.material:material", version.ref = "mat
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragment" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+conscrypt-android = { module = "org.conscrypt:conscrypt-android", version.ref = "conscrypt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
