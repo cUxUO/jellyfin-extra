@@ -48,7 +48,9 @@ class LibraryFragment : Fragment(R.layout.fragment_library) {
     }
 
     override fun onViewCreated(root: View, savedInstanceState: Bundle?) {
-        root.findViewById<TextView>(R.id.title).text = library.name
+        // 播放清單庫在 Jellyfin 預設叫「Playlists」，改用中文（導覽列顯示「清單」）
+        root.findViewById<TextView>(R.id.title).text =
+            if (library.collectionType == "playlists") getString(R.string.playlists_title) else library.name
         val filterable = library.collectionType == "movies" || library.collectionType == "tvshows"
         root.findViewById<View>(R.id.controls).visibility = if (filterable) View.VISIBLE else View.GONE
 

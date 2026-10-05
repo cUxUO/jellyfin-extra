@@ -1,74 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 連線設定與登入：置中的一欄，寬度與 iPad 版相同 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="520dp"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingTop="40dp"
+        android:paddingBottom="40dp">
 
-        <TextView style="@style/TextAppearance.AppCompat.Caption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/lan_jellyfin" />
-        <EditText
-            android:id="@+id/lanJellyfin"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/login_title"
+            android:textColor="@color/text"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/lan_jellyfin_hint"
-            android:inputType="textUri"
-            android:importantForAutofill="no" />
+            android:layout_marginTop="12dp"
+            android:hint="@string/lan_jellyfin"
+            app:placeholderText="@string/lan_jellyfin_hint">
 
-        <TextView style="@style/TextAppearance.AppCompat.Caption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/lan_xcode" />
-        <EditText
-            android:id="@+id/lanXcode"
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/lanJellyfin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="textUri" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/lan_xcode_hint"
-            android:inputType="textUri"
-            android:importantForAutofill="no" />
+            android:layout_marginTop="12dp"
+            android:hint="@string/lan_xcode"
+            app:placeholderText="@string/lan_xcode_hint">
 
-        <TextView style="@style/TextAppearance.AppCompat.Caption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/external" />
-        <EditText
-            android:id="@+id/external"
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/lanXcode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="textUri" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/external_hint"
-            android:inputType="textUri"
-            android:importantForAutofill="no" />
+            android:layout_marginTop="12dp"
+            android:hint="@string/external"
+            app:placeholderText="@string/external_hint">
 
-        <TextView style="@style/TextAppearance.AppCompat.Caption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/profile" />
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/external"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="textUri" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            style="@style/Text.Secondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/profile" />
+
         <Spinner
             android:id="@+id/profile"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="48dp" />
 
-        <TextView style="@style/TextAppearance.AppCompat.Caption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/username" />
-        <EditText
-            android:id="@+id/username"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:importantForAutofill="no" />
+            android:layout_marginTop="12dp"
+            android:hint="@string/username">
 
-        <TextView style="@style/TextAppearance.AppCompat.Caption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/password" />
-        <EditText
-            android:id="@+id/password"
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/username"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textPassword"
-            android:importantForAutofill="no" />
+            android:layout_marginTop="12dp"
+            android:hint="@string/password"
+            app:endIconMode="password_toggle">
 
-        <Button
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="textPassword" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/login"
+            style="@style/Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="28dp"
             android:text="@string/login" />
 
         <TextView
             android:id="@+id/status"
+            style="@style/Text.Body"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="12dp"
+            android:textColor="@color/text_secondary" />
     </LinearLayout>
 </ScrollView>

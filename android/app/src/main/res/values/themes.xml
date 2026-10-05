@@ -3,6 +3,9 @@
     <style name="Theme.Player" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/accent</item>
         <item name="colorOnPrimary">@color/on_accent</item>
+        <!-- 對話框的單選鈕、勾選框等選取狀態也用琥珀色 -->
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorOnSecondary">@color/on_accent</item>
         <item name="colorPrimaryContainer">@color/surface_high</item>
         <item name="colorOnPrimaryContainer">@color/accent</item>
         <item name="colorSecondaryContainer">@color/surface_high</item>
