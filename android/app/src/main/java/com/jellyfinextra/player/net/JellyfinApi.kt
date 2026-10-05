@@ -305,7 +305,9 @@ class JellyfinApi(
                     width = it.optInt("Width"),
                     height = it.optInt("Height"),
                     bitDepth = it.optInt("BitDepth", 8),
-                    frameRate = (it.optDouble("RealFrameRate").takeIf { r -> !r.isNaN() } ?: it.optDouble("AverageFrameRate", 0.0)).toFloat(),
+                    // 可變幀率的片源 RealFrameRate 可能是 120 之類的時基值，以平均幀率判斷解碼能力
+                    frameRate = listOf(it.optDouble("AverageFrameRate"), it.optDouble("RealFrameRate"))
+                        .firstOrNull { r -> !r.isNaN() && r > 0 }?.toFloat() ?: 0f,
                     range = it.optString("VideoRange"),
                 )
             },

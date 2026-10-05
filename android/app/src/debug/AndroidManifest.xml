@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  debug 版專用：讓 adb 能直接開播放畫面做自動測試（release 不受影響）。
+  用 am start 開 .ui.PlayerActivity，extra：item_id（字串）、start_ticks（long）、title、quality（AUTO／ORIGINAL／P1080／P720／P480）。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <activity
+            android:name=".ui.PlayerActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+    </application>
+</manifest>

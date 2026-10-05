@@ -46,6 +46,29 @@ class PlaybackFileLog(context: Context) : AnalyticsListener {
     override fun onPlayerError(eventTime: AnalyticsListener.EventTime, error: PlaybackException) =
         log("error ${error.errorCodeName}: ${error.message}")
 
+    override fun onAudioCodecError(eventTime: AnalyticsListener.EventTime, audioCodecError: Exception) =
+        log("audio codec error: $audioCodecError")
+
+    override fun onAudioSinkError(eventTime: AnalyticsListener.EventTime, audioSinkError: Exception) =
+        log("audio sink error: $audioSinkError")
+
+    override fun onAudioUnderrun(eventTime: AnalyticsListener.EventTime, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long) =
+        log("audio underrun (${elapsedSinceLastFeedMs}ms since last feed)")
+
+    override fun onAudioInputFormatChanged(eventTime: AnalyticsListener.EventTime, format: Format, decoderReuseEvaluation: DecoderReuseEvaluation?) =
+        log("audio format ${format.sampleMimeType} ${format.channelCount}ch ${format.sampleRate}Hz")
+
+    override fun onLoadError(
+        eventTime: AnalyticsListener.EventTime,
+        loadEventInfo: androidx.media3.exoplayer.source.LoadEventInfo,
+        mediaLoadData: androidx.media3.exoplayer.source.MediaLoadData,
+        error: java.io.IOException,
+        wasCanceled: Boolean,
+    ) = log("load error: $error")
+
+    override fun onIsLoadingChanged(eventTime: AnalyticsListener.EventTime, isLoading: Boolean) =
+        log("loading=$isLoading buffered=${eventTime.totalBufferedDurationMs}ms")
+
     override fun onVideoDisabled(eventTime: AnalyticsListener.EventTime, decoderCounters: DecoderCounters) =
         log("video totals: rendered ${decoderCounters.renderedOutputBufferCount}, dropped ${decoderCounters.droppedBufferCount}, max consecutive dropped ${decoderCounters.maxConsecutiveDroppedBufferCount}")
 }

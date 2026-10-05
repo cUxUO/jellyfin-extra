@@ -107,14 +107,18 @@ adb logcat --pid=$(adb shell pidof -s <package>) -d
 - `minSdk 24`。APK 依 ABI 分開（`splits.abi`：arm64-v8a、armeabi-v7a，Conscrypt 帶 native 函式庫）；versionCode = 基礎版號 × 10 + ABI 碼（v7a 1、arm64 2），Updater 由個位數判斷安裝的是哪個 ABI。
 - 發布：改 `app/build.gradle.kts` 的 `versionCode`／`versionName` → 提交、推送 → 容器內 `./gradlew assembleRelease` → 主機執行 `tools/publish-android.sh [說明檔]`（gh 建立 `v<版本>` Release、tag 打在目前 commit、上傳兩個 APK）。發布前先問使用者。release 簽章金鑰在主機 `~/.config/jellyfin-extra/`（`release.jks`、`signing.properties`，devenv 掛進容器），不進版控、不要印出密碼；遺失就無法再更新已安裝的 app。debug 與 release 簽章不同，兩者互換要先解除安裝。
 - 播放回報：Jellyfin 會把沒有自己轉碼工作的 `PlayMethod: Transcode` 改成 DirectPlay（後台顯示用），不影響進度紀錄，不用處理。
-- 確認解碼器：debug 版把解碼器名稱、格式、掉幀寫進 app 私有的 `files/playback.log`（每次播放覆寫），用 `adb shell run-as com.jellyfinextra.player cat files/playback.log` 讀。硬解為 `OMX.MTK.VIDEO.DECODER.*`。這台的 logcat 緩衝很小，不要依賴 logcat。
+- 確認解碼器：debug 版把解碼器名稱、格式、掉幀、播放方式的決定與原因、載入與錯誤寫進 app 私有的 `files/playback.log`（每次播放覆寫），用 `adb shell run-as com.jellyfinextra.player cat files/playback.log` 讀。硬解為 `OMX.MTK.VIDEO.DECODER.*`。這台的 logcat 緩衝很小，不要依賴 logcat。
+- 自動測試（debug 版，`src/debug/AndroidManifest.xml` 讓 PlayerActivity 可從 adb 開啟）：`adb shell am start -W -n com.jellyfinextra.player/.ui.PlayerActivity --es item_id <ID> --el start_ticks <ticks> --es title <名稱> --es quality AUTO|ORIGINAL|P1080|P720|P480`；播放中用 `am start --activity-single-top -n …/.ui.PlayerActivity --es quality P720` 或 `--ei audio <Index>` 等同在面板切換。結束用 `input keyevent KEYCODE_BACK`。控制列幾秒就自動隱藏，uiautomator dump 太慢，不要用它點控制列的按鈕；拖曳可以「點畫面叫出控制列、0.4 秒內點時間軸」。
+- 不要送媒體鍵（`KEYCODE_MEDIA_*`）：播放程式沒有 MediaSession，系統會把媒體鍵交給平板上的 NewPipe，開出它的錯誤頁蓋住播放器。
 - 開發時預填連線設定：debug 版可用 `adb shell run-as com.jellyfinextra.player` 寫入 `shared_prefs/settings.xml`（只放位址，不放 token；密碼由使用者在裝置上輸入）。
 - Java 8+ API（如 `java.time`）靠 core library desugaring，不要假設 API 26 以上才有的 API 可用。
 - Android 7.0 沒有原生 TLS 1.3，系統憑證庫也沒有 Let's Encrypt 的 ISRG Root X1（7.1.1 才加入）：`network_security_config` 內建 ISRG Root X1／X2（`res/raw/`，取自容器的 Ubuntu CA，指紋已核對）。`targetSdk >= 24` 預設不信任使用者安裝的 CA。
 - 實測 ZenPad 系統 TLS（Conscrypt）的 ClientHello：只有 TLS 1.0–1.2，曲線**只有 P-256**（沒有 X25519、P-384）。目前網域憑證是 ECDSA P-384，系統 TLS 握手必定失敗（alert 40）。已改用 app 內建的 Conscrypt（`org.conscrypt:conscrypt-android`，見 `net/Http.kt`）：OkHttp 的 TLS 走 Conscrypt，憑證信任仍用系統 TrustManager（套用 network_security_config）；Jellyfin、xcode、ExoPlayer（OkHttpDataSource）、Coil 共用同一個 client。新增網路請求一律用這個 client，不要用系統的 HttpURLConnection。外部 https（經 NPM 的 Jellyfin 與 `/xcode/`）已在 ZenPad 實測可播放。
 - 裝置實際支援的硬體解碼格式以 `MediaCodecList` 實測為準，不要只憑規格表。目前實測（`/system/etc/media_codecs*.xml` 與 logcat）：
   - 影像硬解：H.264（`OMX.MTK.VIDEO.DECODER.AVC`，最高 1920×1088）、HEVC（`OMX.MTK.VIDEO.DECODER.HEVC`，最高 1920×1088）、MPEG-4、H.263。VP8 / VP9 只有軟解，沒有 AV1。
-  - 音訊：AAC、MP3、FLAC、Vorbis、Opus、DTS；沒有 AC3 / E-AC3。
+  - 音訊：AAC、MP3、Vorbis、Opus 可用；沒有 AC3／E-AC3。FLAC 的 `OMX.MTK.AUDIO.DECODER.FLAC` 接受資料卻不輸出（播放停在第一格），`DeviceCaps` 把它當作不存在。DTS 解碼器註冊成 `audio/dts`，ExoPlayer 找的是 `audio/vnd.dts`，用不到。所以 FLAC／DTS 片源一律轉碼成 AAC。
+  - 可變幀率的片源 Jellyfin 的 `RealFrameRate` 可能是 119.88 之類的時基值，判斷解碼能力用 `AverageFrameRate`。
+  - 直接播放 15 秒還沒就緒就自動改成轉碼（防其他沒發現的壞解碼器）。
   - 裝置 ABI 是 `arm64-v8a,armeabi-v7a,armeabi`。
 - 容器內的 adb 收不到 USB 熱插拔事件：手機接上後 `adb devices` 是空的，先 `adb kill-server && adb start-server`。
 - 模擬器不可用於 armeabi-v7a native 測試，一律用實機。

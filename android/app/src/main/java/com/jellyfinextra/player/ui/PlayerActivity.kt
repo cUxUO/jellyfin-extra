@@ -121,7 +121,8 @@ class PlayerActivity : AppCompatActivity() {
         startTicks = intent.getLongExtra(EXTRA_START_TICKS, 0)
         requestedAudio = intent.getIntExtra(EXTRA_AUDIO, AUDIO_DEFAULT)
         requestedSubtitle = intent.getIntExtra(EXTRA_SUBTITLE, SUBTITLE_AUTO)
-        quality = app.settings.quality
+        // debug 版的自動測試可用 extra 指定畫質（見 src/debug/AndroidManifest.xml）
+        quality = intent.getStringExtra(EXTRA_QUALITY)?.takeIf { BuildConfig.DEBUG }?.let { Quality.of(it) } ?: app.settings.quality
 
         // 控制列裡自訂的按鈕（返回、標題、音軌、字幕）
         playerView.findViewById<TextView>(R.id.playerTitle).text = intent.getStringExtra(EXTRA_TITLE)
@@ -143,6 +144,15 @@ class PlayerActivity : AppCompatActivity() {
 
         status.text = getString(R.string.preparing)
         lifecycleScope.launch { prepare() }
+    }
+
+    /** debug 版的自動測試：am start --activity-single-top 帶 quality 或 audio，等同在面板選擇。 */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (!BuildConfig.DEBUG || player == null) return
+        intent.getStringExtra(EXTRA_QUALITY)?.let { applyQuality(Quality.of(it)) }
+        val audio = intent.getIntExtra(EXTRA_AUDIO, AUDIO_DEFAULT)
+        mediaInfo?.audio?.firstOrNull { it.index == audio }?.let { applyAudio(it) }
     }
 
     private suspend fun prepare() {
@@ -196,6 +206,7 @@ class PlayerActivity : AppCompatActivity() {
             playMethod = "DirectPlay"
             mediaItem = directItem(jf)
             currentAudio = defaultAudio()
+            if (api != null) watchDirectPlay()
             // 轉碼伺服器離線時無法燒錄圖形字幕，也無法換音軌（播放器播原始檔的預設音軌）
             if (subtitle?.isImage == true) subtitle = null
         }
@@ -480,6 +491,21 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 直接播放一段時間還沒進入就緒（例如解碼器接受資料卻不輸出），改成轉碼。
+     * 已知有問題的解碼器在 DeviceCaps 排除，這裡防的是其他裝置上還沒發現的。
+     */
+    private fun watchDirectPlay() {
+        lifecycleScope.launch {
+            delay(DIRECT_PLAY_TIMEOUT_MS)
+            val p = player ?: return@launch
+            if (session == null && playMethod == "DirectPlay" && p.playbackState != Player.STATE_READY && suspendedAtMs == null) {
+                fileLog?.log("direct play not ready after ${DIRECT_PLAY_TIMEOUT_MS}ms, falling back to transcode")
+                restartSession(currentSubtitle?.takeIf { it.isImage }?.index, currentAudio)
+            }
+        }
+    }
+
     /** 改成直接播放原始檔：從目前位置接著播，停掉轉碼 session。 */
     private fun switchToDirect() {
         val jf = jellyfin ?: return
@@ -493,6 +519,7 @@ class PlayerActivity : AppCompatActivity() {
         p.prepare()
         updateStatusLine()
         fileLog?.log("switch to direct play at ${positionMs}ms")
+        watchDirectPlay()
         val api = xcode
         if (old != null && api != null) app.appScope.launch { runCatching { api.delete(old.id) } }
     }
@@ -668,7 +695,9 @@ class PlayerActivity : AppCompatActivity() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_AUDIO = "audio"
         private const val EXTRA_SUBTITLE = "subtitle"
+        private const val EXTRA_QUALITY = "quality"
         private const val END_TOLERANCE_MS = 10_000L
+        private const val DIRECT_PLAY_TIMEOUT_MS = 15_000L
         private const val SEEK_INCREMENT_MS = 10_000L
 
         /** 讓轉碼伺服器挑預設音軌。 */

@@ -38,8 +38,14 @@ object DeviceCaps : DirectPlay.Decoders {
         "alac" to "audio/alac",
     )
 
+    /**
+     * 實測有問題的解碼器，當作不存在：
+     * - OMX.MTK.AUDIO.DECODER.FLAC（ZenPad）：接受資料但一直不輸出，播放停在第一格。
+     */
+    private val BROKEN = setOf("omx.mtk.audio.decoder.flac")
+
     private val decoders: List<MediaCodecInfo> by lazy {
-        MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder }
+        MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder && it.name.lowercase() !in BROKEN }
     }
 
     /** 各格式能力最好的硬體解碼器。 */
