@@ -102,8 +102,8 @@ func TestDashboardLANOnly(t *testing.T) {
 		{"[::1]:1", nil, 200},
 		{"8.8.8.8:1", nil, 403},
 		// 反向代理在內網，但轉送的是外部請求
-		{"192.168.0.122:1", map[string]string{"X-Forwarded-For": "203.0.113.5"}, 403},
-		{"192.168.0.122:1", map[string]string{"X-Real-IP": "203.0.113.5"}, 403},
+		{"192.168.1.2:1", map[string]string{"X-Forwarded-For": "203.0.113.5"}, 403},
+		{"192.168.1.2:1", map[string]string{"X-Real-IP": "203.0.113.5"}, 403},
 	}
 	for _, c := range cases {
 		if got := request(h, "/dashboard/data", c.remote, c.header).Code; got != c.want {
