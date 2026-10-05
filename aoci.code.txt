@@ -209,11 +209,14 @@ main.go[XQ5T]: F:開發用假 Jellyfin：只實作 Users/Me、PlaybackInfo、Vid
 config.go[FC7T]: F:讀 xcode.json：預設值、必要欄位檢查，轉成 session.Config | R:code:server/cmd/xcode/main.go,code:server/internal/session/manager.go,code:server/xcode.example.json | A:config,loadConfig,session,StallTimeoutSeconds,LogSource | S:ffmpegPath、workDir 的相對路徑以設定檔目錄為準並一律轉成絕對路徑：ffmpeg 以 session 目錄為工作目錄啟動，相對路徑會找不到；stallTimeoutSeconds 預設 5，0 表示不重試
 job_other.go[RR2T]: F:非 Windows 平台的 killChildrenOnExit 空實作 | R:code:server/cmd/xcode/job_windows.go | A:killChildrenOnExit | S:-
 job_windows.go[RR7T]: F:把 xcode 自身放進 kill-on-close Job Object，讓 ffmpeg 子行程跟著 xcode 結束 | R:code:server/cmd/xcode/main.go | A:killChildrenOnExit | S:Job handle 刻意不關、要活到行程結束；ssh 斷線或 taskkill /f 後 ffmpeg 才不會在背景續轉
-main.go[EG8S]: F:xcode 主程式：讀設定、建 Job Object、Jellyfin client、原始檔 proxy、session 管理器，掛上 API 與監控頁，中斷時停掉所有 ffmpeg | R:code:server/cmd/xcode/config.go,code:server/internal/api/api.go,code:server/internal/dashboard/dashboard.go,code:server/internal/session/manager.go,code:server/internal/source/proxy.go | A:main,run | S:監控頁另外掛在 /dashboard，不經 api 的請求 log（2 秒輪詢會洗掉事件）；log 同時寫入 stderr 與 logring
+main.go[EG8S]: F:xcode 主程式：設定 log 檔，系統匣或 -notray 模式執行；讀設定、建 Job Object、Jellyfin client、原始檔 proxy、session 管理器，掛上 API 與監控頁 | R:code:server/cmd/xcode/config.go,code:server/cmd/xcode/tray_windows.go,code:server/cmd/xcode/logfile.go,code:server/internal/api/api.go,code:server/internal/dashboard/dashboard.go,code:server/internal/session/manager.go | A:main,run,status,dashboardURL,quiet | S:Windows 版以 -H=windowsgui 建置，stderr 可能無效，寫入包在 quiet 忽略錯誤；監控頁另外掛在 /dashboard，不經 api 的請求 log；先 Listen 再通知系統匣就緒
+logfile.go[RO4T]: F:附加寫入的 log 檔，超過上限就改名 .1 重新開始 | R:code:server/cmd/xcode/main.go | A:rotatingLog,openRotatingLog | S:開不了新檔時靜默不寫檔，不回傳錯誤（以免中斷 MultiWriter）
+tray_other.go[RU2T]: F:非 Windows 平台沒有系統匣，一律在主控台執行 | R:code:server/cmd/xcode/tray_windows.go | A:trayAvailable,runWithTray | S:-
+tray_windows.go[EU7S]: F:Windows 系統匣常駐：狀態、開監控頁／記錄檔／資料夾、登入時自動啟動、結束；單一執行個體與錯誤訊息框 | R:code:server/cmd/xcode/main.go,code:tools/make_xcode_icon.py | A:runWithTray,onTrayReady,setAutostart,autostartEnabled,shellOpen,messageBox | S:自動啟動寫 HKCU Run 值 JellyfinExtraXcode，設定檔不在 exe 旁時帶 -config；結束時等所有 ffmpeg 停完；mutex 只限同一登入工作階段
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/===
-go.mod[FV5T]: F:Go 模組 jellyfin-extra/server，Go 1.27.1，唯一外部依賴 golang.org/x/sys | R:code:server/go.sum | A:module | S:-
-go.sum[FV1T]: F:golang.org/x/sys 的模組校驗和 | R:code:server/go.mod | A:- | S:-
+go.mod[FV5T]: F:Go 模組 jellyfin-extra/server，Go 1.27.1，依賴 golang.org/x/sys 與系統匣用的 fyne.io/systray | R:code:server/go.sum | A:module | S:godbus/dbus 只是 systray 的 Linux 依賴，不會編進 Windows 版
+go.sum[FV1T]: F:x/sys、fyne.io/systray 與 godbus/dbus 的模組校驗和 | R:code:server/go.mod | A:- | S:-
 xcode.example.json[FC4T]: F:xcode.json 範本：監聽位址、Jellyfin 內網網址、ffmpeg 路徑、暫存目錄、名額與各種逾時 | R:code:server/cmd/xcode/config.go | A:jellyfinUrl,maxSessions,stallTimeoutSeconds | S:實際的 xcode.json 不進版控
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/internal/api/===
@@ -229,7 +232,7 @@ disk_windows.go[RO3T]: F:Windows 以 GetDiskFreeSpaceExW 取目前使用者可�
 args.go[KG9S]: F:由轉碼計畫產生 ffmpeg 參數（NVDEC／CPU 解碼、縮放、tonemap、圖形字幕燒錄、NVENC H.264／HEVC、AAC、HLS）與整部片的 VOD 播放清單 | R:code:server/internal/profile/profile.go,code:server/internal/session/manager.go | A:Args,VODPlaylist,SegmentCount,SegmentName,burnFilter,videoFilter | S:中途啟動用 -ss（必須在 -i 前）加 -output_ts_offset 與 -start_number，時間戳與檔名才對齊整部片；每段用 force_key_frames 強制 IDR；燒錄字幕必須帶 -canvas_size（片源尺寸），否則跳到沒字幕處濾鏡會卡住；-readrate 2 加 30 秒爆發限制轉碼速度；不可在同一個 ffmpeg 輸出字幕（會卡死影像）
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/internal/gpu/===
-gpu.go[IO5S]: F:執行 nvidia-smi 查詢 GPU 使用率、NVENC／NVDEC、顯存、溫度與功耗，結果快取 2 秒 | R:code:server/internal/dashboard/dashboard.go | A:Monitor,Query,Stats,parse | S:消費級顯卡在 Windows 上 encoder.stats.sessionCount 常為 0，不可靠
+gpu.go[IO5S]: F:執行 nvidia-smi 查詢 GPU 使用率、NVENC／NVDEC、顯存、溫度與功耗，結果快取 2 秒 | R:code:server/internal/dashboard/dashboard.go,code:server/internal/proc/proc_windows.go | A:Monitor,Query,Stats,parse | S:消費級顯卡在 Windows 上 encoder.stats.sessionCount 常為 0，不可靠；子行程要 proc.NoWindow，否則 GUI 版每次查詢閃一個主控台
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/internal/jellyfin/===
 client.go[IN8S]: F:Jellyfin API 子集：CurrentUser（驗 token）、PlaybackInfo、Item 片名、PublicInfo、原始檔串流網址 | R:code:server/internal/api/api.go,code:server/internal/source/proxy.go,code:server/internal/dashboard/dashboard.go | A:Client,CurrentUser,PlaybackInfo,Item,PublicInfo,StreamURL | S:空 token 時不送 Authorization（公開 API 用）；401／403 一律視為 ErrUnauthorized
@@ -241,7 +244,7 @@ logring.go[CO4T]: F:只保留最後 N 行的 log io.Writer，給監控頁的事�
 profile.go[DB9M]: F:裝置規格（ipad-air1：H.264 1080p 8Mbps；zenpad10：HEVC 1280×800 4Mbps）與依片源產生轉碼計畫：選影音軌、燒錄字幕、解碼路徑、tonemap、尺寸與位元率 | R:code:server/internal/ffmpeg/args.go,code:server/internal/api/api.go,code:server/internal/jellyfin/client.go | A:Profiles,Build,Plan,Profile,FitBox,inputIndex | S:Jellyfin Index 不等於 ffmpeg 串流編號：外掛字幕也編進 Index（12.1 排最前），要用 inputIndex 換算；NVDEC 不支援 10-bit H.264，改 CPU 解碼；HDR 只支援 GPU tonemap；外掛圖形字幕伺服器讀不到不能燒；iPad A7 沒有 HEVC 硬解
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/internal/session/===
-manager.go[AW9L]: F:轉碼 session 生命週期：建立與名額、依請求轉出片段、拖曳時從該段重啟 ffmpeg、停滯與失敗重試、閒置回收與清理暫存 | R:code:server/internal/ffmpeg/args.go,code:server/internal/source/proxy.go,code:server/internal/session/stats.go,code:server/internal/api/api.go | A:Manager,Start,Segment,retryIfStalled,retryFailed,reapIdle | S:請求的片段在 ffmpeg 進度後 2 段內就等，否則從該段重啟；一段都沒轉出就停滯（StallTimeout）或失敗結束時從同段重啟，共用最多 2 次（FFmpeg 經 HTTP 跳轉大型 MKV 時 Cues 可能不完整）；stderr 只留 4KB 且濾掉 MKV 附件探測警告；啟動中的也佔名額；清理只碰 32 位 hex 名稱的目錄
+manager.go[AW9L]: F:轉碼 session 生命週期：建立與名額、依請求轉出片段、拖曳時從該段重啟 ffmpeg、停滯與失敗重試、閒置回收與清理暫存 | R:code:server/internal/ffmpeg/args.go,code:server/internal/source/proxy.go,code:server/internal/session/stats.go,code:server/internal/proc/proc_windows.go,code:server/internal/api/api.go | A:Manager,Start,Segment,retryIfStalled,retryFailed,reapIdle | S:請求的片段在 ffmpeg 進度後 2 段內就等，否則從該段重啟；一段都沒轉出就停滯（StallTimeout）或失敗結束時從同段重啟，共用最多 2 次（FFmpeg 經 HTTP 跳轉大型 MKV 時 Cues 可能不完整）；stderr 只留 4KB 且濾掉 MKV 附件探測警告；ffmpeg 以 proc.NoWindow 啟動；啟動中的也佔名額；清理只碰 32 位 hex 名稱的目錄
 stats.go[AO6S]: F:session 與累計計數（重啟、停滯或失敗重試、送出片段與位元組、播放位置），提供監控頁 Snapshot 與暫存用量 | R:code:server/internal/session/manager.go,code:server/internal/dashboard/dashboard.go | A:Snapshot,RecordServed,SessionInfo,Totals,WorkDirUsage | S:Snapshot 不更新最後存取時間，否則監控頁輪詢會讓閒置 session 永不回收
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/internal/source/===
@@ -249,3 +252,8 @@ proxy.go[IN8M]: F:127.0.0.1 上的原始檔 proxy：依 session 轉發 Jellyfin 
 
 ===/home/Jack/桌面/coding/jellyfin-extra/tools/===
 jf-login.sh[XI4T]: F:互動輸入密碼登入 Jellyfin，把 token 存到 ~/.config/jellyfin-extra/token（權限 600）供開發測試 | R:code:CLAUDE.md | A:- | S:token 不可印出或寫進其他檔案，讀取時用 $(cat …)
+make_xcode_icon.py[XV3T]: F:純 Python 產生轉碼伺服器的多尺寸 icon.ico（琥珀圓角方塊加播放三角形） | R:code:server/cmd/xcode/tray_windows.go | A:render,main | S:改圖示後要用 go-winres 重新產生 exe 的 .syso
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/proc/===
+proc_other.go[RR2T]: F:非 Windows 的 NoWindow 空實作 | R:code:server/internal/proc/proc_windows.go | A:NoWindow | S:-
+proc_windows.go[RR6T]: F:讓子行程（ffmpeg、nvidia-smi）以 CREATE_NO_WINDOW 啟動 | R:code:server/internal/session/manager.go,code:server/internal/gpu/gpu.go | A:NoWindow | S:xcode 是 GUI 程式、沒有主控台可繼承，新增的子行程也必須套用，否則會閃出主控台視窗

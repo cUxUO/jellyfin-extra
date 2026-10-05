@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"jellyfin-extra/server/internal/proc"
 )
 
 // Stats 是一張 GPU 的即時狀態；nvidia-smi 回報 N/A 的欄位為 -1。
@@ -68,7 +70,9 @@ func query(ctx context.Context) ([]Stats, error) {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, path, "--query-gpu="+strings.Join(fields, ","), "--format=csv,noheader,nounits").Output()
+	cmd := exec.CommandContext(ctx, path, "--query-gpu="+strings.Join(fields, ","), "--format=csv,noheader,nounits")
+	proc.NoWindow(cmd)
+	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("gpu: nvidia-smi: %w", err)
 	}

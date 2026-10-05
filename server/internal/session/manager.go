@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"jellyfin-extra/server/internal/ffmpeg"
+	"jellyfin-extra/server/internal/proc"
 	"jellyfin-extra/server/internal/profile"
 	"jellyfin-extra/server/internal/source"
 )
@@ -278,6 +279,7 @@ func (m *Manager) startRunAttempt(s *Session, startSeg, attempt int) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	r := &run{startSeg: startSeg, started: time.Now(), attempt: attempt, cancel: cancel, done: make(chan struct{}), stderr: &tail{max: 4096}, next: startSeg}
 	cmd := m.command(ctx, m.cfg.FFmpegPath, args...)
+	proc.NoWindow(cmd)
 	cmd.Dir = s.Dir
 	cmd.Stderr = r.stderr
 	cmd.WaitDelay = 5 * time.Second

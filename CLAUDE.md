@@ -43,12 +43,12 @@ Windows 轉碼伺服器（Go，原生 exe）──────┘
 ## Windows 轉碼伺服器（Go）
 
 ```bash
-# 交叉編譯
-cd server && GOOS=windows GOARCH=amd64 go build -o ../build/xcode.exe ./cmd/xcode
+# 交叉編譯（GUI 程式：雙擊不開主控台）
+cd server && GOOS=windows GOARCH=amd64 go build -ldflags=-H=windowsgui -o ../build/xcode.exe ./cmd/xcode
 
-# 部署與執行
+# 部署與執行（SSH 沒有桌面，一律加 -notray；設定檔預設讀 exe 旁的 xcode.json）
 scp build/xcode.exe Windows:'C:/dev/jellyfin-extra-test/'
-ssh Windows 'C:\dev\jellyfin-extra-test\xcode.exe -config C:\dev\jellyfin-extra-test\xcode.json'
+ssh Windows 'C:\dev\jellyfin-extra-test\xcode.exe -notray'
 
 # 停止：ssh 中斷後 xcode.exe 不一定會跟著結束，一律確認並結束殘留行程
 ssh Windows 'taskkill /f /im xcode.exe'
@@ -56,13 +56,16 @@ ssh Windows 'taskkill /f /im xcode.exe'
 
 - 程式結構（`server/`）：
   - `cmd/xcode`：主程式，設定檔 `xcode.json`（不進版控，範本 `server/xcode.example.json`）。用 Job Object 讓 ffmpeg 跟著 xcode.exe 結束。
+    - 使用者雙擊啟動、常駐系統匣（`fyne.io/systray`，`tray_windows.go`）：選單有狀態、開啟監控頁／記錄檔／所在資料夾、登入時自動啟動（寫目前使用者的 `HKCU\...\Run` 值 `JellyfinExtraXcode`，由使用者在選單切換）、結束（停掉所有 ffmpeg 再結束）。同一工作階段只允許一份（具名 mutex）；啟動失敗以訊息框顯示。
+    - log 同時寫 exe 旁的 `xcode.log`（超過 10MB 改名 `xcode.log.1`）、stderr（`-notray` 時）與監控頁。
+    - 圖示：`tools/make_xcode_icon.py` 產生 `icon.ico`（系統匣用，embed）；exe 圖示與 manifest 是 `rsrc_windows_amd64.syso`，改圖示後在 `cmd/xcode` 執行 `go run github.com/tc-hib/go-winres@v0.3.3 simply --arch amd64 --out rsrc --icon icon.ico --manifest gui --product-name "Jellyfin Extra" --file-description "Jellyfin Extra 轉碼伺服器" --original-filename xcode.exe` 重新產生。
   - `cmd/fakejf`：開發用假 Jellyfin，讀 `items.json` 用本機檔案當片源，只供端對端測試。
   - `internal/api`：`POST /v1/sessions`、`GET /v1/sessions/{id}/{file}`、`DELETE /v1/sessions/{id}`，回傳相對路徑。
   - `internal/dashboard`：監控頁 `http://<Windows 內網 IP>:8097/dashboard`（每 2 秒向 `/dashboard/data` 取 JSON）：GPU（`internal/gpu` 呼叫 `nvidia-smi`，快取 2 秒）、各 session 的片名／使用者／播放端／輸出規格／播放位置與已轉範圍／轉碼速度／重啟次數／流量、累計數據、最近 200 行 log（`internal/logring`）。頁面含使用者與片名，只開放內網直接連線：帶 `X-Forwarded-For` 等代理標頭（經 NPM 的 `/xcode/dashboard`）或非私有位址一律 403。監控頁的請求不寫入請求 log。頁面要能在 iPad Safari 12、Chrome 64 一類的舊瀏覽器顯示：不用 `?.`、`??`、`Array.flat`、flex `gap`。
   - `internal/jellyfin`：Jellyfin API 子集。`internal/source`：127.0.0.1 上的原始檔 proxy，替 ffmpeg 附 token。
   - `internal/profile`：裝置規格與轉碼計畫。輸出編碼依裝置：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps），`zenpad10` 送 HEVC（Main、1280×800、4 Mbps，`hevc_nvenc`）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
 - 測試：`cd server && go test -race ./...`（容器內，Linux）。Windows 專屬程式碼至少要過 `GOOS=windows go vet ./...`。
-- 端對端測試：Windows 測試目錄已有 `clips\`（SDR HEVC 1080p、HDR10 HEVC 4K、10-bit H.264 各 60 秒）、`items.json`、指向 fakejf 的 `xcode.fake.json`。先跑 `fakejf.exe -items items.json`（token `devtoken`，聽 127.0.0.1:18096），再跑 `xcode.exe -config xcode.fake.json`。
+- 端對端測試：Windows 測試目錄已有 `clips\`（SDR HEVC 1080p、HDR10 HEVC 4K、10-bit H.264 各 60 秒）、`items.json`、指向 fakejf 的 `xcode.fake.json`。先跑 `fakejf.exe -items items.json`（token `devtoken`，聽 127.0.0.1:18096），再跑 `xcode.exe -notray -config xcode.fake.json`。
 - 真實 Jellyfin（12.1.0）：`xcode.json` 指向內網 8096（不經 NPM）。測試用 token 以 `tools/jf-login.sh <內網網址> <帳號>` 取得，存在容器的 `~/.config/jellyfin-extra/token`；讀取時用 `$(cat ~/.config/jellyfin-extra/token)`，不要印出、不要寫進檔案或 log。
 - 對外：Linux 主機上的 Nginx Proxy Manager（Docker）把 `https://<網域>/xcode/` 轉到 Windows 8097，設定在 Jellyfin Proxy Host 的 Advanced 分頁。
 - HLS：伺服器依 Jellyfin 的片長產生整部片的 VOD 清單（每段 3 秒），片段被請求時才轉出（`session.Manager.Segment`）：已轉出就回傳、在 ffmpeg 進度後 2 段內就等、否則從該段重新啟動 ffmpeg（`-ss` + `-output_ts_offset` + `-start_number`，時間戳記與編號對齊整部片，舊片段保留沿用）。播放端拖曳不需特別處理，起點也只是開播後跳過去。沒有片長（RunTimeTicks=0）的項目回 422。
