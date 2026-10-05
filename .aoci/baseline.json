@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-05T01:36:06Z",
+  "updated_at": "2026-10-05T01:44:00Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     "CLAUDE.md": {
       "role": "index",
-      "sha256": "7516aabb1ca9ce16dbfe668b37682ed43ff7112ccf205372939287aff8fa2927",
-      "size": 18040,
-      "normalized_sha256": "7516aabb1ca9ce16dbfe668b37682ed43ff7112ccf205372939287aff8fa2927"
+      "sha256": "6e3d8dcce4ddb22d52fd3d3b37a1887a729ab36caed955481e40577924b925cc",
+      "size": 18293,
+      "normalized_sha256": "6e3d8dcce4ddb22d52fd3d3b37a1887a729ab36caed955481e40577924b925cc"
     },
     "android/.gitignore": {
       "role": "index",
@@ -149,9 +149,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
       "role": "index",
-      "sha256": "925da704230875fc0c9195181b4cb2a0598ce73e86e3d31bad8ad0b7e50b8d67",
-      "size": 21565,
-      "normalized_sha256": "925da704230875fc0c9195181b4cb2a0598ce73e86e3d31bad8ad0b7e50b8d67"
+      "sha256": "b972933d78c0f817ae6ec67ad47af65413f76a82fb358392c22fefe43fe9af12",
+      "size": 23976,
+      "normalized_sha256": "b972933d78c0f817ae6ec67ad47af65413f76a82fb358392c22fefe43fe9af12"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
       "role": "index",
@@ -538,9 +538,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "4820d40bf93ea70444b5ed99b9224ddddedb24e23e9a209b0f4039fadd793726",
-      "size": 52479,
-      "normalized_sha256": "4820d40bf93ea70444b5ed99b9224ddddedb24e23e9a209b0f4039fadd793726"
+      "sha256": "1136180cf57567f7b07f212688e4dc3f89c45eb85ae9644168783521b0fde806",
+      "size": 52580,
+      "normalized_sha256": "1136180cf57567f7b07f212688e4dc3f89c45eb85ae9644168783521b0fde806"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -1052,9 +1052,9 @@
     },
     "server/internal/dashboard/dashboard.html": {
       "role": "index",
-      "sha256": "2819f84f847129bbccfd8a90ed430df95fba75e2a05473744afb12b065c4b399",
-      "size": 20814,
-      "normalized_sha256": "2819f84f847129bbccfd8a90ed430df95fba75e2a05473744afb12b065c4b399"
+      "sha256": "2613f32991c865d742a5751c7f7cbf1934af100de86a7ec319b96de56cf4e8ea",
+      "size": 20823,
+      "normalized_sha256": "2613f32991c865d742a5751c7f7cbf1934af100de86a7ec319b96de56cf4e8ea"
     },
     "server/internal/dashboard/dashboard_test.go": {
       "role": "observe",
@@ -1162,26 +1162,26 @@
     },
     "server/internal/session/manager.go": {
       "role": "index",
-      "sha256": "4555576b030b8fb6aeedda2950fd1ad436b96c827ef08742b403082e7c01f6a9",
-      "size": 13113,
-      "normalized_sha256": "4555576b030b8fb6aeedda2950fd1ad436b96c827ef08742b403082e7c01f6a9",
-      "format_sha256": "4555576b030b8fb6aeedda2950fd1ad436b96c827ef08742b403082e7c01f6a9",
+      "sha256": "af501adb340dcebe349561ec8d2ad875092993de0e5655bf74df56f19d4f5f73",
+      "size": 14948,
+      "normalized_sha256": "af501adb340dcebe349561ec8d2ad875092993de0e5655bf74df56f19d4f5f73",
+      "format_sha256": "af501adb340dcebe349561ec8d2ad875092993de0e5655bf74df56f19d4f5f73",
       "format_kind": "gofmt"
     },
     "server/internal/session/manager_test.go": {
       "role": "observe",
-      "sha256": "adcbc842467dd580055265c673be058a7c2b9be397d0c314b4299220d99d5f54",
-      "size": 8529,
-      "normalized_sha256": "adcbc842467dd580055265c673be058a7c2b9be397d0c314b4299220d99d5f54",
-      "format_sha256": "adcbc842467dd580055265c673be058a7c2b9be397d0c314b4299220d99d5f54",
+      "sha256": "ad2b0ceb13291cdc65f311574fb40eb2b90557de4ddcd2617f4349e00f2714c3",
+      "size": 10313,
+      "normalized_sha256": "ad2b0ceb13291cdc65f311574fb40eb2b90557de4ddcd2617f4349e00f2714c3",
+      "format_sha256": "ad2b0ceb13291cdc65f311574fb40eb2b90557de4ddcd2617f4349e00f2714c3",
       "format_kind": "gofmt"
     },
     "server/internal/session/stats.go": {
       "role": "index",
-      "sha256": "4d5002fd81e540a2767167d8bfb6640b2630f56281dc296ca1c36b7da35efb94",
-      "size": 5913,
-      "normalized_sha256": "4d5002fd81e540a2767167d8bfb6640b2630f56281dc296ca1c36b7da35efb94",
-      "format_sha256": "4d5002fd81e540a2767167d8bfb6640b2630f56281dc296ca1c36b7da35efb94",
+      "sha256": "7a55fcfa29cbfcb636cb7b2db2980ff6bcb536c586df01bcd0f9a3c1411bfdec",
+      "size": 5934,
+      "normalized_sha256": "7a55fcfa29cbfcb636cb7b2db2980ff6bcb536c586df01bcd0f9a3c1411bfdec",
+      "format_sha256": "7a55fcfa29cbfcb636cb7b2db2980ff6bcb536c586df01bcd0f9a3c1411bfdec",
       "format_kind": "gofmt"
     },
     "server/internal/source/proxy.go": {

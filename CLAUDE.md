@@ -70,7 +70,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - **不要**在轉碼的 ffmpeg 裡順便輸出字幕（多個稀疏的 WebVTT 輸出）：實測會讓影像輸出卡死（ffmpeg 排程器等待落後的字幕輸出）；獨立的純字幕 ffmpeg 行為也不穩定。已試過並放棄，細節見 git 歷史。
 - Jellyfin 抽內嵌文字字幕要讀完整個檔案：1GB 約 10 秒，60GB 藍光原盤約 8 分鐘（之後有快取）；外掛字幕約 0.1 秒。播放程式的請求不設讀取逾時，中途放棄會讓 Jellyfin 停掉抽取。
 - ffmpeg 用 jellyfin-ffmpeg 8.1.3 的 win64 版，放在 `C:\dev\jellyfin-extra-test\ffmpeg\`。
-- 已知上游問題：FFmpeg 經 HTTP 讀大型 MKV 並 `-ss` 跳轉時，延後到跳轉才解析的 Cues 索引有約三到五成機率不完整，只能從較前面的位置循序讀到目標（58GB 的 4K 片要讀好幾 GB，數十秒）。原版 FFmpeg 8.1、9.0 都會，讀本機檔案不會；與 Jellyfin、proxy、解碼、`-readrate`、HTTP 選項無關（2026-10 實測）。目前的對策是 `stallTimeoutSeconds`（預設 5）：一次執行這麼久一段都沒轉出就從同一段重啟，最多重試 2 次。根本解法是改直接讀 NAS（SMB，影片來源介面本來就預留），需要使用者提供分享路徑與帳號；SSH（金鑰登入）的工作階段沒有網路認證，`net view \\NAS` 會被拒。
+- 已知上游問題：FFmpeg 經 HTTP 讀大型 MKV 並 `-ss` 跳轉時，延後到跳轉才解析的 Cues 索引有約三到五成機率不完整，只能從較前面的位置循序讀到目標（58GB 的 4K 片要讀好幾 GB，數十秒）。原版 FFmpeg 8.1、9.0 都會，讀本機檔案不會；與 Jellyfin、proxy、解碼、`-readrate`、HTTP 選項無關（2026-10 實測）。目前的對策是 `stallTimeoutSeconds`（預設 5）：一次執行這麼久一段都沒轉出就從同一段重啟，最多重試 2 次；一段都沒轉出就失敗結束（偶發，同一位置再開正常）也算在同一個重試上限內。ffmpeg 錯誤訊息會濾掉 MKV 附件（內嵌字型）的探測警告，否則動畫幾十個字型會把真正的錯誤擠出保留的 4KB。根本解法是改直接讀 NAS（SMB，影片來源介面本來就預留），需要使用者提供分享路徑與帳號；SSH（金鑰登入）的工作階段沒有網路認證，`net view \\NAS` 會被拒。
 - 除錯：`xcode.json` 加 `"logSource": true` 會記錄每個原始檔請求（Range、狀態、位元組數、耗時，不含 token）。
 - 3070 Ti：NVENC 可編 H.264 / HEVC（不能編 AV1），NVDEC 可解 H.264 / HEVC / VP9 / AV1。消費級驅動有同時編碼數上限。
 - 遠端預設 shell 是 cmd，主控台編碼是 Big5（cp950）：需要中文輸出時先 `chcp 65001`，或用 PowerShell。連線時的 post-quantum 警告是 Windows 內建 OpenSSH 較舊所致，可忽略。

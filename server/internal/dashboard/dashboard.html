@@ -262,7 +262,7 @@ function renderSessions(d, now, dt) {
         <div>讀取原始檔<b>${bytes(s.sourceBytes)}</b></div>
         <div>原始檔讀取速率<b>${inRate >= 0 ? mbps(inRate) : "—"}</b></div>
         <div>跳轉重啟<b>${s.restarts}</b></div>
-        <div>停滯重試<b>${s.stallRetries}</b></div>
+        <div>重試<b>${s.stallRetries}</b></div>
         <div>最後請求<b>${ago(now - new Date(s.lastAccess).getTime())}前</b></div>
         <div>Session<b title="${esc(s.id)}">${esc(s.id.slice(0, 8))}</b></div>
       </div>
@@ -276,7 +276,7 @@ function renderTotals(t, sourceRead) {
     card("啟動失敗", t.failed, "ffmpeg 沒轉出第一段"),
     card("忙碌拒絕", t.busy, "超過同時上限"),
     card("跳轉重啟", t.restarts, "拖曳到沒轉過的位置"),
-    card("停滯重試", t.stallRetries, "一段都沒轉出而重啟"),
+    card("重試", t.stallRetries, "一段都沒轉出（停滯或失敗）而重啟"),
     card("送出片段", t.segmentsServed, "播放端取走的片段"),
     card("送出流量", bytes(t.bytesServed).replace(/ (\w+)$/, "<small>$1</small>"), "給播放端"),
     card("讀取原始檔", bytes(sourceRead).replace(/ (\w+)$/, "<small>$1</small>"), "經 Jellyfin 讀取"),

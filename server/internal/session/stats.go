@@ -10,7 +10,7 @@ import (
 // sessionStats 是單一 session 的計數，給監控頁用。
 type sessionStats struct {
 	restarts       atomic.Int64 // 拖曳到遠處而重新啟動 ffmpeg
-	stallRetries   atomic.Int64 // 一段都沒轉出而重新啟動
+	stallRetries   atomic.Int64 // 一段都沒轉出（停滯或失敗）而重新啟動
 	segmentsServed atomic.Int64
 	bytesServed    atomic.Int64
 	lastSegment    atomic.Int64 // 播放端最近請求的片段，約等於播放位置

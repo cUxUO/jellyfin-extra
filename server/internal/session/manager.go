@@ -2,6 +2,7 @@
 package session
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -38,8 +39,8 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 // ffmpeg 至少以 2 倍速前進，等兩段約 3 秒，和重新啟動的成本差不多。
 const lookahead = 2
 
-// maxStallRetries：一次執行超過 StallTimeout 還沒轉出任何一段時，從同一段重新啟動的次數上限。
-const maxStallRetries = 2
+// maxRetries：一次執行一段都沒轉出就停滯（超過 StallTimeout）或失敗結束時，從同一段重新啟動的次數上限。
+const maxRetries = 2
 
 type Config struct {
 	FFmpegPath   string
@@ -96,7 +97,7 @@ type Session struct {
 type run struct {
 	startSeg int
 	started  time.Time
-	attempt  int // 因停滯重新啟動的次數
+	attempt  int // 一段都沒轉出而重新啟動的次數（停滯或失敗）
 	cancel   context.CancelFunc
 	done     chan struct{}
 	err      error
@@ -329,6 +330,9 @@ func (m *Manager) waitSegment(ctx context.Context, s *Session, n int) error {
 				continue
 			}
 			if r.err != nil {
+				if m.retryFailed(s, r) {
+					continue
+				}
 				return fmt.Errorf("session: ffmpeg exited: %v: %s", r.err, r.stderr)
 			}
 			// 成功結束卻沒有這一段：片長比 Jellyfin 記錄的短，最後一段不存在
@@ -349,7 +353,7 @@ func (m *Manager) waitSegment(ctx context.Context, s *Session, n int) error {
 // retryIfStalled 在 r 超過 StallTimeout 仍一段都沒轉出時，從同一段重新啟動。
 // 多個等待者可能同時發現；只有 r 仍是目前的執行時才重新啟動。
 func (m *Manager) retryIfStalled(s *Session, r *run) {
-	if r == nil || m.cfg.StallTimeout <= 0 || r.attempt >= maxStallRetries || time.Since(r.started) < m.cfg.StallTimeout {
+	if r == nil || m.cfg.StallTimeout <= 0 || r.attempt >= maxRetries || time.Since(r.started) < m.cfg.StallTimeout {
 		return
 	}
 	s.mu.Lock()
@@ -358,10 +362,29 @@ func (m *Manager) retryIfStalled(s *Session, r *run) {
 		return
 	}
 	m.log.Printf("session %s: no segment from seg %d after %s, retrying (%d/%d)",
-		s.ID, r.startSeg, m.cfg.StallTimeout, r.attempt+1, maxStallRetries)
+		s.ID, r.startSeg, m.cfg.StallTimeout, r.attempt+1, maxRetries)
 	if err := m.startRunAttempt(s, r.startSeg, r.attempt+1); err != nil {
 		m.log.Printf("session %s: retry: %v", s.ID, err)
 	}
+}
+
+// retryFailed 在 r 一段都沒轉出就失敗結束時，從同一段重新啟動，回傳是否該改等新的執行。
+// 偶發的開檔或讀取錯誤（例如拖曳後立刻失敗、從同一位置再開就正常）不必讓播放端看到錯誤。
+func (m *Manager) retryFailed(s *Session, r *run) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.run != r {
+		return true // 另一個等待者已經重新啟動
+	}
+	if r.attempt >= maxRetries || s.frontier(r) > r.startSeg {
+		return false
+	}
+	m.log.Printf("session %s: ffmpeg failed before seg %d, retrying (%d/%d)", s.ID, r.startSeg, r.attempt+1, maxRetries)
+	if err := m.startRunAttempt(s, r.startSeg, r.attempt+1); err != nil {
+		m.log.Printf("session %s: retry: %v", s.ID, err)
+		return false
+	}
+	return true
 }
 
 // Get 取得 session，同時更新最後存取時間。
@@ -459,24 +482,49 @@ func removeAll(dir string) {
 }
 
 // tail 只保留 ffmpeg stderr 的最後一段，用於錯誤訊息。
+// 附件（MKV 內嵌字型）探測不到參數的警告會濾掉：動畫常有幾十個字型，每個兩行，會把真正的錯誤擠出去。
 type tail struct {
-	mu  sync.Mutex
-	buf []byte
-	max int
+	mu          sync.Mutex
+	buf         []byte
+	partial     []byte // 還沒收到換行的最後一行
+	max         int
+	afterAttach bool // 上一行是附件警告，接著的「Consider increasing…」也一起濾掉
 }
 
 func (t *tail) Write(p []byte) (int, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.buf = append(t.buf, p...)
+	t.partial = append(t.partial, p...)
+	for {
+		i := bytes.IndexByte(t.partial, '\n')
+		if i < 0 {
+			break
+		}
+		t.line(t.partial[:i+1])
+		t.partial = t.partial[i+1:]
+	}
+	if len(t.partial) > t.max {
+		t.partial = t.partial[len(t.partial)-t.max:]
+	}
+	t.partial = append([]byte(nil), t.partial...)
+	return len(p), nil
+}
+
+func (t *tail) line(l []byte) {
+	attach := bytes.Contains(l, []byte("Could not find codec parameters")) && bytes.Contains(l, []byte("(Attachment:"))
+	hint := t.afterAttach && bytes.HasPrefix(l, []byte("Consider increasing the value for the 'analyzeduration'"))
+	t.afterAttach = attach
+	if attach || hint {
+		return
+	}
+	t.buf = append(t.buf, l...)
 	if len(t.buf) > t.max {
 		t.buf = append([]byte(nil), t.buf[len(t.buf)-t.max:]...)
 	}
-	return len(p), nil
 }
 
 func (t *tail) String() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return strings.TrimSpace(string(t.buf))
+	return strings.TrimSpace(string(t.buf) + string(t.partial))
 }

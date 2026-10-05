@@ -47,6 +47,18 @@ func TestHelperProcess(t *testing.T) {
 	case "fail":
 		fmt.Fprintln(os.Stderr, "Unknown decoder 'bogus'")
 		os.Exit(1)
+	case "fail-once":
+		// 第一次執行沒轉出就失敗（模擬偶發的開檔錯誤），之後的執行正常
+		if _, err := os.Stat("failed"); err != nil {
+			os.WriteFile("failed", nil, 0o644)
+			fmt.Fprintln(os.Stderr, "Error opening input")
+			os.Exit(1)
+		}
+		start, _ := strconv.Atoi(args[slices.Index(args, "-start_number")+1])
+		for n := start; n < start+4; n++ {
+			os.WriteFile(fmt.Sprintf("seg_%05d.ts", n), []byte("x"), 0o644)
+		}
+		time.Sleep(time.Minute)
 	}
 	os.Exit(0)
 }
@@ -178,6 +190,41 @@ func TestStartFailureReportsStderr(t *testing.T) {
 	}
 	if len(reg.registered) != 0 || len(m.sessions) != 0 || m.pending != 0 {
 		t.Fatal("failed start leaked state")
+	}
+}
+
+func TestFailedRunIsRetried(t *testing.T) {
+	m, _ := newTestManager(t, "fail-once", 1)
+	s, err := m.Start(context.Background(), params(31))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.mu.Lock()
+	start, attempt := s.run.startSeg, s.run.attempt
+	s.mu.Unlock()
+	if start != 10 || attempt != 1 {
+		t.Fatalf("retry from seg %d attempt %d, want seg 10 attempt 1", start, attempt)
+	}
+	if got := m.Snapshot().Totals.StallRetries; got != 1 {
+		t.Errorf("retries counted = %d, want 1", got)
+	}
+}
+
+func TestTailDropsAttachmentWarnings(t *testing.T) {
+	tl := &tail{max: 4096}
+	io.WriteString(tl, "[http @ 0x1] HTTP error 500\n")
+	for i := 5; i < 30; i++ {
+		// 分段寫入，模擬 stderr 不照行邊界送來
+		io.WriteString(tl, fmt.Sprintf("[in#0/matroska,webm @ 0x2] Could not find codec parameters for stream %d (Attachment: none): unknown codec\nConsider increasing the value for the 'analy", i))
+		io.WriteString(tl, "zeduration' (0) and 'probesize' (5000000) options\n")
+	}
+	io.WriteString(tl, "Error opening input: I/O error")
+	got := tl.String()
+	if strings.Contains(got, "Attachment") || strings.Contains(got, "Consider increasing") {
+		t.Errorf("noise kept: %q", got)
+	}
+	if !strings.Contains(got, "HTTP error 500") || !strings.HasSuffix(got, "Error opening input: I/O error") {
+		t.Errorf("tail = %q", got)
 	}
 }
 
