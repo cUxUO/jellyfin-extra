@@ -82,6 +82,11 @@ class PlayerActivity : AppCompatActivity() {
     private var reportedStart = false
     private var progressJob: Job? = null
 
+    /** 進背景時關掉轉碼 session 的位置；回到前景時從這裡建立新的。null 表示沒有。 */
+    private var suspendedAtMs: Long? = null
+    private var suspendedBurn: Int? = null
+    private var restoreJob: Job? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
@@ -235,6 +240,8 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            // 進背景時已關掉 session，舊項目的請求會失敗；回前景會換上新 session
+            if (suspendedAtMs != null) return
             // 片長以 Jellyfin 記錄為準，實際檔案可能短一點點，最後一段不存在時當作播完
             val p = player
             if (p != null && p.duration > 0 && p.currentPosition > p.duration - END_TOLERANCE_MS) {
@@ -414,7 +421,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun currentReport(): PlaybackReport {
         val p = player
-        val pos = (p?.currentPosition ?: 0) * TICKS_PER_MS
+        val pos = (suspendedAtMs ?: p?.currentPosition ?: 0) * TICKS_PER_MS
         return PlaybackReport(itemId, playSessionId, pos, isPaused = p?.isPlaying != true, playMethod = playMethod)
     }
 
@@ -440,9 +447,59 @@ class PlayerActivity : AppCompatActivity() {
         player?.pause()
     }
 
+    override fun onStart() {
+        super.onStart()
+        restoreSession()
+    }
+
     override fun onStop() {
         super.onStop()
         player?.pause()
+        restoreJob?.cancel() // 重建到一半又離開：不要在背景建出 session
+        suspendSession()
+    }
+
+    /**
+     * 進背景（Home、鎖定）時關掉轉碼 session，不在背景佔用 GPU 名額；回到前景再由 [restoreSession] 從同一位置建立新的。
+     * 按返回離開時由 onDestroy 收尾；直接播放沒有 session，只暫停。
+     */
+    private fun suspendSession() {
+        if (isFinishing || isChangingConfigurations || suspendedAtMs != null) return
+        val api = xcode ?: return
+        val s = session ?: return
+        val p = player ?: return
+        suspendedAtMs = p.currentPosition
+        suspendedBurn = s.burnedSubtitle.takeIf { it >= 0 }
+        session = null
+        if (reportedStart) report { reportProgress(it) }
+        p.stop() // 不再向已關掉的 session 要片段
+        app.appScope.launch { runCatching { api.delete(s.id) } }
+    }
+
+    private fun restoreSession() {
+        val positionMs = suspendedAtMs ?: return
+        val api = xcode ?: return
+        val p = player ?: return
+        status.text = getString(R.string.preparing)
+        status.visibility = View.VISIBLE
+        restoreJob = lifecycleScope.launch {
+            val s = try {
+                api.create(itemId, app.settings.profile, positionMs * TICKS_PER_MS, suspendedBurn, currentAudio)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                fail(e.message ?: e.toString()) // 下次回前景會再試
+                return@launch
+            }
+            session = s
+            currentAudio = s.audioIndex.takeIf { it >= 0 }
+            suspendedAtMs = null
+            updateStatusLine()
+            // 停在離開時的畫面，由使用者按播放
+            p.playWhenReady = false
+            p.setMediaItem(hlsItem(s), positionMs)
+            p.prepare()
+        }
     }
 
     override fun onDestroy() {
