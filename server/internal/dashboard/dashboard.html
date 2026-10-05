@@ -236,6 +236,7 @@ function renderSessions(d, now, dt) {
     const codec = s.codec === "hevc" ? "HEVC" : "H.264";
     const tags = [
       `<span class="tag hi">${codec} ${s.width}×${s.height} · ${mbps(s.videoBitrate)}</span>`,
+      s.variants > 1 ? `<span class="tag">自適應 第 ${s.variant + 1}/${s.variants} 軌</span>` : "",
       `<span class="tag">片源 ${s.sourceWidth}×${s.sourceHeight}</span>`,
       `<span class="tag">${s.hwDecode ? "GPU 解碼" : "CPU 解碼"}</span>`,
       s.tonemap ? `<span class="tag">HDR → SDR</span>` : "",

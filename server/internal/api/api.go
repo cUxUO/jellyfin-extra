@@ -1,7 +1,7 @@
 // Package api 是播放程式呼叫的 HTTP 介面。
 //
 //	POST   /v1/sessions               開始轉碼，回傳播放清單路徑
-//	GET    /v1/sessions/{id}/{file}   播放清單（整部片的 VOD 清單）與片段（請求時才轉出）
+//	GET    /v1/sessions/{id}/{file}   播放清單（整部片的 VOD 清單；自適應時是主播放清單與各軌清單）與片段（請求時才轉出）
 //	DELETE /v1/sessions/{id}          停止轉碼
 //	GET    /healthz
 //
@@ -40,7 +40,7 @@ type Jellyfin interface {
 type Sessions interface {
 	Start(ctx context.Context, p session.Params) (*session.Session, error)
 	Get(id string) (*session.Session, bool)
-	Segment(ctx context.Context, id string, n int) (string, error)
+	Segment(ctx context.Context, id string, variant, n int) (string, error)
 	Stop(id string) bool
 	RecordServed(s *session.Session, n int, size int64)
 }
@@ -54,8 +54,9 @@ type Server struct {
 
 var (
 	// Jellyfin 的 ID 是 32 位 hex，部分 API 會回傳帶連字號的 GUID 形式
-	jellyfinID  = regexp.MustCompile(`^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-	segmentName = regexp.MustCompile(`^seg_([0-9]{5})\.ts$`)
+	jellyfinID = regexp.MustCompile(`^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	// seg_00042.ts（只有一軌）或 v1_seg_00042.ts（自適應的第 1 軌）
+	segmentName = regexp.MustCompile(`^(?:v([0-9])_)?seg_([0-9]{5})\.ts$`)
 	tokenField  = regexp.MustCompile(`(?i)\bToken="?([^",\s]+)"?`)
 )
 
@@ -77,7 +78,17 @@ type createRequest struct {
 	SubtitleStreamIndex *int  `json:"subtitleStreamIndex"`
 	StartTimeTicks      int64 `json:"startTimeTicks"` // Jellyfin 的時間單位，1 tick = 100ns
 	MaxBitrate          int64 `json:"maxBitrate"`
+	// Capabilities 是播放端實測的硬體解碼能力；有提供時依它選格式與上限，Profile 只當作監控頁的名稱。
+	Capabilities *profile.Capabilities `json:"capabilities"`
+	// MaxWidth、MaxHeight 是播放端選的解析度上限（例如螢幕大小），0 表示不限；只給高度時放進 16:9 的框。
+	MaxWidth  int `json:"maxWidth"`
+	MaxHeight int `json:"maxHeight"`
+	// Adaptive 要求多軌（自適應）：index.m3u8 是主播放清單，播放端依頻寬切換解析度。
+	Adaptive bool `json:"adaptive"`
 }
+
+// maxVariants 是自適應時最多的軌數（最高畫質加上較低的幾軌）。
+const maxVariants = 4
 
 type videoInfo struct {
 	Codec    string `json:"codec"` // h264 或 hevc
@@ -86,6 +97,12 @@ type videoInfo struct {
 	Bitrate  int64  `json:"bitrate"`
 	HWDecode bool   `json:"hwDecode"`
 	Tonemap  bool   `json:"tonemap"`
+}
+
+type variantInfo struct {
+	Width   int   `json:"width"`
+	Height  int   `json:"height"`
+	Bitrate int64 `json:"bitrate"`
 }
 
 type createResponse struct {
@@ -97,7 +114,9 @@ type createResponse struct {
 	RunTimeTicks        int64     `json:"runTimeTicks"`
 	AudioStreamIndex    int       `json:"audioStreamIndex"`    // -1 表示沒有音軌
 	SubtitleStreamIndex int       `json:"subtitleStreamIndex"` // 燒進畫面的字幕，-1 表示沒有
-	Video               videoInfo `json:"video"`
+	Video               videoInfo `json:"video"`               // 最高畫質的一軌
+	// Variants 是自適應時的各軌，由高到低；只有一軌時省略
+	Variants []variantInfo `json:"variants,omitempty"`
 }
 
 const ticksPerSecond = 10_000_000
@@ -117,9 +136,26 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid itemId or mediaSourceId")
 		return
 	}
-	prof, ok := s.Profiles[req.Profile]
-	if !ok {
-		writeError(w, http.StatusBadRequest, "unknown profile")
+	var prof profile.Profile
+	if req.Capabilities != nil {
+		name := req.Profile
+		if name == "" || len(name) > 32 {
+			name = "auto"
+		}
+		var err error
+		if prof, err = profile.FromCaps(name, *req.Capabilities); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	} else {
+		var ok bool
+		if prof, ok = s.Profiles[req.Profile]; !ok {
+			writeError(w, http.StatusBadRequest, "unknown profile")
+			return
+		}
+	}
+	if req.MaxHeight < 0 || req.MaxHeight > 4320 || req.MaxWidth < 0 || req.MaxWidth > 7680 {
+		writeError(w, http.StatusBadRequest, "invalid maxWidth or maxHeight")
 		return
 	}
 
@@ -153,10 +189,16 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		AudioStreamIndex:    req.AudioStreamIndex,
 		SubtitleStreamIndex: req.SubtitleStreamIndex,
 		MaxBitrate:          req.MaxBitrate,
+		MaxWidth:            req.MaxWidth,
+		MaxHeight:           req.MaxHeight,
 	})
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
+	}
+	plans := []profile.Plan{plan}
+	if req.Adaptive {
+		plans = profile.Ladder(prof, plan, maxVariants)
 	}
 
 	// 片名只用於監控頁，查不到就顯示 ID
@@ -169,7 +211,7 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		UserID: user.ID, ItemID: req.ItemID, MediaSourceID: src.ID, Token: token,
 		StartSeconds:   float64(req.StartTimeTicks) / ticksPerSecond,
 		RunTimeSeconds: float64(src.RunTimeTicks) / ticksPerSecond,
-		Plan:           plan,
+		Plans:          plans,
 		Title:          title, UserName: user.Name, Client: clientAddr(r), Profile: prof.Name,
 	})
 	switch {
@@ -182,6 +224,12 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var variants []variantInfo
+	if len(plans) > 1 {
+		for _, p := range plans {
+			variants = append(variants, variantInfo{Width: p.Width, Height: p.Height, Bitrate: p.VideoBitrate})
+		}
+	}
 	writeJSON(w, http.StatusCreated, createResponse{
 		SessionID:           sess.ID,
 		Playlist:            "v1/sessions/" + sess.ID + "/" + ffmpeg.PlaylistName,
@@ -193,6 +241,7 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 			Codec: plan.VideoCodec, Width: plan.Width, Height: plan.Height, Bitrate: plan.VideoBitrate,
 			HWDecode: plan.HWDecode, Tonemap: plan.Tonemap,
 		},
+		Variants: variants,
 	})
 }
 
@@ -225,15 +274,20 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if name == ffmpeg.PlaylistName {
+	if strings.HasSuffix(name, ".m3u8") {
 		sess, ok := s.Sessions.Get(id)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		pl, ok := sess.PlaylistFile(name)
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
 		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(sess.Playlist))
+		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(pl))
 		return
 	}
 
@@ -242,9 +296,10 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	n, _ := strconv.Atoi(m[1])
-	// 還沒轉出的片段在這裡等 ffmpeg；拖曳到遠處時會從這一段重新啟動
-	path, err := s.Sessions.Segment(r.Context(), id, n)
+	variant, _ := strconv.Atoi(m[1]) // 沒有軌道前綴時是 0
+	n, _ := strconv.Atoi(m[2])
+	// 還沒轉出的片段在這裡等 ffmpeg；拖曳到遠處或切換軌道時會從這一段重新啟動
+	path, err := s.Sessions.Segment(r.Context(), id, variant, n)
 	switch {
 	case errors.Is(err, session.ErrNotFound), errors.Is(err, session.ErrNoSegment):
 		http.NotFound(w, r)

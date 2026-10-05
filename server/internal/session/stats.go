@@ -60,6 +60,9 @@ type SessionInfo struct {
 	Tonemap       bool   `json:"tonemap"`
 	AudioIndex    int    `json:"audioIndex"`
 	SubtitleIndex int    `json:"subtitleIndex"`
+	// 多軌（自適應）時，上面的規格是播放端目前在看的那一軌
+	Variant  int `json:"variant"`
+	Variants int `json:"variants"`
 
 	// 目前這次 ffmpeg 執行：從 RunStart 段開始，已連續轉出到 Frontier 段之前
 	Running     bool    `json:"running"`
@@ -108,7 +111,11 @@ func (m *Manager) Snapshot() Snapshot {
 	seg := m.cfg.SegmentSeconds
 	infos := make([]SessionInfo, 0, len(list))
 	for _, s := range list {
-		p := s.Plan
+		v, ok := s.Variant(int(s.lastVariant.Load()))
+		if !ok {
+			v = s.Variants[0]
+		}
+		p := v.Plan
 		info := SessionInfo{
 			ID: s.ID, ItemID: s.ItemID, Title: s.Title, UserName: s.UserName, Client: s.Client, Profile: s.Profile,
 			Created: s.Created, LastAccess: time.Unix(0, s.lastAccess.Load()),
@@ -116,6 +123,7 @@ func (m *Manager) Snapshot() Snapshot {
 			Codec: p.VideoCodec, Width: p.Width, Height: p.Height, VideoBitrate: p.VideoBitrate, AudioBitrate: p.AudioBitrate,
 			SourceWidth: p.SourceWidth, SourceHeight: p.SourceHeight, HWDecode: p.HWDecode, Tonemap: p.Tonemap,
 			AudioIndex: p.AudioIndex, SubtitleIndex: p.SubtitleIndex,
+			Variant: v.Index, Variants: len(s.Variants),
 			LastSegment:    int(s.stats.lastSegment.Load()),
 			Restarts:       s.stats.restarts.Load(),
 			StallRetries:   s.stats.stallRetries.Load(),
@@ -123,10 +131,10 @@ func (m *Manager) Snapshot() Snapshot {
 			BytesServed:    s.stats.bytesServed.Load(),
 		}
 		s.mu.Lock()
-		if r := s.run; r != nil {
+		if r := v.run; r != nil {
 			info.Running = !r.finished()
 			info.RunStart = r.startSeg
-			info.Frontier = s.frontier(r)
+			info.Frontier = s.frontier(v, r)
 			info.RunSeconds = now.Sub(r.started).Seconds()
 			if info.RunSeconds > 0 {
 				info.Speed = float64((info.Frontier-r.startSeg)*seg) / info.RunSeconds
@@ -152,7 +160,9 @@ func (m *Manager) WorkDirUsage() int64 {
 	m.mu.Lock()
 	dirs := make([]string, 0, len(m.sessions))
 	for _, s := range m.sessions {
-		dirs = append(dirs, s.Dir)
+		for _, v := range s.Variants {
+			dirs = append(dirs, v.Dir)
+		}
 	}
 	m.mu.Unlock()
 	var total int64

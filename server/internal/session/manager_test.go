@@ -93,13 +93,13 @@ var plan = profile.Plan{Width: 1280, Height: 720, VideoBitrate: 3_000_000, Audio
 
 // 300 秒的片，每段 3 秒，共 100 段
 func params(startSeconds float64) Params {
-	return Params{ItemID: "item", Token: "tok", StartSeconds: startSeconds, RunTimeSeconds: 300, Plan: plan}
+	return Params{ItemID: "item", Token: "tok", StartSeconds: startSeconds, RunTimeSeconds: 300, Plans: []profile.Plan{plan}}
 }
 
 func runStart(s *Session) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.run.startSeg
+	return s.Variants[0].run.startSeg
 }
 
 func TestStartAndStop(t *testing.T) {
@@ -149,35 +149,35 @@ func TestSegmentWaitReuseRestart(t *testing.T) {
 	}
 
 	// 已轉出的段落直接回傳
-	if p, err := m.Segment(ctx, s.ID, 1); err != nil || filepath.Base(p) != "seg_00001.ts" {
+	if p, err := m.Segment(ctx, s.ID, 0, 1); err != nil || filepath.Base(p) != "seg_00001.ts" {
 		t.Fatalf("Segment(1) = %q, %v", p, err)
 	}
 	// 拖曳到遠處：從第 50 段重新啟動
-	if _, err := m.Segment(ctx, s.ID, 50); err != nil {
+	if _, err := m.Segment(ctx, s.ID, 0, 50); err != nil {
 		t.Fatal(err)
 	}
 	if got := runStart(s); got != 50 {
 		t.Fatalf("after seek run starts at %d, want 50", got)
 	}
 	// 往回拖到先前轉過的位置：沿用舊檔案，不重新啟動
-	if _, err := m.Segment(ctx, s.ID, 2); err != nil {
+	if _, err := m.Segment(ctx, s.ID, 0, 2); err != nil {
 		t.Fatal(err)
 	}
 	if got := runStart(s); got != 50 {
 		t.Fatalf("existing segment caused a restart (run starts at %d)", got)
 	}
 	// 往回拖到沒轉過的位置：重新啟動
-	if _, err := m.Segment(ctx, s.ID, 20); err != nil {
+	if _, err := m.Segment(ctx, s.ID, 0, 20); err != nil {
 		t.Fatal(err)
 	}
 	if got := runStart(s); got != 20 {
 		t.Fatalf("backward seek run starts at %d, want 20", got)
 	}
 	// 超出片長
-	if _, err := m.Segment(ctx, s.ID, 100); !errors.Is(err, ErrNoSegment) {
+	if _, err := m.Segment(ctx, s.ID, 0, 100); !errors.Is(err, ErrNoSegment) {
 		t.Fatalf("Segment(100) err = %v, want ErrNoSegment", err)
 	}
-	if _, err := m.Segment(ctx, "ffffffffffffffffffffffffffffffff", 0); !errors.Is(err, ErrNotFound) {
+	if _, err := m.Segment(ctx, "ffffffffffffffffffffffffffffffff", 0, 0); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unknown session err = %v", err)
 	}
 }
@@ -200,7 +200,7 @@ func TestFailedRunIsRetried(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.mu.Lock()
-	start, attempt := s.run.startSeg, s.run.attempt
+	start, attempt := s.Variants[0].run.startSeg, s.Variants[0].run.attempt
 	s.mu.Unlock()
 	if start != 10 || attempt != 1 {
 		t.Fatalf("retry from seg %d attempt %d, want seg 10 attempt 1", start, attempt)
@@ -268,7 +268,7 @@ func TestStalledRunIsRestarted(t *testing.T) {
 		t.Fatalf("retry started at seg %d, want 10", got)
 	}
 	s.mu.Lock()
-	attempt := s.run.attempt
+	attempt := s.Variants[0].run.attempt
 	s.mu.Unlock()
 	if attempt != 1 {
 		t.Fatalf("attempt = %d, want 1", attempt)
@@ -287,7 +287,7 @@ func TestSnapshotCountsRestartsAndServed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.Segment(ctx, s.ID, 50); err != nil { // 跳到遠處：重新啟動一次
+	if _, err := m.Segment(ctx, s.ID, 0, 50); err != nil { // 跳到遠處：重新啟動一次
 		t.Fatal(err)
 	}
 	m.RecordServed(s, 50, 1000)
@@ -318,5 +318,50 @@ func TestSnapshotCountsRestartsAndServed(t *testing.T) {
 	}
 	if m.WorkDirUsage() <= 0 {
 		t.Error("work dir usage should count segment files")
+	}
+}
+
+func TestVariants(t *testing.T) {
+	m, _ := newTestManager(t, "ok", 1)
+	ctx := context.Background()
+	low := plan
+	low.Width, low.Height = 640, 360
+	p := params(0)
+	p.Plans = []profile.Plan{plan, low}
+	s, err := m.Start(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(s.Playlist), "v1.m3u8") || !strings.Contains(string(s.Playlist), "RESOLUTION=640x360") {
+		t.Fatalf("master playlist = %s", s.Playlist)
+	}
+	if pl, ok := s.PlaylistFile("v1.m3u8"); !ok || !strings.Contains(string(pl), "v1_seg_00000.ts") {
+		t.Fatalf("v1 playlist = %s", pl)
+	}
+
+	// 切到第 1 軌：在自己的目錄裡另外啟動 ffmpeg，第 0 軌照常
+	path, err := m.Segment(ctx, s.ID, 1, 5)
+	if err != nil || path != filepath.Join(s.Dir, "v1", "seg_00005.ts") {
+		t.Fatalf("v1 seg 5 = %q, %v", path, err)
+	}
+	if _, err := m.Segment(ctx, s.ID, 2, 0); !errors.Is(err, ErrNoSegment) {
+		t.Errorf("missing variant err = %v", err)
+	}
+	if got := m.Snapshot().Sessions[0]; got.Variant != 1 || got.Variants != 2 || got.Height != 360 {
+		t.Errorf("snapshot variant = %d/%d %dp", got.Variant, got.Variants, got.Height)
+	}
+
+	// 第 0 軌很久沒被請求：停掉它的 ffmpeg，第 1 軌留著
+	s.Variants[0].lastRequest.Store(time.Now().Add(-time.Minute).UnixNano())
+	m.stopIdleVariants(time.Now())
+	s.mu.Lock()
+	v0, v1 := s.Variants[0].run, s.Variants[1].run
+	s.mu.Unlock()
+	if v0 != nil || v1 == nil || v1.finished() {
+		t.Errorf("after idle stop: v0 run %v, v1 run %v", v0, v1)
+	}
+	// 切回第 0 軌：已轉出的片段直接沿用
+	if p, err := m.Segment(ctx, s.ID, 0, 0); err != nil || filepath.Base(p) != "seg_00000.ts" {
+		t.Errorf("v0 seg 0 = %q, %v", p, err)
 	}
 }

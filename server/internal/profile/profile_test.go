@@ -2,6 +2,8 @@ package profile
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"jellyfin-extra/server/internal/jellyfin"
@@ -84,7 +86,7 @@ func TestBuildAudioSelectionAndCaps(t *testing.T) {
 		t.Errorf("bitrate = %d, want total cap minus audio", plan.VideoBitrate)
 	}
 
-	plan, _ = Build(Profiles["ipad-air1"], src, Request{MaxBitrate: 800_000})
+	plan, _ = Build(Profiles["ipad-air1"], src, Request{MaxBitrate: 600_000})
 	if plan.VideoBitrate != minVideoBitrate {
 		t.Errorf("bitrate = %d, want floor %d", plan.VideoBitrate, minVideoBitrate)
 	}
@@ -172,5 +174,58 @@ func TestProfileVideoCodec(t *testing.T) {
 		if plan.VideoCodec != want {
 			t.Errorf("%s: VideoCodec = %q, want %q", name, plan.VideoCodec, want)
 		}
+	}
+}
+
+func TestFromCapsAndLadder(t *testing.T) {
+	src := source(jellyfin.MediaStream{Type: "Video", Index: 0, Codec: "hevc", Width: 1920, Height: 804, BitRate: 20_000_000},
+		jellyfin.MediaStream{Type: "Audio", Index: 1, Codec: "flac"})
+
+	// ZenPad 實測：HEVC、H.264 硬解都到 1920×1088 → 選 HEVC
+	p, err := FromCaps("P028", Capabilities{Decoders: []Decoder{{"h264", 1920, 1088}, {"hevc", 1920, 1088}}})
+	if err != nil || p.VideoCodec != "hevc" || p.MaxWidth != 1920 || p.MaxHeight != 1088 {
+		t.Fatalf("profile = %+v, %v", p, err)
+	}
+	top, err := Build(p, src, Request{})
+	if err != nil || top.Width != 1920 || top.Height != 804 || top.CodecLevel != "4" {
+		t.Fatalf("top = %dx%d level %s, %v", top.Width, top.Height, top.CodecLevel, err)
+	}
+	plans := Ladder(p, top, 4)
+	var got []string
+	for _, v := range plans {
+		got = append(got, fmt.Sprintf("%dx%d", v.Width, v.Height))
+		if v.VideoBitrate > top.VideoBitrate || v.VideoBitrate < minVideoBitrate {
+			t.Errorf("%dx%d bitrate %d out of range", v.Width, v.Height, v.VideoBitrate)
+		}
+	}
+	if strings.Join(got, " ") != "1920x804 1280x536 852x356 640x268" {
+		t.Errorf("ladder = %v", got)
+	}
+	if c := plans[1].CodecsAttr(); c != "hvc1.1.6.L93.90,mp4a.40.2" {
+		t.Errorf("codecs = %s", c)
+	}
+
+	// 選 720p：放進 1280×720
+	plan, _ := Build(p, src, Request{MaxHeight: 720})
+	if plan.Width != 1280 || plan.Height != 536 {
+		t.Errorf("720p = %dx%d", plan.Width, plan.Height)
+	}
+	// 螢幕大小 1280×800（ZenPad）：寬度受限
+	plan, _ = Build(p, source(jellyfin.MediaStream{Type: "Video", Codec: "h264", Width: 1920, Height: 1080}), Request{MaxWidth: 1280, MaxHeight: 800})
+	if plan.Width != 1280 || plan.Height != 720 {
+		t.Errorf("screen box = %dx%d", plan.Width, plan.Height)
+	}
+
+	// HEVC 只到 640×480（太小）就改用 H.264
+	p, _ = FromCaps("x", Capabilities{Decoders: []Decoder{{"hevc", 640, 480}, {"h264", 1280, 720}}})
+	if p.VideoCodec != "h264" || p.MaxHeight != 720 || p.CodecLevel != "3.1" {
+		t.Errorf("fallback profile = %+v", p)
+	}
+	top, _ = Build(p, src, Request{})
+	if c := top.CodecsAttr(); c != "avc1.64001f,mp4a.40.2" {
+		t.Errorf("codecs = %s", c)
+	}
+	if _, err := FromCaps("x", Capabilities{Decoders: []Decoder{{"av1", 1920, 1080}}}); err == nil {
+		t.Error("no usable decoder accepted")
 	}
 }

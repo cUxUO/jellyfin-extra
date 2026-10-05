@@ -37,10 +37,83 @@ var Profiles = map[string]Profile{
 	},
 }
 
+// Decoder 是播放端回報的一個硬體解碼器能力（播放端以 MediaCodecList 等實測）。
+type Decoder struct {
+	Codec     string `json:"codec"` // h264 或 hevc；其他格式這台伺服器編不出來，忽略
+	MaxWidth  int    `json:"maxWidth"`
+	MaxHeight int    `json:"maxHeight"`
+}
+
+// Capabilities 是播放端的硬體解碼能力，伺服器依此選輸出格式與上限，取代寫死的 Profile。
+type Capabilities struct {
+	Decoders []Decoder `json:"decoders"`
+}
+
+const (
+	// 1080p（1920×1080）時的目標位元率；其他尺寸依像素數等比例
+	h264Bitrate1080  = 10_000_000
+	hevcBitrate1080  = 8_000_000
+	maxCapsDimension = 4096
+)
+
+// FromCaps 依播放端的硬解能力決定輸出規格：有能解到 720p 以上的 HEVC 硬解就送 HEVC（同畫質位元率較低），
+// 否則送 H.264。上限取該解碼器的最大尺寸，最多 1080p（更大的片源一律縮小，舊裝置的頻寬與解碼都吃不消）。
+func FromCaps(name string, c Capabilities) (Profile, error) {
+	var h264, hevc *Decoder
+	for i := range c.Decoders {
+		d := &c.Decoders[i]
+		if d.MaxWidth < 16 || d.MaxHeight < 16 || d.MaxWidth > maxCapsDimension || d.MaxHeight > maxCapsDimension {
+			return Profile{}, fmt.Errorf("profile: decoder %q has invalid size %dx%d", d.Codec, d.MaxWidth, d.MaxHeight)
+		}
+		switch strings.ToLower(d.Codec) {
+		case "h264":
+			h264 = d
+		case "hevc":
+			hevc = d
+		}
+	}
+	p := Profile{Name: name, AudioBitrate: 192_000}
+	switch {
+	case hevc != nil && min(hevc.MaxWidth, hevc.MaxHeight) >= 720:
+		p.VideoCodec, p.CodecProfile = "hevc", "main"
+		p.MaxWidth, p.MaxHeight = min(hevc.MaxWidth, 1920), min(hevc.MaxHeight, 1088)
+		p.MaxVideoBitrate = hevcBitrate1080
+	case h264 != nil:
+		p.VideoCodec, p.CodecProfile = "h264", "high"
+		p.MaxWidth, p.MaxHeight = min(h264.MaxWidth, 1920), min(h264.MaxHeight, 1088)
+		p.MaxVideoBitrate = h264Bitrate1080
+	default:
+		return Profile{}, errors.New("profile: no usable hardware decoder (h264 or hevc) reported")
+	}
+	// 位元率以 1080p 為基準，換算成這個上限尺寸的值（videoBitrate 依像素數比例縮放）
+	p.MaxVideoBitrate = p.MaxVideoBitrate * int64(p.MaxWidth*p.MaxHeight) / (1920 * 1080)
+	p.CodecLevel = levelFor(p.VideoCodec, p.MaxWidth, p.MaxHeight)
+	return p, nil
+}
+
+// levelFor 是能涵蓋這個尺寸（30fps）的編碼 level。
+func levelFor(codec string, w, h int) string {
+	px := w * h
+	switch {
+	case codec == "hevc" && px <= 1280*720:
+		return "3.1"
+	case codec == "hevc":
+		return "4"
+	case px <= 1280*720:
+		return "3.1"
+	default:
+		return "4.1"
+	}
+}
+
 // Request 是播放程式可以調整的部分。
 type Request struct {
 	AudioStreamIndex *int  // nil 表示用預設音軌
 	MaxBitrate       int64 // 0 表示不限，用於對外連線頻寬有限時
+	// MaxWidth、MaxHeight 是播放端選的解析度上限（例如螢幕大小），0 表示不限。
+	// 只給 MaxHeight 時放進 16:9 的框（720 → 1280×720）。
+	MaxWidth  int
+	MaxHeight int
 	// SubtitleStreamIndex 是要燒進畫面的字幕（Jellyfin Index），nil 表示不燒。
 	// 只接受內嵌的圖形字幕；文字字幕由播放程式自己顯示（向 Jellyfin 取 WebVTT）。
 	SubtitleStreamIndex *int
@@ -68,7 +141,56 @@ type Plan struct {
 	CodecLevel    string
 }
 
-const minVideoBitrate = 1_000_000
+const minVideoBitrate = 500_000
+
+// ladderHeights 是自適應時另外提供的較低解析度（放進 16:9 的框）。
+var ladderHeights = []int{720, 480, 360}
+
+// Ladder 依 Build 的計畫產生自適應用的各軌：第一軌就是 top，之後每軌放進較小的 16:9 框，
+// 位元率依同一個 Profile 換算。最多 maxVariants 軌。
+func Ladder(p Profile, top Plan, maxVariants int) []Plan {
+	plans := []Plan{top}
+	for _, h := range ladderHeights {
+		if len(plans) >= maxVariants {
+			break
+		}
+		w, hh := FitBox(top.SourceWidth, top.SourceHeight, h*16/9, h)
+		last := plans[len(plans)-1]
+		if hh >= last.Height || w >= last.Width {
+			continue // 比上一軌小才有意義
+		}
+		v := top
+		v.Width, v.Height = w, hh
+		v.CodecLevel = levelFor(v.VideoCodec, w, hh)
+		v.VideoBitrate = min(scaleBitrate(p, w, hh), top.VideoBitrate)
+		v.VideoBitrate = max(v.VideoBitrate, minVideoBitrate)
+		plans = append(plans, v)
+	}
+	return plans
+}
+
+// CodecsAttr 是 HLS 主播放清單 CODECS 屬性的值（RFC 6381）。
+func (p Plan) CodecsAttr() string {
+	var v string
+	if p.VideoCodec == "hevc" {
+		// Main profile、Main tier；level_idc = level × 30
+		lvl := map[string]string{"3.1": "93", "4": "120", "4.1": "123"}[p.CodecLevel]
+		if lvl == "" {
+			lvl = "120"
+		}
+		v = "hvc1.1.6.L" + lvl + ".90"
+	} else {
+		lvl := map[string]string{"3.1": "1f", "4": "28", "4.0": "28", "4.1": "29"}[p.CodecLevel]
+		if lvl == "" {
+			lvl = "29"
+		}
+		v = "avc1.6400" + lvl // High profile
+	}
+	if p.AudioIndex >= 0 {
+		v += ",mp4a.40.2"
+	}
+	return v
+}
 
 var (
 	ErrNoVideo = errors.New("profile: media source has no video stream")
@@ -123,7 +245,17 @@ func Build(p Profile, src jellyfin.MediaSource, req Request) (Plan, error) {
 		plan.SubtitleInput = inputIndex(src.MediaStreams, sub)
 	}
 
-	plan.Width, plan.Height = FitBox(video.Width, video.Height, p.MaxWidth, p.MaxHeight)
+	maxW, maxH := p.MaxWidth, p.MaxHeight
+	if req.MaxHeight > 0 {
+		maxH = min(maxH, req.MaxHeight)
+		if req.MaxWidth <= 0 {
+			maxW = min(maxW, req.MaxHeight*16/9)
+		}
+	}
+	if req.MaxWidth > 0 {
+		maxW = min(maxW, req.MaxWidth)
+	}
+	plan.Width, plan.Height = FitBox(video.Width, video.Height, maxW, maxH)
 	plan.VideoBitrate = videoBitrate(p, plan, video, req)
 	return plan, nil
 }
@@ -183,8 +315,7 @@ func FitBox(w, h, maxW, maxH int) (int, int) {
 }
 
 func videoBitrate(p Profile, plan Plan, video jellyfin.MediaStream, req Request) int64 {
-	// 依像素數比例縮放目標位元率
-	br := p.MaxVideoBitrate * int64(plan.Width*plan.Height) / int64(p.MaxWidth*p.MaxHeight)
+	br := scaleBitrate(p, plan.Width, plan.Height)
 	// 片源本身位元率很低時，轉碼不會讓畫質變好，只會浪費頻寬
 	if video.BitRate > 0 && br > video.BitRate {
 		br = video.BitRate
@@ -196,6 +327,11 @@ func videoBitrate(p Profile, plan Plan, video jellyfin.MediaStream, req Request)
 		br = minVideoBitrate
 	}
 	return br
+}
+
+// scaleBitrate 依像素數比例縮放 Profile 的目標位元率。
+func scaleBitrate(p Profile, w, h int) int64 {
+	return p.MaxVideoBitrate * int64(w*h) / int64(p.MaxWidth*p.MaxHeight)
 }
 
 func pickVideo(streams []jellyfin.MediaStream) (jellyfin.MediaStream, bool) {

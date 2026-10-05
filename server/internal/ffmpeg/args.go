@@ -25,8 +25,42 @@ type Job struct {
 	Plan           profile.Plan
 }
 
-// SegmentName 是第 n 段的檔名，和 SegmentPattern 一致。
+// SegmentName 是第 n 段在 session（或某一軌）目錄裡的檔名，和 SegmentPattern 一致。
 func SegmentName(n int) string { return fmt.Sprintf("seg_%05d.ts", n) }
+
+// 多軌（自適應）時，播放端看到的檔名帶軌道編號：v1.m3u8、v1_seg_00042.ts。
+// 只有一軌時沿用 index.m3u8 與 seg_00042.ts（舊版播放程式與 iPad 不受影響）。
+func VariantPlaylistName(v int) string   { return fmt.Sprintf("v%d.m3u8", v) }
+func VariantSegmentName(v, n int) string { return fmt.Sprintf("v%d_%s", v, SegmentName(n)) }
+func variantSegmentPrefix(v int) string  { return fmt.Sprintf("v%d_", v) }
+
+// Variant 是主播放清單裡的一軌。
+type Variant struct {
+	Width, Height int
+	Bandwidth     int64 // 峰值（影像 maxrate + 音訊），bps
+	AvgBandwidth  int64
+	Codecs        string
+}
+
+// MasterPlaylist 列出各軌，由高到低。播放端依頻寬自行切換；各軌片段時間點一致（每段固定秒數、以 IDR 開頭）。
+func MasterPlaylist(vs []Variant) []byte {
+	b := []byte("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-INDEPENDENT-SEGMENTS\n")
+	for i, v := range vs {
+		b = fmt.Appendf(b, "#EXT-X-STREAM-INF:BANDWIDTH=%d,AVERAGE-BANDWIDTH=%d,RESOLUTION=%dx%d,CODECS=\"%s\"\n%s\n",
+			v.Bandwidth, v.AvgBandwidth, v.Width, v.Height, v.Codecs, VariantPlaylistName(i))
+	}
+	return b
+}
+
+// VariantOf 由轉碼計畫算出主播放清單的屬性。峰值和 Args 的 -maxrate 一致。
+func VariantOf(p profile.Plan) Variant {
+	return Variant{
+		Width: p.Width, Height: p.Height,
+		Bandwidth:    p.VideoBitrate*3/2 + p.AudioBitrate,
+		AvgBandwidth: p.VideoBitrate + p.AudioBitrate,
+		Codecs:       p.CodecsAttr(),
+	}
+}
 
 // Args 產生 ffmpeg 參數。ffmpeg 的工作目錄必須是 session 目錄，輸出檔名是相對路徑。
 //
@@ -118,6 +152,15 @@ func SegmentCount(runTimeSeconds float64, seg int) int {
 // VODPlaylist 依片長一次列出所有片段。播放端因此知道完整長度，可以拖曳到任何位置；
 // 片段實際上是被請求時才轉出（見 session.Manager.Segment）。
 func VODPlaylist(runTimeSeconds float64, seg int) []byte {
+	return vodPlaylist(runTimeSeconds, seg, "")
+}
+
+// VariantVODPlaylist 是多軌時第 v 軌的清單，片段檔名帶軌道編號。
+func VariantVODPlaylist(runTimeSeconds float64, seg, v int) []byte {
+	return vodPlaylist(runTimeSeconds, seg, variantSegmentPrefix(v))
+}
+
+func vodPlaylist(runTimeSeconds float64, seg int, prefix string) []byte {
 	seg = segmentSeconds(seg)
 	n := SegmentCount(runTimeSeconds, seg)
 	b := []byte("#EXTM3U\n#EXT-X-VERSION:3\n")
@@ -132,7 +175,7 @@ func VODPlaylist(runTimeSeconds float64, seg int) []byte {
 				d = float64(seg)
 			}
 		}
-		b = fmt.Appendf(b, "#EXTINF:%.6f,\n%s\n", d, SegmentName(i))
+		b = fmt.Appendf(b, "#EXTINF:%.6f,\n%s%s\n", d, prefix, SegmentName(i))
 	}
 	return append(b, "#EXT-X-ENDLIST\n"...)
 }

@@ -62,24 +62,31 @@ type fakeSessions struct {
 	started   *session.Params
 	stopped   string
 	requested []int
+	variants  []int // 每次 Segment 請求的軌道
 	served    []int
 }
 
 func (f *fakeSessions) Start(_ context.Context, p session.Params) (*session.Session, error) {
 	f.started = &p
-	return &session.Session{ID: sessID, Dir: f.dir, Plan: p.Plan}, nil
+	return &session.Session{ID: sessID, Dir: f.dir, Variants: []*session.Variant{{Plan: p.Plans[0], Dir: f.dir}}}, nil
 }
 
 func (f *fakeSessions) Get(id string) (*session.Session, bool) {
 	if id != sessID {
 		return nil, false
 	}
-	return &session.Session{ID: sessID, Dir: f.dir, Playlist: []byte("#EXTM3U\n#EXT-X-PLAYLIST-TYPE:VOD\n")}, true
+	// 兩軌（自適應）：index.m3u8 是主播放清單，另有 v0.m3u8、v1.m3u8
+	return &session.Session{ID: sessID, Dir: f.dir, Playlist: []byte("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nv0.m3u8\n"),
+		Variants: []*session.Variant{
+			{Index: 0, Dir: f.dir, Playlist: []byte("#EXTM3U\n#EXT-X-PLAYLIST-TYPE:VOD\nv0_seg_00000.ts\n")},
+			{Index: 1, Dir: f.dir, Playlist: []byte("#EXTM3U\n#EXT-X-PLAYLIST-TYPE:VOD\nv1_seg_00000.ts\n")},
+		}}, true
 }
 
 // Segment 模擬 session.Manager：第 0–1 段存在，第 2 段「轉出」後回傳，其餘超出範圍。
-func (f *fakeSessions) Segment(_ context.Context, id string, n int) (string, error) {
+func (f *fakeSessions) Segment(_ context.Context, id string, variant, n int) (string, error) {
 	f.requested = append(f.requested, n)
+	f.variants = append(f.variants, variant)
 	switch {
 	case id != sessID:
 		return "", session.ErrNotFound
@@ -187,20 +194,26 @@ func TestServeFile(t *testing.T) {
 	}
 	base := "/v1/sessions/" + sessID + "/"
 	// 播放清單來自 session（伺服器依片長產生），不是磁碟上 ffmpeg 寫的檔案
-	if body := check(base+"index.m3u8", 200, "application/vnd.apple.mpegurl"); !strings.Contains(body, "VOD") {
-		t.Errorf("playlist body = %q", body)
+	if body := check(base+"index.m3u8", 200, "application/vnd.apple.mpegurl"); !strings.Contains(body, "STREAM-INF") {
+		t.Errorf("master playlist body = %q", body)
 	}
+	if body := check(base+"v1.m3u8", 200, "application/vnd.apple.mpegurl"); !strings.Contains(body, "v1_seg_00000.ts") {
+		t.Errorf("variant playlist body = %q", body)
+	}
+	check(base+"v2.m3u8", 404, "")
 	check(base+"seg_00000.ts", 200, "video/mp2t")
 	check(base+"seg_00002.ts", 200, "video/mp2t")
+	check(base+"v1_seg_00001.ts", 200, "video/mp2t")
 	check(base+"seg_00099.ts", 404, "") // 超出片長
 	check(base+"secret.txt", 404, "")
+	check(base+"v10_seg_00001.ts", 404, "")
 	check(base+"ffmpeg.m3u8", 404, "") // ffmpeg 自己的清單不對外
 	check("/v1/sessions/"+strings.Repeat("0", 32)+"/index.m3u8", 404, "")
-	if !slices.Equal(fs.requested, []int{0, 2, 99}) {
-		t.Errorf("segments requested from manager = %v", fs.requested)
+	if !slices.Equal(fs.requested, []int{0, 2, 1, 99}) || !slices.Equal(fs.variants, []int{0, 0, 1, 0}) {
+		t.Errorf("segments requested from manager = %v, variants %v", fs.requested, fs.variants)
 	}
 	// 只有實際送出的片段計入監控數據
-	if !slices.Equal(fs.served, []int{0, 2}) {
+	if !slices.Equal(fs.served, []int{0, 2, 1}) {
 		t.Errorf("segments recorded as served = %v", fs.served)
 	}
 }
@@ -243,7 +256,52 @@ func TestCreateSessionBurnsImageSubtitle(t *testing.T) {
 	}
 	var got createResponse
 	json.NewDecoder(resp.Body).Decode(&got)
-	if got.SubtitleStreamIndex != 3 || fs.started.Plan.SubtitleInput != 3 {
-		t.Errorf("subtitle = %d, plan input = %d", got.SubtitleStreamIndex, fs.started.Plan.SubtitleInput)
+	if got.SubtitleStreamIndex != 3 || fs.started.Plans[0].SubtitleInput != 3 {
+		t.Errorf("subtitle = %d, plan input = %d", got.SubtitleStreamIndex, fs.started.Plans[0].SubtitleInput)
+	}
+}
+
+func TestCreateSessionFromCapabilities(t *testing.T) {
+	srv, fs := newServer(t)
+	caps := `"capabilities":{"decoders":[{"codec":"h264","maxWidth":1920,"maxHeight":1088},{"codec":"hevc","maxWidth":1920,"maxHeight":1088}]}`
+
+	// 自適應：HEVC，最高 1080p，另有較低的幾軌
+	resp := post(t, srv.URL, "good", `{"itemId":"`+itemID+`","profile":"P028",`+caps+`,"adaptive":true}`)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	var got createResponse
+	json.NewDecoder(resp.Body).Decode(&got)
+	if got.Video.Codec != "hevc" || got.Video.Height != 1080 || len(got.Variants) != 4 || len(fs.started.Plans) != 4 {
+		t.Fatalf("video = %+v variants = %+v", got.Video, got.Variants)
+	}
+	if fs.started.Profile != "P028" || got.Variants[1].Height != 720 || got.Variants[3].Height != 360 {
+		t.Errorf("profile %q variants %+v", fs.started.Profile, got.Variants)
+	}
+
+	// 選 720p、不自適應：只有一軌
+	resp = post(t, srv.URL, "good", `{"itemId":"`+itemID+`",`+caps+`,"maxHeight":720}`)
+	got = createResponse{}
+	json.NewDecoder(resp.Body).Decode(&got)
+	if got.Video.Width != 1280 || got.Video.Height != 720 || len(got.Variants) != 0 || len(fs.started.Plans) != 1 {
+		t.Errorf("720p: video = %+v variants = %d", got.Video, len(got.Variants))
+	}
+
+	// 只有 H.264 硬解
+	resp = post(t, srv.URL, "good", `{"itemId":"`+itemID+`","capabilities":{"decoders":[{"codec":"h264","maxWidth":1280,"maxHeight":720}]}}`)
+	got = createResponse{}
+	json.NewDecoder(resp.Body).Decode(&got)
+	if got.Video.Codec != "h264" || got.Video.Height != 720 {
+		t.Errorf("h264 only: video = %+v", got.Video)
+	}
+
+	for name, body := range map[string]string{
+		"no decoder": `{"itemId":"` + itemID + `","capabilities":{"decoders":[{"codec":"vp9","maxWidth":1920,"maxHeight":1080}]}}`,
+		"bad size":   `{"itemId":"` + itemID + `","capabilities":{"decoders":[{"codec":"h264","maxWidth":0,"maxHeight":1080}]}}`,
+		"bad height": `{"itemId":"` + itemID + `",` + caps + `,"maxHeight":-1}`,
+	} {
+		if code := post(t, srv.URL, "good", body).StatusCode; code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", name, code)
+		}
 	}
 }
