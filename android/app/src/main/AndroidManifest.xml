@@ -13,11 +13,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Player">
 
+        <!-- 方向由程式決定（手機直立、平板橫向，見 ui/Layout.kt），旋轉時重建以載入對應方向的版面 -->
         <activity
             android:name=".ui.MainActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
-            android:exported="true"
-            android:screenOrientation="sensorLandscape">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

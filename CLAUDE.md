@@ -92,6 +92,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - 畫面：`HomeFragment`（主打＋繼續觀看／下一集／各庫最新）、`LibraryFragment`（海報格線、排序、類型篩選）、`MovieFragment`、`SeriesFragment`、`GridFragments`（播放清單、搜尋）、`SettingsFragment`、`LoginActivity`。
 - `PlayerActivity`：自訂 Media3 控制列 `player_controls.xml`（`exo_rew`／`exo_ffwd`／`exo_play_pause` 必須是 ImageView 系列，Media3 會強制轉型）、右側音軌／字幕面板。
 - `net/`（Endpoints 內網優先、JellyfinApi、XcodeApi）、`data/`（Settings、SubtitleTrack／SubtitleChooser、AudioTrack）。
+- 版面：手機（最短邊 < 600dp）直立、平板橫向（`ui/Layout.kt` 的 `applyPageOrientation`，MainActivity 旋轉時重建）。直立版面放 `layout-port/`、`values-port/`（由平板版調整而來，改平板版時一併檢查），平板畫面不受影響；手機用底部導覽列（首頁、媒體庫、搜尋、設定，媒體庫集中在 `LibrariesFragment`）。播放畫面一律橫向。沒有手機時可在 ZenPad 用 `adb shell wm density 320` 模擬（寬 400dp，系統的 ZenUI 鍵盤會因此當掉一次，按關閉即可），測完一定要 `wm density reset`。
 - 視覺：深色底＋琥珀色強調（`values/colors.xml`），對照設計稿 artifact「Jellyfin Extra Android UI」。圖片一律帶 `maxWidth` 向 Jellyfin 要縮圖（heap 只有 128MB）。
 版本：AGP 9.4.1（內建 Kotlin）、Kotlin 編譯器 2.4.20（根目錄 `apply false` 放上 classpath，Coil 3.6 需要）、Gradle 9.8.0（wrapper 已鎖 SHA-256）、compileSdk 37（androidx.core 1.19 要求）、targetSdk 34、minSdk 24。版本集中在 `gradle/libs.versions.toml`。
 
@@ -117,6 +118,7 @@ adb logcat --pid=$(adb shell pidof -s <package>) -d
 - 裝置實際支援的硬體解碼格式以 `MediaCodecList` 實測為準，不要只憑規格表。目前實測（`/system/etc/media_codecs*.xml` 與 logcat）：
   - 影像硬解：H.264（`OMX.MTK.VIDEO.DECODER.AVC`，最高 1920×1088）、HEVC（`OMX.MTK.VIDEO.DECODER.HEVC`，最高 1920×1088）、MPEG-4、H.263。VP8 / VP9 只有軟解，沒有 AV1。
   - 音訊：AAC、MP3、Vorbis、Opus 可用；沒有 AC3／E-AC3。FLAC 的 `OMX.MTK.AUDIO.DECODER.FLAC` 接受資料卻不輸出（播放停在第一格），`DeviceCaps` 把它當作不存在。DTS 解碼器註冊成 `audio/dts`，ExoPlayer 找的是 `audio/vnd.dts`，用不到。所以 FLAC／DTS 片源一律轉碼成 AAC。
+  - 解碼器回報的寬、高上限是各自獨立的（新手機常是 8192×8192），`DeviceCaps` 改用常見尺寸試 `isSizeSupported` 取實際能解的最大畫面；伺服器也接受到 16384、再夾到 1080p。
   - 可變幀率的片源 Jellyfin 的 `RealFrameRate` 可能是 119.88 之類的時基值，判斷解碼能力用 `AverageFrameRate`。
   - 直接播放 15 秒還沒就緒就自動改成轉碼（防其他沒發現的壞解碼器）。
   - 裝置 ABI 是 `arm64-v8a,armeabi-v7a,armeabi`。

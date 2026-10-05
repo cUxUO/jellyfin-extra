@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 手機直立：內容區在上、底部導覽列（平板版見 layout/activity_main.xml 的左側導覽列） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ProgressBar
+            android:id="@+id/loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/accent" />
+    </FrameLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/rail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg"
+        app:itemIconTint="@color/rail_item"
+        app:itemTextColor="@color/rail_item"
+        app:labelVisibilityMode="labeled" />
+</LinearLayout>

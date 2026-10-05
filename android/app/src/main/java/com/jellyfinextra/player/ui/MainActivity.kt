@@ -10,7 +10,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.navigationrail.NavigationRailView
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.navigation.NavigationBarView
 import com.jellyfinextra.player.App
 import com.jellyfinextra.player.R
 import com.jellyfinextra.player.app
@@ -21,15 +22,23 @@ import com.jellyfinextra.player.net.JellyfinApi.Item
 import kotlinx.coroutines.launch
 
 /**
- * 主畫面：左側導覽列加內容區。導覽列的媒體庫項目依 Jellyfin 的 UserViews 產生；
+ * 主畫面：導覽列加內容區。平板是左側導覽列，媒體庫項目依 Jellyfin 的 UserViews 產生；
+ * 手機（直立）是底部導覽列，最多 5 項，所以媒體庫集中在「媒體庫」頁。
  * 詳情頁疊在內容區的返回堆疊上，播放另開 [PlayerActivity]。
  */
 class MainActivity : AppCompatActivity() {
-    private lateinit var rail: NavigationRailView
+    private lateinit var rail: NavigationBarView
     private var views: List<Item> = emptyList()
+
+    /** 底部導覽列（手機直立）：媒體庫不逐一放進導覽列。 */
+    private val compactNav: Boolean get() = rail is BottomNavigationView
+
+    /** 使用者的媒體庫（UserViews），手機的「媒體庫」頁列出它們。 */
+    val libraries: List<Item> get() = views
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyPageOrientation()
         if (!app.settings.loggedIn) {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
@@ -53,11 +62,10 @@ class MainActivity : AppCompatActivity() {
         result.onSuccess { v ->
             views = v
             buildMenu()
-            // 建選單時第一項已自動選取，設定 selectedItemId 不會再觸發監聽，直接顯示首頁
-            if (firstStart) {
-                showRoot(ID_HOME)
-                UpdatePrompt.autoCheck(this)
-            }
+            // 建選單時第一項已自動選取，設定 selectedItemId 不會再觸發監聽，直接顯示首頁。
+            // 重建（例如手機啟動時從橫向轉成直立）時若內容區還沒有頁面，也要顯示首頁
+            if (firstStart || supportFragmentManager.findFragmentById(R.id.content) == null) showRoot(ID_HOME)
+            if (firstStart) UpdatePrompt.autoCheck(this)
         }.onFailure { e ->
             if (e is HttpException && e.code == 401) {
                 logout()
@@ -71,6 +79,12 @@ class MainActivity : AppCompatActivity() {
         val menu = rail.menu
         menu.clear()
         menu.add(Menu.NONE, ID_HOME, 0, "首頁").setIcon(R.drawable.ic_home)
+        if (compactNav) {
+            menu.add(Menu.NONE, ID_LIBRARIES, 1, "媒體庫").setIcon(R.drawable.ic_folder)
+            menu.add(Menu.NONE, ID_SEARCH, 50, "搜尋").setIcon(R.drawable.ic_search)
+            menu.add(Menu.NONE, ID_SETTINGS, 51, "設定").setIcon(R.drawable.ic_settings)
+            return
+        }
         // 導覽列最多 7 項：首頁、搜尋、設定之外留給媒體庫
         views.take(MAX_VIEWS).forEachIndexed { i, v ->
             val icon = when (v.collectionType) {
@@ -91,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         ID_HOME -> HomeFragment()
         ID_SEARCH -> SearchFragment()
         ID_SETTINGS -> SettingsFragment()
+        ID_LIBRARIES -> LibrariesFragment()
         else -> LibraryFragment.of(views[id - ID_VIEW_BASE])
     }
 
@@ -115,7 +130,7 @@ class MainActivity : AppCompatActivity() {
     /** 首頁上的媒體庫列可以直接切到那個媒體庫。 */
     fun showView(view: Item) {
         val i = views.indexOfFirst { it.id == view.id }
-        if (i >= 0) rail.selectedItemId = ID_VIEW_BASE + i else push(LibraryFragment.of(view))
+        if (i >= 0 && !compactNav) rail.selectedItemId = ID_VIEW_BASE + i else push(LibraryFragment.of(view))
     }
 
     /** 點到項目時的去向：電影開詳情，影集與季開影集頁，集數直接播放，其他資料夾開清單。 */
@@ -144,6 +159,7 @@ class MainActivity : AppCompatActivity() {
         private const val ID_HOME = 1
         private const val ID_SEARCH = 2
         private const val ID_SETTINGS = 3
+        private const val ID_LIBRARIES = 4
         private const val ID_VIEW_BASE = 100
         private const val MAX_VIEWS = 4
     }

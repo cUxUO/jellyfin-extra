@@ -21,10 +21,9 @@ import kotlinx.coroutines.launch
 abstract class GridFragment : Fragment(R.layout.fragment_grid) {
     protected var adapter: PosterAdapter? = null
 
-    protected fun setupGrid(root: View) {
+    protected fun setupGrid(root: View, columnDp: Int = 160) {
         val grid = root.findViewById<RecyclerView>(R.id.grid)
-        val widthDp = resources.configuration.screenWidthDp - 88 - 60
-        grid.layoutManager = GridLayoutManager(requireContext(), (widthDp / 160).coerceAtLeast(3))
+        grid.layoutManager = GridLayoutManager(requireContext(), gridColumns(columnDp))
         val d = resources.displayMetrics.density
         grid.addItemDecoration(GridGap((10 * d).toInt(), (16 * d).toInt()))
     }
@@ -141,6 +140,30 @@ class SearchFragment : GridFragment() {
                 api.search(q)
             }
             result.onSuccess { show(root, it, "找不到「$q」") }.onFailure { showError(root, it) }
+        }
+    }
+}
+
+/** 欄數：內容區寬度（扣掉平板的左側導覽列與左右留白）除以每欄大約的寬度；手機至少 3 欄海報。 */
+fun Fragment.gridColumns(columnDp: Int = 160, min: Int = 3): Int {
+    val res = resources
+    val nav = if (requireContext().isPhone) 0 else 88
+    val padding = 2 * (res.getDimension(R.dimen.page_padding) / res.displayMetrics.density).toInt()
+    return ((res.configuration.screenWidthDp - nav - padding) / columnDp).coerceAtLeast(min)
+}
+
+/** 手機的「媒體庫」頁：列出所有媒體庫（平板直接放在左側導覽列）。 */
+class LibrariesFragment : Fragment(R.layout.fragment_grid) {
+    override fun onViewCreated(root: View, savedInstanceState: Bundle?) {
+        root.findViewById<TextView>(R.id.title).text = "媒體庫"
+        root.findViewById<View>(R.id.searchBox)?.visibility = View.GONE
+        val grid = root.findViewById<RecyclerView>(R.id.grid)
+        grid.layoutManager = GridLayoutManager(requireContext(), gridColumns(columnDp = 170, min = 1))
+        val d = resources.displayMetrics.density
+        grid.addItemDecoration(GridGap((10 * d).toInt(), (16 * d).toInt()))
+        lifecycleScope.launch {
+            val api = runCatching { requireContext().jellyfinApi() }.getOrNull() ?: return@launch
+            grid.adapter = WideCardAdapter(api, fill = true) { main.showView(it) }.apply { items = main.libraries }
         }
     }
 }

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 手機直立版（由 layout/fragment_home.xml 調整：主打區變矮、全寬、字縮小） -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="invisible">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="32dp">
+
+            <FrameLayout
+                android:id="@+id/hero"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:background="@color/surface">
+
+                <ImageView
+                    android:id="@+id/heroImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:importantForAccessibility="no" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/scrim_left" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/scrim_bottom" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|start"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="20dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/heroEyebrow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/accent"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/heroTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textColor="@color/text"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/heroMeta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="15sp" />
+
+                    <LinearLayout
+                        android:id="@+id/heroProgressRow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/heroProgress"
+                            style="@style/Progress.Inline"
+                            android:layout_width="160dp"
+                            android:layout_height="wrap_content"
+                            android:max="1000" />
+
+                        <TextView
+                            android:id="@+id/heroRemaining"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/heroPlay"
+                            style="@style/Button.Primary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:icon="@drawable/ic_play" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/heroDetails"
+                            style="@style/Button.Outline"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="詳細資訊" />
+                    </LinearLayout>
+                </LinearLayout>
+            </FrameLayout>
+
+            <LinearLayout
+                android:id="@+id/sections"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <ProgressBar
+        android:id="@+id/loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminateTint="@color/accent" />
+
+    <TextView
+        android:id="@+id/message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="24dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="15sp"
+        android:visibility="gone" />
+</FrameLayout>

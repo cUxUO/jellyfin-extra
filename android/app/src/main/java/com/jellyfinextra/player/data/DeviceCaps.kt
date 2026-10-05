@@ -54,9 +54,21 @@ object DeviceCaps : DirectPlay.Decoders {
             hardware(mime).mapNotNull { info ->
                 val caps = runCatching { info.getCapabilitiesForType(mime) }.getOrNull() ?: return@mapNotNull null
                 val vc = caps.videoCapabilities ?: return@mapNotNull null
-                VideoDecoder(codec, info.name, vc.supportedWidths.upper, vc.supportedHeights.upper, tenBit(codec, caps))
+                val (w, h) = maxFrame(vc) ?: return@mapNotNull null
+                VideoDecoder(codec, info.name, w, h, tenBit(codec, caps))
             }.maxByOrNull { it.maxWidth * it.maxHeight }
         }
+    }
+
+    /** 常見畫面尺寸，由大到小；解碼器回報的寬、高上限是各自獨立的（新手機常是 8192×8192），不代表能解這麼大的畫面。 */
+    private val FRAME_SIZES = listOf(3840 to 2160, 2560 to 1440, 1920 to 1088, 1920 to 1080, 1280 to 720, 854 to 480, 640 to 360)
+
+    /** 解碼器實際能解的最大常見尺寸；MTK 這類回報 1920×1088 的照原樣保留。 */
+    private fun maxFrame(vc: MediaCodecInfo.VideoCapabilities): Pair<Int, Int>? {
+        val w = vc.supportedWidths.upper
+        val h = vc.supportedHeights.upper
+        if (w <= 4096 && h <= 4096 && runCatching { vc.isSizeSupported(w, h) }.getOrDefault(false)) return w to h
+        return FRAME_SIZES.firstOrNull { (fw, fh) -> runCatching { vc.isSizeSupported(fw, fh) }.getOrDefault(false) }
     }
 
     private fun hardware(mime: String) = decoders.filter { info ->

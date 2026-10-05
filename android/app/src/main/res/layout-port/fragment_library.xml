@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 手機直立版（由 layout/fragment_library.xml 調整：排序與類型分兩列、留白縮小） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="true"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/back"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:src="@drawable/ic_back"
+            android:visibility="gone"
+            app:tint="@color/text" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/sort"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/sortAdded"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="最近加入" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/sortName"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="名稱" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/sortYear"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="年份" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/sortRating"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="評分" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/genres"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:chipSpacingHorizontal="8dp"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:singleSelection="true" />
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/grid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="10dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="24dp" />
+
+        <ProgressBar
+            android:id="@+id/loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/accent" />
+
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="24dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp"
+            android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>

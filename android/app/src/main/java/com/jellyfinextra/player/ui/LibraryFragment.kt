@@ -55,7 +55,7 @@ class LibraryFragment : Fragment(R.layout.fragment_library) {
         root.findViewById<View>(R.id.controls).visibility = if (filterable) View.VISIBLE else View.GONE
 
         val grid = root.findViewById<RecyclerView>(R.id.grid)
-        grid.layoutManager = GridLayoutManager(requireContext(), spanCount())
+        grid.layoutManager = GridLayoutManager(requireContext(), gridColumns())
         grid.addItemDecoration(GridGap(dp(10), dp(16)))
 
         val sortGroup = root.findViewById<MaterialButtonToggleGroup>(R.id.sort)
@@ -135,12 +135,6 @@ class LibraryFragment : Fragment(R.layout.fragment_library) {
     private fun countLabel(n: Int) = when (library.collectionType) {
         "movies", "tvshows" -> "$n 部"
         else -> "$n 項"
-    }
-
-    /** 依寬度決定欄數：海報約 140dp 寬加間距，1280×800 的 ZenPad 是 7 欄。 */
-    private fun spanCount(): Int {
-        val widthDp = resources.configuration.screenWidthDp - 88 - 60
-        return (widthDp / 160).coerceAtLeast(3)
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

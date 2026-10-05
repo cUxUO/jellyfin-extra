@@ -75,6 +75,7 @@ class PosterAdapter(
 /** 橫式卡片（繼續觀看、下一集）。 */
 class WideCardAdapter(
     private val api: JellyfinApi,
+    private val fill: Boolean = false,
     private val onClick: (Item) -> Unit,
 ) : RecyclerView.Adapter<WideCardAdapter.Holder>() {
     var items: List<Item> = emptyList()
@@ -90,8 +91,11 @@ class WideCardAdapter(
         val subtitle: TextView = view.findViewById(R.id.subtitle)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        Holder(LayoutInflater.from(parent.context).inflate(R.layout.item_card_wide, parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
+        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_card_wide, parent, false)
+        if (fill) v.layoutParams = v.layoutParams.apply { width = ViewGroup.LayoutParams.MATCH_PARENT }
+        return Holder(v)
+    }
 
     override fun getItemCount() = items.size
 

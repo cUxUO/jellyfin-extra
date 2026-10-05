@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyPageOrientation()
         setContentView(R.layout.activity_login)
         title = getString(R.string.login_title)
 

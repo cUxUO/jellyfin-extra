@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 頁面左右留白；手機直立版見 values-port -->
+    <dimen name="page_padding">40dp</dimen>
+</resources>
