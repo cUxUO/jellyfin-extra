@@ -31,6 +31,7 @@ Windows 轉碼伺服器（Go，原生 exe）──────┘
 - 主機是 Arch Linux，你不能也不需要操作主機。
 - 需要新工具時，不要自己 `apt install`，請告訴使用者，並建議改 `devenv/Dockerfile`。
 - 工具鏈在 volume 內：Android SDK 在 `~/Android/Sdk`，Theos 在 `$THEOS`，Go 快取在 `~/go`。
+- `~/.config/jellyfin-extra/` 是主機目錄掛進來的（測試 token、Android 發布簽章金鑰），容器重建不會消失；容器內其他未掛載的路徑重建後就沒了。
 
 ## 目標裝置
 
@@ -63,12 +64,13 @@ ssh Windows 'taskkill /f /im xcode.exe'
   - `internal/api`：`POST /v1/sessions`、`GET /v1/sessions/{id}/{file}`、`DELETE /v1/sessions/{id}`，回傳相對路徑。
   - `internal/dashboard`：監控頁 `http://<Windows 內網 IP>:8097/dashboard`（每 2 秒向 `/dashboard/data` 取 JSON）：GPU（`internal/gpu` 呼叫 `nvidia-smi`，快取 2 秒）、各 session 的片名／使用者／播放端／輸出規格／播放位置與已轉範圍／轉碼速度／重啟次數／流量、累計數據、最近 200 行 log（`internal/logring`）。頁面含使用者與片名，只開放內網直接連線：帶 `X-Forwarded-For` 等代理標頭（經 NPM 的 `/xcode/dashboard`）或非私有位址一律 403。監控頁的請求不寫入請求 log。頁面要能在 iPad Safari 12、Chrome 64 一類的舊瀏覽器顯示：不用 `?.`、`??`、`Array.flat`、flex `gap`。
   - `internal/jellyfin`：Jellyfin API 子集。`internal/source`：127.0.0.1 上的原始檔 proxy，替 ffmpeg 附 token。
-  - `internal/profile`：裝置規格與轉碼計畫。輸出編碼依裝置：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps），`zenpad10` 送 HEVC（Main、1280×800、4 Mbps，`hevc_nvenc`）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
+  - `internal/profile`：裝置規格與轉碼計畫。播放端帶 `capabilities`（實測的硬解器與最大尺寸）時由 `FromCaps` 決定：有 720p 以上的 HEVC 硬解就送 HEVC（`hevc_nvenc`，1080p 約 8 Mbps），否則 H.264（約 10 Mbps），上限 1080p；另可帶 `maxWidth`／`maxHeight`（解析度上限）與 `adaptive`。沒帶時沿用具名 profile：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
 - 測試：`cd server && go test -race ./...`（容器內，Linux）。Windows 專屬程式碼至少要過 `GOOS=windows go vet ./...`。
 - 端對端測試：Windows 測試目錄已有 `clips\`（SDR HEVC 1080p、HDR10 HEVC 4K、10-bit H.264 各 60 秒）、`items.json`、指向 fakejf 的 `xcode.fake.json`。先跑 `fakejf.exe -items items.json`（token `devtoken`，聽 127.0.0.1:18096），再跑 `xcode.exe -notray -config xcode.fake.json`。
 - 真實 Jellyfin（12.1.0）：`xcode.json` 指向內網 8096（不經 NPM）。測試用 token 以 `tools/jf-login.sh <內網網址> <帳號>` 取得，存在容器的 `~/.config/jellyfin-extra/token`；讀取時用 `$(cat ~/.config/jellyfin-extra/token)`，不要印出、不要寫進檔案或 log。
 - 對外：Linux 主機上的 Nginx Proxy Manager（Docker）把 `https://<網域>/xcode/` 轉到 Windows 8097，設定在 Jellyfin Proxy Host 的 Advanced 分頁。
 - HLS：伺服器依 Jellyfin 的片長產生整部片的 VOD 清單（每段 3 秒），片段被請求時才轉出（`session.Manager.Segment`）：已轉出就回傳、在 ffmpeg 進度後 2 段內就等、否則從該段重新啟動 ffmpeg（`-ss` + `-output_ts_offset` + `-start_number`，時間戳記與編號對齊整部片，舊片段保留沿用）。播放端拖曳不需特別處理，起點也只是開播後跳過去。沒有片長（RunTimeTicks=0）的項目回 422。
+- 自適應（`adaptive`）：`index.m3u8` 是主播放清單，最多 4 軌（最高畫質加上 720／480／360 的 16:9 框），各軌清單 `v{n}.m3u8`、片段 `v{n}_seg_NNNNN.ts`，各軌有自己的目錄與 ffmpeg，片段時間點一致可隨時切換。開播先轉第 0 軌；一軌 15 秒沒被請求就停掉它的 ffmpeg（`stopIdleVariants`），已轉的片段保留。只有一軌時檔名與以前相同（iPad 不受影響）。
 - 字幕：圖形字幕（PGS／DVD）由 xcode 燒錄（`subtitleStreamIndex`，GPU 路徑 `overlay_cuda`，同 Jellyfin）；燒錄時必須加 `-canvas_size`（片源尺寸），否則跳到附近沒有字幕的位置時整條濾鏡會卡住。文字字幕（SRT／ASS）由播放程式向 Jellyfin 取 `Stream.vtt` 自己顯示，xcode 不處理。
 - **不要**在轉碼的 ffmpeg 裡順便輸出字幕（多個稀疏的 WebVTT 輸出）：實測會讓影像輸出卡死（ffmpeg 排程器等待落後的字幕輸出）；獨立的純字幕 ffmpeg 行為也不穩定。已試過並放棄，細節見 git 歷史。
 - Jellyfin 抽內嵌文字字幕要讀完整個檔案：1GB 約 10 秒，60GB 藍光原盤約 8 分鐘（之後有快取）；外掛字幕約 0.1 秒。播放程式的請求不設讀取逾時，中途放棄會讓 Jellyfin 停掉抽取。
@@ -83,6 +85,8 @@ ssh Windows 'taskkill /f /im xcode.exe'
 ## Android 播放程式
 
 專案在 `android/`：Kotlin、View 系統（不用 Compose，舊平板較輕）、Material Components、Media3 ExoPlayer + OkHttp、Coil 3 載圖、JSON 用內建 `org.json`。
+- 播放方式（`PlayerActivity`）：`DeviceCaps` 以 MediaCodecList 實測硬解能力，送給轉碼伺服器選 HEVC／H.264。畫質（`Quality`，設定頁有預設、播放中可切換）：「自動」在內網且原始檔能直接播放（`DirectPlay`：容器、硬解尺寸／幀率／位元深度、SDR、音訊可解、不需燒錄字幕）時直接播放，否則要求多軌、上限為螢幕大小，ExoPlayer 依網速切換；「原始畫質」能直接播放就直接播放，否則最高畫質轉碼；1080p／720p／480p 是固定解析度轉碼。ExoPlayer 的字幕軌一律停用（字幕由 SubtitleOverlay 畫）。
+- 自動更新（`net/Updater`、`ui/UpdatePrompt`）：release 版開啟時每天最多一次查 `gradle.properties` 的 `updateRepo`（目前是本 repo，公開）最近的 Release，找有 `JellyfinExtra-<版本>-<abi>.apk` 的最新版，下載、驗 SHA-256 後詢問安裝（系統安裝程式，Android 不允許無聲安裝）；設定頁可手動檢查。
 套件 `com.jellyfinextra.player`：
 - `ui/MainActivity`：左側 NavigationRail（首頁、各媒體庫、搜尋、設定，媒體庫項目依 UserViews 產生）＋ Fragment 內容區；詳情頁走返回堆疊，播放另開 `PlayerActivity`。
 - 畫面：`HomeFragment`（主打＋繼續觀看／下一集／各庫最新）、`LibraryFragment`（海報格線、排序、類型篩選）、`MovieFragment`、`SeriesFragment`、`GridFragments`（播放清單、搜尋）、`SettingsFragment`、`LoginActivity`。
@@ -95,15 +99,16 @@ ssh Windows 'taskkill /f /im xcode.exe'
 cd android
 adb devices                                  # 確認實機已連線並授權
 ./gradlew assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk   # 依 ABI 分開打包，ZenPad 是 arm64-v8a
 adb logcat -d | tail -200                    # 先看最近的 log，不要無限串流
 adb logcat --pid=$(adb shell pidof -s <package>) -d
 ```
 
-- `minSdk 24`。目前沒有 native 程式碼，不設 `abiFilters`；日後加 native 時 ZenPad 實際是 arm64-v8a。
+- `minSdk 24`。APK 依 ABI 分開（`splits.abi`：arm64-v8a、armeabi-v7a，Conscrypt 帶 native 函式庫）；versionCode = 基礎版號 × 10 + ABI 碼（v7a 1、arm64 2），Updater 由個位數判斷安裝的是哪個 ABI。
+- 發布：改 `app/build.gradle.kts` 的 `versionCode`／`versionName` → 提交、推送 → 容器內 `./gradlew assembleRelease` → 主機執行 `tools/publish-android.sh [說明檔]`（gh 建立 `v<版本>` Release、tag 打在目前 commit、上傳兩個 APK）。發布前先問使用者。release 簽章金鑰在主機 `~/.config/jellyfin-extra/`（`release.jks`、`signing.properties`，devenv 掛進容器），不進版控、不要印出密碼；遺失就無法再更新已安裝的 app。debug 與 release 簽章不同，兩者互換要先解除安裝。
 - 播放回報：Jellyfin 會把沒有自己轉碼工作的 `PlayMethod: Transcode` 改成 DirectPlay（後台顯示用），不影響進度紀錄，不用處理。
 - 確認解碼器：debug 版把解碼器名稱、格式、掉幀寫進 app 私有的 `files/playback.log`（每次播放覆寫），用 `adb shell run-as com.jellyfinextra.player cat files/playback.log` 讀。硬解為 `OMX.MTK.VIDEO.DECODER.*`。這台的 logcat 緩衝很小，不要依賴 logcat。
-- 開發時預填連線設定：debug 版可用 `adb shell run-as com.jellyfinextra.player` 寫入 `shared_prefs/settings.xml`（只放位址與 profile，不放 token；密碼由使用者在裝置上輸入）。
+- 開發時預填連線設定：debug 版可用 `adb shell run-as com.jellyfinextra.player` 寫入 `shared_prefs/settings.xml`（只放位址，不放 token；密碼由使用者在裝置上輸入）。
 - Java 8+ API（如 `java.time`）靠 core library desugaring，不要假設 API 26 以上才有的 API 可用。
 - Android 7.0 沒有原生 TLS 1.3，系統憑證庫也沒有 Let's Encrypt 的 ISRG Root X1（7.1.1 才加入）：`network_security_config` 內建 ISRG Root X1／X2（`res/raw/`，取自容器的 Ubuntu CA，指紋已核對）。`targetSdk >= 24` 預設不信任使用者安裝的 CA。
 - 實測 ZenPad 系統 TLS（Conscrypt）的 ClientHello：只有 TLS 1.0–1.2，曲線**只有 P-256**（沒有 X25519、P-384）。目前網域憑證是 ECDSA P-384，系統 TLS 握手必定失敗（alert 40）。已改用 app 內建的 Conscrypt（`org.conscrypt:conscrypt-android`，見 `net/Http.kt`）：OkHttp 的 TLS 走 Conscrypt，憑證信任仍用系統 TrustManager（套用 network_security_config）；Jellyfin、xcode、ExoPlayer（OkHttpDataSource）、Coil 共用同一個 client。新增網路請求一律用這個 client，不要用系統的 HttpURLConnection。外部 https（經 NPM 的 Jellyfin 與 `/xcode/`）已在 ZenPad 實測可播放。

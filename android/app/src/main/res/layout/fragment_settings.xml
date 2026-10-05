@@ -54,13 +54,28 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="裝置規格"
+            android:text="硬體解碼（實測）"
             android:textColor="@color/text_tertiary"
             android:textSize="13sp" />
 
         <TextView
-            android:id="@+id/profile"
+            android:id="@+id/decoders"
             style="@style/Text.Body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="預設畫質"
+            android:textColor="@color/text_tertiary"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/quality"
+            style="@style/Button.Outline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
@@ -94,5 +109,28 @@
             android:layout_marginTop="32dp"
             android:textColor="@color/text_tertiary"
             android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/checkUpdate"
+                style="@style/Button.Outline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="檢查更新" />
+
+            <TextView
+                android:id="@+id/updateStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

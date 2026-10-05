@@ -27,8 +27,22 @@ class XcodeApi(
         val audioIndex: Int,
         /** GPU（NVDEC）解碼；false 表示片源格式要用 CPU 解碼。 */
         val hwDecode: Boolean,
-        /** 輸出的影像編碼：h264 或 hevc（依裝置規格）。 */
+        /** 輸出的影像編碼：h264 或 hevc（依裝置的硬解能力）。 */
         val codec: String,
+        /** 自適應時的軌數（播放清單是主播放清單，播放器依網速切換）；1 表示固定解析度。 */
+        val variants: Int,
+    )
+
+    /**
+     * 轉碼的畫質要求。[caps] 是裝置實測的硬解能力（見 DeviceCaps），伺服器依此選 HEVC 或 H.264；
+     * [maxWidth]、[maxHeight] 是解析度上限（0 表示不限）；[adaptive] 要求多軌讓播放器依網速切換。
+     */
+    data class Options(
+        val label: String,
+        val caps: JSONObject,
+        val maxWidth: Int,
+        val maxHeight: Int,
+        val adaptive: Boolean,
     )
 
     /**
@@ -37,14 +51,18 @@ class XcodeApi(
      */
     suspend fun create(
         itemId: String,
-        profile: String,
+        options: Options,
         startTimeTicks: Long,
         burnSubtitle: Int? = null,
         audioIndex: Int? = null,
     ): Session {
         val body = JSONObject()
             .put("itemId", itemId)
-            .put("profile", profile)
+            .put("profile", options.label)
+            .put("capabilities", options.caps)
+            .put("maxWidth", options.maxWidth)
+            .put("maxHeight", options.maxHeight)
+            .put("adaptive", options.adaptive)
             .put("startTimeTicks", startTimeTicks)
         if (burnSubtitle != null) body.put("subtitleStreamIndex", burnSubtitle)
         if (audioIndex != null) body.put("audioStreamIndex", audioIndex)
@@ -71,6 +89,7 @@ class XcodeApi(
             audioIndex = o.optInt("audioStreamIndex", -1),
             hwDecode = video.optBoolean("hwDecode", true),
             codec = video.optString("codec", "h264"),
+            variants = o.optJSONArray("variants")?.length()?.coerceAtLeast(1) ?: 1,
         )
     }
 

@@ -54,7 +54,10 @@ class MainActivity : AppCompatActivity() {
             views = v
             buildMenu()
             // 建選單時第一項已自動選取，設定 selectedItemId 不會再觸發監聽，直接顯示首頁
-            if (firstStart) showRoot(ID_HOME)
+            if (firstStart) {
+                showRoot(ID_HOME)
+                UpdatePrompt.autoCheck(this)
+            }
         }.onFailure { e ->
             if (e is HttpException && e.code == 401) {
                 logout()

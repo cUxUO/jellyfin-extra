@@ -71,18 +71,6 @@
                 android:inputType="textUri" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            style="@style/Text.Secondary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/profile" />
-
-        <Spinner
-            android:id="@+id/profile"
-            android:layout_width="match_parent"
-            android:layout_height="48dp" />
-
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"

@@ -1,7 +1,6 @@
 package com.jellyfinextra.player.data
 
 import android.content.Context
-import android.os.Build
 import java.util.UUID
 
 /**
@@ -24,10 +23,15 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_EXTERNAL, "")!!
         set(v) = prefs.edit().putString(KEY_EXTERNAL, v.trim()).apply()
 
-    /** 送給轉碼伺服器的裝置規格名稱，對應 server/internal/profile。 */
-    var profile: String
-        get() = prefs.getString(KEY_PROFILE, null) ?: defaultProfile()
-        set(v) = prefs.edit().putString(KEY_PROFILE, v).apply()
+    /** 預設畫質；播放中可在畫質面板暫時切換。 */
+    var quality: Quality
+        get() = Quality.of(prefs.getString(KEY_QUALITY, null))
+        set(v) = prefs.edit().putString(KEY_QUALITY, v.name).apply()
+
+    /** 上次檢查更新的時間（毫秒），自動檢查每天最多一次。 */
+    var lastUpdateCheck: Long
+        get() = prefs.getLong(KEY_LAST_UPDATE_CHECK, 0)
+        set(v) = prefs.edit().putLong(KEY_LAST_UPDATE_CHECK, v).apply()
 
     val token: String get() = prefs.getString(KEY_TOKEN, "")!!
     val userId: String get() = prefs.getString(KEY_USER_ID, "")!!
@@ -52,18 +56,14 @@ class Settings(context: Context) {
     }
 
     companion object {
-        val PROFILES = listOf("zenpad10", "ipad-air1")
-
         private const val KEY_LAN_JELLYFIN = "lan_jellyfin"
         private const val KEY_LAN_XCODE = "lan_xcode"
         private const val KEY_EXTERNAL = "external"
-        private const val KEY_PROFILE = "profile"
+        private const val KEY_QUALITY = "quality"
+        private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
         private const val KEY_TOKEN = "token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_USER_NAME = "user_name"
         private const val KEY_DEVICE_ID = "device_id"
-
-        // 目前只有 ZenPad 10（P028）一台 Android 裝置
-        private fun defaultProfile() = if (Build.MODEL == "P028") "zenpad10" else PROFILES.first()
     }
 }

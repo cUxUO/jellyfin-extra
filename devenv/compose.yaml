@@ -39,6 +39,10 @@ services:
       - claude-config:/home/dev/.claude      # Claude Code 登入狀態與設定
       - dev-ssh:/home/dev/.ssh               # known_hosts 與 ssh config
 
+      # 不進版控的開發與發布設定：測試 token、Android 發布簽章金鑰（release.jks、signing.properties）。
+      # 放在主機，容器重建也不會消失；備份主機的這個目錄即可（遺失金鑰就無法再更新已安裝的 app）
+      - ${HOME}/.config/jellyfin-extra:/home/dev/.config/jellyfin-extra
+
       # 主機 ssh-agent：只掛 socket，容器內看不到私鑰檔本身
       - type: bind
         source: ${SSH_AUTH_SOCK:?請先啟動 ssh-agent 並 ssh-add 你的金鑰}

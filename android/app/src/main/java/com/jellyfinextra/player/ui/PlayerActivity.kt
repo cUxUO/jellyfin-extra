@@ -2,7 +2,9 @@ package com.jellyfinextra.player.ui
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,14 +18,18 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,6 +37,9 @@ import com.jellyfinextra.player.BuildConfig
 import com.jellyfinextra.player.R
 import com.jellyfinextra.player.app
 import com.jellyfinextra.player.data.AudioTrack
+import com.jellyfinextra.player.data.DeviceCaps
+import com.jellyfinextra.player.data.DirectPlay
+import com.jellyfinextra.player.data.Quality
 import com.jellyfinextra.player.data.SubtitleChooser
 import com.jellyfinextra.player.data.SubtitleTrack
 import com.jellyfinextra.player.net.Endpoints
@@ -46,11 +55,14 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * 播放：優先請轉碼伺服器即時轉成 HLS；轉碼伺服器離線時改走 Jellyfin 原始檔直接播放。
+ * 播放：依畫質設定（[Quality]）與裝置實測的解碼能力（[DeviceCaps]）決定：
+ * - 直接播放：原始檔能硬解（[DirectPlay]）且選「原始畫質」，或選「自動」且在內網時，向 Jellyfin 取原始檔。
+ * - 轉碼：請轉碼伺服器即時轉成 HLS（HEVC 或 H.264 依硬解能力）；「自動」時是多軌，播放器依網速切換解析度。
+ * - 轉碼伺服器離線時一律直接播放。
  * 播放狀態回報給 Jellyfin，讓觀看紀錄與進度同步。
  *
  * 字幕：文字字幕由 [SubtitleOverlay] 自己畫；圖形字幕請轉碼伺服器燒進畫面。
- * 音軌與燒錄字幕都在轉碼時決定，切換時在目前位置重建轉碼 session。
+ * 音軌與燒錄字幕都在轉碼時決定，切換時在目前位置重建轉碼 session（或改回直接播放）。
  */
 @OptIn(UnstableApi::class)
 class PlayerActivity : AppCompatActivity() {
@@ -78,6 +90,10 @@ class PlayerActivity : AppCompatActivity() {
     private var subtitleJob: Job? = null
 
     private var playMethod = "Transcode"
+    private lateinit var quality: Quality
+    /** Jellyfin 走內網：「自動」畫質時才直接播放原始檔（外部連線頻寬不一定夠）。 */
+    private var onLan = false
+    private var fileLog: PlaybackFileLog? = null
     private val playSessionId = UUID.randomUUID().toString()
     private var reportedStart = false
     private var progressJob: Job? = null
@@ -105,12 +121,14 @@ class PlayerActivity : AppCompatActivity() {
         startTicks = intent.getLongExtra(EXTRA_START_TICKS, 0)
         requestedAudio = intent.getIntExtra(EXTRA_AUDIO, AUDIO_DEFAULT)
         requestedSubtitle = intent.getIntExtra(EXTRA_SUBTITLE, SUBTITLE_AUTO)
+        quality = app.settings.quality
 
         // 控制列裡自訂的按鈕（返回、標題、音軌、字幕）
         playerView.findViewById<TextView>(R.id.playerTitle).text = intent.getStringExtra(EXTRA_TITLE)
         playerView.findViewById<View>(R.id.playerBack).setOnClickListener { finish() }
         playerView.findViewById<View>(R.id.playerSubtitles).setOnClickListener { showSubtitlePanel() }
         playerView.findViewById<View>(R.id.playerAudio).setOnClickListener { showAudioPanel() }
+        playerView.findViewById<View>(R.id.playerQuality).setOnClickListener { showQualityPanel() }
         playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             subtitleOverlay.setRaised(visibility == View.VISIBLE)
         })
@@ -151,15 +169,21 @@ class PlayerActivity : AppCompatActivity() {
         val dataSourceFactory = OkHttpDataSource.Factory(app.http)
             .setDefaultRequestProperties(mapOf("Authorization" to Http.authHeader(app.settings)))
 
+        // debug 版把解碼器名稱、掉幀、播放方式等寫進 files/playback.log，用來確認是否為硬體解碼
+        if (BuildConfig.DEBUG) fileLog = PlaybackFileLog(this).also { it.log("decoders: ${DeviceCaps.describe()}") }
+
         val mediaItem: MediaItem
         // 轉碼與直接播放的時間軸都是整部片，從要求的位置開始播即可
         val startPositionMs = startTicks / TICKS_PER_MS
         val xcodeBase = Endpoints.xcode(app)
-        if (xcodeBase != null) {
-            val api = XcodeApi(app.http, app.settings, xcodeBase)
-            xcode = api
+        onLan = jfBase == Http.baseUrl(app.settings.lanJellyfin)
+        val directReason = directPlayReason(audio, subtitle)
+        fileLog?.log("quality=$quality lan=$onLan direct=${directReason ?: "ok"}")
+        if (xcodeBase != null) xcode = XcodeApi(app.http, app.settings, xcodeBase)
+        val api = xcode
+        if (api != null && !(wantsDirect() && directReason == null)) {
             val s = try {
-                api.create(itemId, app.settings.profile, startTicks, burnSubtitle = subtitle?.takeIf { it.isImage }?.index, audioIndex = audio)
+                api.create(itemId, transcodeOptions(), startTicks, burnSubtitle = subtitle?.takeIf { it.isImage }?.index, audioIndex = audio)
             } catch (e: Exception) {
                 fail(e.message ?: e.toString())
                 return
@@ -168,22 +192,33 @@ class PlayerActivity : AppCompatActivity() {
             currentAudio = s.audioIndex.takeIf { it >= 0 }
             mediaItem = hlsItem(s)
         } else {
-            status.text = getString(R.string.direct_play)
+            status.text = getString(if (api == null) R.string.direct_play else R.string.loading_original)
             playMethod = "DirectPlay"
-            mediaItem = MediaItem.fromUri(jf.directStreamUrl(itemId).toString())
-            // 直接播放無法燒錄圖形字幕，也無法換音軌（播放器播原始檔的預設音軌）
+            mediaItem = directItem(jf)
+            currentAudio = defaultAudio()
+            // 轉碼伺服器離線時無法燒錄圖形字幕，也無法換音軌（播放器播原始檔的預設音軌）
             if (subtitle?.isImage == true) subtitle = null
         }
         updateStatusLine()
         updateTrackButtons()
 
+        // 字幕一律由 SubtitleOverlay 自己畫，不讓 ExoPlayer 顯示原始檔內嵌的字幕；
+        // 不依螢幕大小限制軌道，自適應時由轉碼伺服器決定提供哪些解析度
+        val selector = DefaultTrackSelector(this).apply {
+            setParameters(buildUponParameters().clearViewportSizeConstraints().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true))
+        }
+        // 自適應開播時先用伺服器已轉好的最高畫質；內網頻寬通常足夠，外部連線保守一點
+        val meter = DefaultBandwidthMeter.Builder(this)
+            .setInitialBitrateEstimate(if (onLan) 20_000_000L else 3_000_000L)
+            .build()
         val p = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setTrackSelector(selector)
+            .setBandwidthMeter(meter)
             .setSeekBackIncrementMs(SEEK_INCREMENT_MS)
             .setSeekForwardIncrementMs(SEEK_INCREMENT_MS)
             .build()
-        // debug 版把解碼器名稱、掉幀等寫進 files/playback.log，用來確認是否為硬體解碼
-        if (BuildConfig.DEBUG) p.addAnalyticsListener(PlaybackFileLog(this))
+        fileLog?.let { p.addAnalyticsListener(it) }
         player = p
         playerView.player = p
         p.addListener(listener)
@@ -201,13 +236,54 @@ class PlayerActivity : AppCompatActivity() {
         .setMimeType(MimeTypes.APPLICATION_M3U8)
         .build()
 
-    /** 標題下的狀態，例如「800p · HEVC · GPU 轉碼」。 */
+    private fun directItem(jf: JellyfinApi) = MediaItem.fromUri(jf.directStreamUrl(itemId).toString())
+
+    private fun defaultAudio(): Int? = mediaInfo?.audio?.let { a -> (a.firstOrNull { it.isDefault } ?: a.firstOrNull())?.index }
+
+    private fun wantsDirect() = quality == Quality.ORIGINAL || (quality == Quality.AUTO && onLan)
+
+    /** null 表示原始檔能直接播放；[audioIndex] 是使用者選的音軌（null 表示預設）。 */
+    private fun directPlayReason(audioIndex: Int?, subtitle: SubtitleTrack?): String? {
+        val info = mediaInfo ?: return "沒有片源資訊"
+        return DirectPlay.check(info.container, info.bitrate, info.video, info.audio, audioIndex, subtitle, DeviceCaps)
+    }
+
+    /** 轉碼的畫質要求：「自動」以螢幕大小為上限並要求多軌，「原始畫質」不設上限，其他放進 16:9 的框。 */
+    private fun transcodeOptions(): XcodeApi.Options {
+        val (w, h) = when (quality) {
+            Quality.AUTO -> screenSize()
+            Quality.ORIGINAL -> 0 to 0
+            else -> quality.maxWidth to quality.maxHeight
+        }
+        return XcodeApi.Options(Build.MODEL, DeviceCaps.xcodeCapabilities(), w, h, adaptive = quality == Quality.AUTO)
+    }
+
+    /** 橫向的螢幕實際像素，例如 ZenPad 是 1280×800。 */
+    private fun screenSize(): Pair<Int, Int> {
+        val m = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        windowManager.defaultDisplay.getRealMetrics(m)
+        return maxOf(m.widthPixels, m.heightPixels) to minOf(m.widthPixels, m.heightPixels)
+    }
+
+    /** 標題下的狀態，例如「800p · HEVC · GPU 轉碼 · 自動」「直接播放 · HEVC 1080p」。 */
     private fun updateStatusLine() {
         val s = session
-        playerView.findViewById<TextView>(R.id.playerStatus).text = when {
-            s != null -> "${s.height}p · ${if (s.codec == "hevc") "HEVC" else "H.264"} · ${if (s.hwDecode) "GPU" else "CPU"} 轉碼"
-            else -> "直接播放"
+        val text = when {
+            s != null -> {
+                // 自適應時顯示播放器目前選的那一軌
+                val height = player?.videoFormat?.height?.takeIf { it > 0 } ?: s.height
+                listOfNotNull(
+                    "${height}p",
+                    if (s.codec == "hevc") "HEVC" else "H.264",
+                    "${if (s.hwDecode) "GPU" else "CPU"} 轉碼",
+                    if (s.variants > 1) "自動" else null,
+                ).joinToString(" · ")
+            }
+            xcode == null -> "直接播放（轉碼伺服器離線）"
+            else -> listOfNotNull("直接播放", mediaInfo?.videoDescription).joinToString(" · ")
         }
+        playerView.findViewById<TextView>(R.id.playerStatus).text = text
     }
 
     private fun updateTrackButtons() {
@@ -217,6 +293,8 @@ class PlayerActivity : AppCompatActivity() {
         // 直接播放時播原始檔，換音軌要靠轉碼伺服器
         playerView.findViewById<View>(R.id.playerAudio).visibility =
             if ((info?.audio?.size ?: 0) > 1 && xcode != null) View.VISIBLE else View.GONE
+        // 畫質要靠轉碼伺服器切換
+        playerView.findViewById<View>(R.id.playerQuality).visibility = if (xcode != null) View.VISIBLE else View.GONE
     }
 
     private val listener = object : Player.Listener {
@@ -237,6 +315,10 @@ class PlayerActivity : AppCompatActivity() {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (reportedStart) report { reportProgress(it) }
+        }
+
+        override fun onVideoSizeChanged(videoSize: VideoSize) {
+            updateStatusLine() // 自適應切換解析度時更新
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -288,6 +370,21 @@ class PlayerActivity : AppCompatActivity() {
         val rows = mutableListOf<Row>(Row.Header("切換音軌會重新緩衝"))
         tracks.forEach { t -> rows += Row.Option(t.title, if (t.isDefault) "預設" else "", t.index == currentAudio) { applyAudio(t) } }
         showPanel("音軌", rows)
+    }
+
+    private fun showQualityPanel() {
+        val maxH = DeviceCaps.maxTranscodeHeight
+        val reason = directPlayReason(currentAudio.takeIf { it != defaultAudio() }, currentSubtitle)
+        val rows = mutableListOf<Row>(Row.Header("硬解：${DeviceCaps.describe()}"))
+        Quality.entries.filter { it.maxHeight <= maxH }.forEach { q ->
+            val note = when (q) {
+                Quality.AUTO -> if (onLan && reason == null) "內網直接播放原始檔" else "依網速切換解析度"
+                Quality.ORIGINAL -> if (reason == null) "直接播放原始檔" else "最高畫質轉碼（$reason）"
+                else -> ""
+            }
+            rows += Row.Option(q.label, note, q == quality) { applyQuality(q) }
+        }
+        showPanel("畫質", rows)
     }
 
     private fun showPanel(title: String, rows: List<Row>) {
@@ -357,14 +454,47 @@ class PlayerActivity : AppCompatActivity() {
         // 燒錄狀態改變（換成圖形字幕、換另一條圖形字幕、或離開圖形字幕）才需要重建轉碼
         val burnNow = session?.burnedSubtitle ?: -1
         val burnWanted = track?.takeIf { it.isImage }?.index ?: -1
-        if (xcode != null && burnWanted != burnNow) restartSession(burnWanted.takeIf { it >= 0 }, currentAudio)
+        if (xcode != null && burnWanted != burnNow) reconfigure(burnWanted.takeIf { it >= 0 }, currentAudio)
         if (track != null && !track.isImage) loadTextSubtitle(track)
     }
 
     private fun applyAudio(track: AudioTrack) {
         if (track.index == currentAudio) return
         currentAudio = track.index
-        restartSession(session?.burnedSubtitle?.takeIf { it >= 0 }, track.index)
+        reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, track.index)
+    }
+
+    private fun applyQuality(q: Quality) {
+        if (q == quality) return
+        quality = q
+        reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, currentAudio)
+    }
+
+    /** 音軌、燒錄字幕或畫質改變後，決定改成直接播放還是在目前位置重建轉碼 session。 */
+    private fun reconfigure(burnSubtitle: Int?, audioIndex: Int?) {
+        val chosenAudio = audioIndex?.takeIf { it != defaultAudio() }
+        if (xcode != null && burnSubtitle == null && wantsDirect() && directPlayReason(chosenAudio, currentSubtitle) == null) {
+            switchToDirect()
+        } else {
+            restartSession(burnSubtitle, audioIndex)
+        }
+    }
+
+    /** 改成直接播放原始檔：從目前位置接著播，停掉轉碼 session。 */
+    private fun switchToDirect() {
+        val jf = jellyfin ?: return
+        val p = player ?: return
+        val old = session
+        val positionMs = p.currentPosition
+        session = null
+        playMethod = "DirectPlay"
+        currentAudio = defaultAudio()
+        p.setMediaItem(directItem(jf), positionMs)
+        p.prepare()
+        updateStatusLine()
+        fileLog?.log("switch to direct play at ${positionMs}ms")
+        val api = xcode
+        if (old != null && api != null) app.appScope.launch { runCatching { api.delete(old.id) } }
     }
 
     private fun loadTextSubtitle(track: SubtitleTrack) {
@@ -401,7 +531,7 @@ class PlayerActivity : AppCompatActivity() {
         status.visibility = View.VISIBLE
         lifecycleScope.launch {
             val s = try {
-                api.create(itemId, app.settings.profile, positionMs * TICKS_PER_MS, burnSubtitle, audioIndex)
+                api.create(itemId, transcodeOptions(), positionMs * TICKS_PER_MS, burnSubtitle, audioIndex)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -409,8 +539,10 @@ class PlayerActivity : AppCompatActivity() {
                 return@launch
             }
             session = s
+            playMethod = "Transcode"
             currentAudio = s.audioIndex.takeIf { it >= 0 }
             updateStatusLine()
+            fileLog?.log("transcode ${s.codec} ${s.width}x${s.height} variants=${s.variants} at ${positionMs}ms")
             p.setMediaItem(hlsItem(s), positionMs)
             p.prepare()
             if (old != null) app.appScope.launch { runCatching { api.delete(old.id) } }
@@ -484,7 +616,7 @@ class PlayerActivity : AppCompatActivity() {
         status.visibility = View.VISIBLE
         restoreJob = lifecycleScope.launch {
             val s = try {
-                api.create(itemId, app.settings.profile, positionMs * TICKS_PER_MS, suspendedBurn, currentAudio)
+                api.create(itemId, transcodeOptions(), positionMs * TICKS_PER_MS, suspendedBurn, currentAudio)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

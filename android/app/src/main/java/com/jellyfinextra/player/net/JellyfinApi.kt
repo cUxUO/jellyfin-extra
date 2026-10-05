@@ -2,6 +2,7 @@ package com.jellyfinextra.player.net
 
 import com.jellyfinextra.player.data.AudioTrack
 import com.jellyfinextra.player.data.Settings
+import com.jellyfinextra.player.data.SourceVideo
 import com.jellyfinextra.player.data.SubtitleTrack
 import java.util.concurrent.TimeUnit
 import okhttp3.HttpUrl
@@ -263,6 +264,10 @@ class JellyfinApi(
         val audio: List<AudioTrack>,
         val subtitles: List<SubtitleTrack>,
         val videoDescription: String?,
+        /** 以下判斷能否直接播放用（[com.jellyfinextra.player.data.DirectPlay]）。 */
+        val container: String = "",
+        val bitrate: Long = 0,
+        val video: SourceVideo? = null,
     )
 
     suspend fun mediaInfo(itemId: String): MediaInfo {
@@ -286,10 +291,25 @@ class JellyfinApi(
                 index = it.getInt("Index"),
                 title = it.optStringOrNull("DisplayTitle") ?: it.optString("Codec"),
                 isDefault = it.optBoolean("IsDefault"),
+                codec = it.optString("Codec"),
             )
         }
         val video = all.firstOrNull { it.optString("Type") == "Video" }
-        return MediaInfo(src.getString("Id"), audio, subs, video?.let { describeVideo(it) })
+        return MediaInfo(
+            src.getString("Id"), audio, subs, video?.let { describeVideo(it) },
+            container = src.optString("Container"),
+            bitrate = src.optLong("Bitrate"),
+            video = video?.let {
+                SourceVideo(
+                    codec = it.optString("Codec"),
+                    width = it.optInt("Width"),
+                    height = it.optInt("Height"),
+                    bitDepth = it.optInt("BitDepth", 8),
+                    frameRate = (it.optDouble("RealFrameRate").takeIf { r -> !r.isNaN() } ?: it.optDouble("AverageFrameRate", 0.0)).toFloat(),
+                    range = it.optString("VideoRange"),
+                )
+            },
+        )
     }
 
     /** 片源畫質的簡短描述，例如「4K Dolby Vision」「1080p HEVC 10-bit」。 */

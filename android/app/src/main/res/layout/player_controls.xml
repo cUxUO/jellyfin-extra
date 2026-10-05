@@ -51,6 +51,17 @@
         </LinearLayout>
 
         <ImageButton
+            android:id="@+id/playerQuality"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="畫質"
+            android:src="@drawable/ic_quality"
+            android:visibility="gone"
+            app:tint="@color/text" />
+
+        <ImageButton
             android:id="@+id/playerAudio"
             android:layout_width="48dp"
             android:layout_height="48dp"
