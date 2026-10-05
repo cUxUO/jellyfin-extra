@@ -204,7 +204,7 @@ make_images.py[XV3T]: F:純 Python 產生 App 圖示（琥珀底深色播放三�
 main.go[XQ5T]: F:開發用假 Jellyfin：只實作 Users/Me、PlaybackInfo、Videos/stream，以本機檔案當片源供 xcode 端對端測試 | R:code:server/internal/jellyfin/client.go | A:main,item | S:沒有 Items/{id} 與 System/Info/Public：接 fakejf 時 session 片名顯示 ID、監控頁顯示 Jellyfin 離線；token 預設 devtoken
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/cmd/xcode/===
-config.go[FC7T]: F:讀 xcode.json：預設值、必要欄位檢查，轉成 session.Config | R:code:server/cmd/xcode/main.go,code:server/internal/session/manager.go,code:server/xcode.example.json | A:config,loadConfig,session,StallTimeoutSeconds,LogSource | S:ffmpegPath、workDir 的相對路徑以設定檔目錄為準，不受啟動工作目錄影響；stallTimeoutSeconds 預設 5，0 表示不重試
+config.go[FC7T]: F:讀 xcode.json：預設值、必要欄位檢查，轉成 session.Config | R:code:server/cmd/xcode/main.go,code:server/internal/session/manager.go,code:server/xcode.example.json | A:config,loadConfig,session,StallTimeoutSeconds,LogSource | S:ffmpegPath、workDir 的相對路徑以設定檔目錄為準並一律轉成絕對路徑：ffmpeg 以 session 目錄為工作目錄啟動，相對路徑會找不到；stallTimeoutSeconds 預設 5，0 表示不重試
 job_other.go[RR2T]: F:非 Windows 平台的 killChildrenOnExit 空實作 | R:code:server/cmd/xcode/job_windows.go | A:killChildrenOnExit | S:-
 job_windows.go[RR7T]: F:把 xcode 自身放進 kill-on-close Job Object，讓 ffmpeg 子行程跟著 xcode 結束 | R:code:server/cmd/xcode/main.go | A:killChildrenOnExit | S:Job handle 刻意不關、要活到行程結束；ssh 斷線或 taskkill /f 後 ffmpeg 才不會在背景續轉
 main.go[EG8S]: F:xcode 主程式：讀設定、建 Job Object、Jellyfin client、原始檔 proxy、session 管理器，掛上 API 與監控頁，中斷時停掉所有 ffmpeg | R:code:server/cmd/xcode/config.go,code:server/internal/api/api.go,code:server/internal/dashboard/dashboard.go,code:server/internal/session/manager.go,code:server/internal/source/proxy.go | A:main,run | S:監控頁另外掛在 /dashboard，不經 api 的請求 log（2 秒輪詢會洗掉事件）；log 同時寫入 stderr 與 logring

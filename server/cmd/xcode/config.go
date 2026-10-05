@@ -44,8 +44,13 @@ func loadConfig(path string) (config, error) {
 		return c, fmt.Errorf("config %s: %w", path, err)
 	}
 
-	// 相對路徑以設定檔所在目錄為準，不受啟動時工作目錄影響
-	base := filepath.Dir(path)
+	// 相對路徑以設定檔所在目錄為準，不受啟動時工作目錄影響。一律轉成絕對路徑：
+	// ffmpeg 以 session 目錄為工作目錄啟動，相對的 ffmpegPath 會被當成相對於 session 目錄而找不到
+	// （例如用 -config xcode.json 啟動時）。
+	base, err := filepath.Abs(filepath.Dir(path))
+	if err != nil {
+		return c, fmt.Errorf("config: %w", err)
+	}
 	for _, p := range []*string{&c.FFmpegPath, &c.WorkDir} {
 		if *p != "" && !filepath.IsAbs(*p) {
 			*p = filepath.Join(base, *p)

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-05T00:53:15Z",
+  "updated_at": "2026-10-05T01:11:11Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -538,9 +538,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "8d25fa396897b92137bb50f97f08918cb3e358c4004def82d89a6887ffcabf13",
-      "size": 51856,
-      "normalized_sha256": "8d25fa396897b92137bb50f97f08918cb3e358c4004def82d89a6887ffcabf13"
+      "sha256": "ea6e51007a9e7173a828ac7b1a4918a851e881e5325fbbc67ce2ca6726ec3545",
+      "size": 51926,
+      "normalized_sha256": "ea6e51007a9e7173a828ac7b1a4918a851e881e5325fbbc67ce2ca6726ec3545"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -964,10 +964,18 @@
     },
     "server/cmd/xcode/config.go": {
       "role": "index",
-      "sha256": "66017d8588bc8e4e8314e1886b84228f709d61f1c6d0ef90c8acb9997c782489",
-      "size": 2545,
-      "normalized_sha256": "66017d8588bc8e4e8314e1886b84228f709d61f1c6d0ef90c8acb9997c782489",
-      "format_sha256": "66017d8588bc8e4e8314e1886b84228f709d61f1c6d0ef90c8acb9997c782489",
+      "sha256": "3a90656dcaad1862f42ee4f3ccb11f6f569960c42ff6df238502a7d1954f8c8e",
+      "size": 2831,
+      "normalized_sha256": "3a90656dcaad1862f42ee4f3ccb11f6f569960c42ff6df238502a7d1954f8c8e",
+      "format_sha256": "3a90656dcaad1862f42ee4f3ccb11f6f569960c42ff6df238502a7d1954f8c8e",
+      "format_kind": "gofmt"
+    },
+    "server/cmd/xcode/config_test.go": {
+      "role": "observe",
+      "sha256": "384d1496e87ba053209450d77ec524d12f45bdb06bcac00a1b738e862d884907",
+      "size": 934,
+      "normalized_sha256": "384d1496e87ba053209450d77ec524d12f45bdb06bcac00a1b738e862d884907",
+      "format_sha256": "384d1496e87ba053209450d77ec524d12f45bdb06bcac00a1b738e862d884907",
       "format_kind": "gofmt"
     },
     "server/cmd/xcode/job_other.go": {
@@ -1038,10 +1046,10 @@
     },
     "server/internal/dashboard/dashboard_test.go": {
       "role": "observe",
-      "sha256": "bcf4fbf8e0ce2cbfc0d1b6eaaeb8ceaa99d842db5721900c654fd5b6d44c5a35",
-      "size": 3420,
-      "normalized_sha256": "bcf4fbf8e0ce2cbfc0d1b6eaaeb8ceaa99d842db5721900c654fd5b6d44c5a35",
-      "format_sha256": "bcf4fbf8e0ce2cbfc0d1b6eaaeb8ceaa99d842db5721900c654fd5b6d44c5a35",
+      "sha256": "4be4018dc79bc83a7fe7766cc84ce1480ee71c36ec2262da07b468cf0f416839",
+      "size": 3416,
+      "normalized_sha256": "4be4018dc79bc83a7fe7766cc84ce1480ee71c36ec2262da07b468cf0f416839",
+      "format_sha256": "4be4018dc79bc83a7fe7766cc84ce1480ee71c36ec2262da07b468cf0f416839",
       "format_kind": "gofmt"
     },
     "server/internal/dashboard/disk_other.go": {
