@@ -1,0 +1,1264 @@
+{
+  "version": 1,
+  "created_at": "2026-10-05T00:32:20Z",
+  "updated_at": "2026-10-05T00:53:15Z",
+  "files": {
+    ".gitattributes": {
+      "role": "index",
+      "sha256": "21fa16a2122e2b0360b47502c577428b645437e08e9e87ffba661f84853cb476",
+      "size": 291,
+      "normalized_sha256": "21fa16a2122e2b0360b47502c577428b645437e08e9e87ffba661f84853cb476"
+    },
+    ".gitignore": {
+      "role": "index",
+      "sha256": "9de8251fb5c642db5702af921c9f0e3184c773b53815d55cb15da2fc2ec4588e",
+      "size": 126,
+      "normalized_sha256": "9de8251fb5c642db5702af921c9f0e3184c773b53815d55cb15da2fc2ec4588e"
+    },
+    "AGENTS.md": {
+      "role": "index",
+      "sha256": "8484f0f198917ef25ad420ccaee45cb317b863905c1fe603498b187e01048490",
+      "size": 15598,
+      "normalized_sha256": "8484f0f198917ef25ad420ccaee45cb317b863905c1fe603498b187e01048490"
+    },
+    "CLAUDE.md": {
+      "role": "index",
+      "sha256": "f2412f55299da27759c40f23204a1cb804b204b5870efcb093f3878ac0c4691e",
+      "size": 17485,
+      "normalized_sha256": "f2412f55299da27759c40f23204a1cb804b204b5870efcb093f3878ac0c4691e"
+    },
+    "android/.gitignore": {
+      "role": "index",
+      "sha256": "fab835ca98f981926141c5ed0dfb5d044c197862a98e63737d2de2a107d8c07f",
+      "size": 39,
+      "normalized_sha256": "fab835ca98f981926141c5ed0dfb5d044c197862a98e63737d2de2a107d8c07f"
+    },
+    "android/app/build.gradle.kts": {
+      "role": "index",
+      "sha256": "6da7a7790b19323b8d7561302e219f5a07814485cb940da1d20a409d1128c026",
+      "size": 1465,
+      "normalized_sha256": "6da7a7790b19323b8d7561302e219f5a07814485cb940da1d20a409d1128c026"
+    },
+    "android/app/src/main/AndroidManifest.xml": {
+      "role": "index",
+      "sha256": "bc4405aad0ec573d67caaf56b7c20c27e182072cf863fb8644b04b88664aaa6c",
+      "size": 1447,
+      "normalized_sha256": "bc4405aad0ec573d67caaf56b7c20c27e182072cf863fb8644b04b88664aaa6c"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/App.kt": {
+      "role": "index",
+      "sha256": "731b666724e0aceae1d956570e6941d731939514a77216d62b87f75442671e66",
+      "size": 2226,
+      "normalized_sha256": "731b666724e0aceae1d956570e6941d731939514a77216d62b87f75442671e66"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/data/AudioTrack.kt": {
+      "role": "index",
+      "sha256": "77caba27c38d2365f903d3d0616e841ef5cf93c056c37e48286842525a221778",
+      "size": 252,
+      "normalized_sha256": "77caba27c38d2365f903d3d0616e841ef5cf93c056c37e48286842525a221778"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/data/Settings.kt": {
+      "role": "index",
+      "sha256": "c6b8d5d6610e9d3fc504b52ade8d74b5651978b7df18ca9351d0b5de0faced2e",
+      "size": 2789,
+      "normalized_sha256": "c6b8d5d6610e9d3fc504b52ade8d74b5651978b7df18ca9351d0b5de0faced2e"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt": {
+      "role": "index",
+      "sha256": "b14b9fa13a80b5c643a10527cdd9c16ed926761449232a91e506f02d8cc2134f",
+      "size": 3372,
+      "normalized_sha256": "b14b9fa13a80b5c643a10527cdd9c16ed926761449232a91e506f02d8cc2134f"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/net/Endpoints.kt": {
+      "role": "index",
+      "sha256": "59a1f1fb1b15b3485b35ffdfa06a73b2e4bc55de22bd4eed96c5c872b220f41b",
+      "size": 1681,
+      "normalized_sha256": "59a1f1fb1b15b3485b35ffdfa06a73b2e4bc55de22bd4eed96c5c872b220f41b"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/net/Http.kt": {
+      "role": "index",
+      "sha256": "fd9270543583069f0f787734f213fc928d38d965a081329a9e1c6c0f6c2147d5",
+      "size": 3820,
+      "normalized_sha256": "fd9270543583069f0f787734f213fc928d38d965a081329a9e1c6c0f6c2147d5"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt": {
+      "role": "index",
+      "sha256": "af824118c66a8336f0368e2dc2b730c38e8f349bbeebee5c45b9c669f73d654f",
+      "size": 18342,
+      "normalized_sha256": "af824118c66a8336f0368e2dc2b730c38e8f349bbeebee5c45b9c669f73d654f"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/net/XcodeApi.kt": {
+      "role": "index",
+      "sha256": "de6eac6aaceabe678140073a7ab682d47288bb1a917c42fe9ca398c9b1fbc7c4",
+      "size": 3655,
+      "normalized_sha256": "de6eac6aaceabe678140073a7ab682d47288bb1a917c42fe9ca398c9b1fbc7c4"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt": {
+      "role": "index",
+      "sha256": "2b32aecdb05558cdc5af634baffe16bd664c93bd980c02278acb9044fc60e24d",
+      "size": 4801,
+      "normalized_sha256": "2b32aecdb05558cdc5af634baffe16bd664c93bd980c02278acb9044fc60e24d"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/Format.kt": {
+      "role": "index",
+      "sha256": "f9bec6941bd95341960691bfc560b2786006e57511fc39157614cab160156490",
+      "size": 2324,
+      "normalized_sha256": "f9bec6941bd95341960691bfc560b2786006e57511fc39157614cab160156490"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/GridFragments.kt": {
+      "role": "index",
+      "sha256": "ed39e424da9a4778f2212e1119f34f307885e404a210f104c96cd5173fe1d8b2",
+      "size": 5625,
+      "normalized_sha256": "ed39e424da9a4778f2212e1119f34f307885e404a210f104c96cd5173fe1d8b2"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/HomeFragment.kt": {
+      "role": "index",
+      "sha256": "367538a6d3958945dc17a560f8f4502476b061b30a9566be717d0b9ca9b47318",
+      "size": 7098,
+      "normalized_sha256": "367538a6d3958945dc17a560f8f4502476b061b30a9566be717d0b9ca9b47318"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/LibraryFragment.kt": {
+      "role": "index",
+      "sha256": "f05430e6a3aadfffe2773347f4e569f2b04ec02248d015e6205e34161a201694",
+      "size": 7237,
+      "normalized_sha256": "f05430e6a3aadfffe2773347f4e569f2b04ec02248d015e6205e34161a201694"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/LoginActivity.kt": {
+      "role": "index",
+      "sha256": "2e4e123f144e5d33585056ce42729f945763573e83a36ac8d1011cd083e52830",
+      "size": 3239,
+      "normalized_sha256": "2e4e123f144e5d33585056ce42729f945763573e83a36ac8d1011cd083e52830"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt": {
+      "role": "index",
+      "sha256": "e2ca81517550b1d46b1ef54bddf6bc37d8542d2f724a6d2785251b96ff6a0830",
+      "size": 6369,
+      "normalized_sha256": "e2ca81517550b1d46b1ef54bddf6bc37d8542d2f724a6d2785251b96ff6a0830"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/MovieFragment.kt": {
+      "role": "index",
+      "sha256": "85d0bd7d1b3830de11de5c615529d40cc08aa88e156500741beef5874f4e359c",
+      "size": 7683,
+      "normalized_sha256": "85d0bd7d1b3830de11de5c615529d40cc08aa88e156500741beef5874f4e359c"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/PlaybackFileLog.kt": {
+      "role": "index",
+      "sha256": "9db99d752de0b0aa271c73177aea8c6f4ee68333ac4d9d62b942cc1bc0ac2b45",
+      "size": 2743,
+      "normalized_sha256": "9db99d752de0b0aa271c73177aea8c6f4ee68333ac4d9d62b942cc1bc0ac2b45"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
+      "role": "index",
+      "sha256": "925da704230875fc0c9195181b4cb2a0598ce73e86e3d31bad8ad0b7e50b8d67",
+      "size": 21565,
+      "normalized_sha256": "925da704230875fc0c9195181b4cb2a0598ce73e86e3d31bad8ad0b7e50b8d67"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
+      "role": "index",
+      "sha256": "8c9e50070a68c3f144561711d8ee626b91163018696a541fda4d0ccaad47df75",
+      "size": 9597,
+      "normalized_sha256": "8c9e50070a68c3f144561711d8ee626b91163018696a541fda4d0ccaad47df75"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/SettingsFragment.kt": {
+      "role": "index",
+      "sha256": "5fb0aeb22451b0168550d0f9b80841997955754dcbc839380d9433d8f6ad9c92",
+      "size": 1542,
+      "normalized_sha256": "5fb0aeb22451b0168550d0f9b80841997955754dcbc839380d9433d8f6ad9c92"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/SubtitleOverlay.kt": {
+      "role": "index",
+      "sha256": "321a6f7d56acd35ebba8309b589c3e0b07f46caa66c06a52791b9da99bfe269b",
+      "size": 3081,
+      "normalized_sha256": "321a6f7d56acd35ebba8309b589c3e0b07f46caa66c06a52791b9da99bfe269b"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/TrackPicker.kt": {
+      "role": "index",
+      "sha256": "a80164fd98e8998c7c656eba41f96eb6f923b29cde14dc62c3a82e1199191250",
+      "size": 1708,
+      "normalized_sha256": "a80164fd98e8998c7c656eba41f96eb6f923b29cde14dc62c3a82e1199191250"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/ui/widget/RatioImageView.kt": {
+      "role": "index",
+      "sha256": "86d7c12e9cff35de59d748cbbb8ad62c6c4f3fb26733736e8ea4331cd4ce9cc5",
+      "size": 1011,
+      "normalized_sha256": "86d7c12e9cff35de59d748cbbb8ad62c6c4f3fb26733736e8ea4331cd4ce9cc5"
+    },
+    "android/app/src/main/res/color/chip_bg.xml": {
+      "role": "index",
+      "sha256": "fb06613e4f1bc7b51b96fad1482f02428e913f5502e1ef97cff353743ab25c14",
+      "size": 247,
+      "normalized_sha256": "fb06613e4f1bc7b51b96fad1482f02428e913f5502e1ef97cff353743ab25c14"
+    },
+    "android/app/src/main/res/color/chip_stroke.xml": {
+      "role": "index",
+      "sha256": "ff57847c7bd324626878147694cd4deddbf5dd0f6288d45c79699fc1922cd05f",
+      "size": 242,
+      "normalized_sha256": "ff57847c7bd324626878147694cd4deddbf5dd0f6288d45c79699fc1922cd05f"
+    },
+    "android/app/src/main/res/color/chip_text.xml": {
+      "role": "index",
+      "sha256": "db42f869dafaeec549d0d20b884a880879e35083feb633964fcac3c111d0e0b6",
+      "size": 240,
+      "normalized_sha256": "db42f869dafaeec549d0d20b884a880879e35083feb633964fcac3c111d0e0b6"
+    },
+    "android/app/src/main/res/color/rail_item.xml": {
+      "role": "index",
+      "sha256": "7c3743c280c44438e35b5447e778a04670cd2614591532c77971330a3f896769",
+      "size": 242,
+      "normalized_sha256": "7c3743c280c44438e35b5447e778a04670cd2614591532c77971330a3f896769"
+    },
+    "android/app/src/main/res/drawable/bg_badge.xml": {
+      "role": "index",
+      "sha256": "a70746f81ae3f620743a23e5875dc781d86ae24952c0bb7a5cd07355d004c646",
+      "size": 216,
+      "normalized_sha256": "a70746f81ae3f620743a23e5875dc781d86ae24952c0bb7a5cd07355d004c646"
+    },
+    "android/app/src/main/res/drawable/bg_image_placeholder.xml": {
+      "role": "index",
+      "sha256": "40eee59aef1d88a1c513f89861d58866c91bb6610494863b8305c847f9d8c529",
+      "size": 226,
+      "normalized_sha256": "40eee59aef1d88a1c513f89861d58866c91bb6610494863b8305c847f9d8c529"
+    },
+    "android/app/src/main/res/drawable/bg_logo.xml": {
+      "role": "index",
+      "sha256": "382eb581c422b0106d075bc8bb98c9a083fbdafa64a2c032e0292e3a4b7a4fc3",
+      "size": 221,
+      "normalized_sha256": "382eb581c422b0106d075bc8bb98c9a083fbdafa64a2c032e0292e3a4b7a4fc3"
+    },
+    "android/app/src/main/res/drawable/bg_round_accent.xml": {
+      "role": "index",
+      "sha256": "40a3e1a6e6fc38d4c8519abea5fa5486faec666d3576a41172074cf4cda5636a",
+      "size": 179,
+      "normalized_sha256": "40a3e1a6e6fc38d4c8519abea5fa5486faec666d3576a41172074cf4cda5636a"
+    },
+    "android/app/src/main/res/drawable/bg_round_dark.xml": {
+      "role": "index",
+      "sha256": "064424410b52d9a222686103c9446018f32fee9a22a14fe1eb6525d4732834e3",
+      "size": 175,
+      "normalized_sha256": "064424410b52d9a222686103c9446018f32fee9a22a14fe1eb6525d4732834e3"
+    },
+    "android/app/src/main/res/drawable/bg_selector_card.xml": {
+      "role": "index",
+      "sha256": "97abf7c7bf65db06ff7d6f8998678d638f93f0f3d6bec8988b0558fbf45fa1ce",
+      "size": 343,
+      "normalized_sha256": "97abf7c7bf65db06ff7d6f8998678d638f93f0f3d6bec8988b0558fbf45fa1ce"
+    },
+    "android/app/src/main/res/drawable/bg_track_selected.xml": {
+      "role": "index",
+      "sha256": "66159ef235e8e1230b04e396b8a95e5fdcc336cea8556d18d2920575672f737f",
+      "size": 189,
+      "normalized_sha256": "66159ef235e8e1230b04e396b8a95e5fdcc336cea8556d18d2920575672f737f"
+    },
+    "android/app/src/main/res/drawable/ic_audio.xml": {
+      "role": "index",
+      "sha256": "7e8ecfc78dafc9b358f213863508a9f0a84d5e50904e1ba9cdf76c2ad92378a7",
+      "size": 473,
+      "normalized_sha256": "7e8ecfc78dafc9b358f213863508a9f0a84d5e50904e1ba9cdf76c2ad92378a7"
+    },
+    "android/app/src/main/res/drawable/ic_back.xml": {
+      "role": "index",
+      "sha256": "3d021835510b3da8ef7379f775106ca8aea0a44608463a6a0fc75dd3c694dbd3",
+      "size": 450,
+      "normalized_sha256": "3d021835510b3da8ef7379f775106ca8aea0a44608463a6a0fc75dd3c694dbd3"
+    },
+    "android/app/src/main/res/drawable/ic_check.xml": {
+      "role": "index",
+      "sha256": "eb44cbdd4cc50ac9dc7c089b80db43a91d5d6886d6a456f674b78576bc8bd603",
+      "size": 451,
+      "normalized_sha256": "eb44cbdd4cc50ac9dc7c089b80db43a91d5d6886d6a456f674b78576bc8bd603"
+    },
+    "android/app/src/main/res/drawable/ic_close.xml": {
+      "role": "index",
+      "sha256": "a5c6bebaa7d2fa8f119d5469791e24a64eb35aaea8364dfed0b018ee316f7c3b",
+      "size": 456,
+      "normalized_sha256": "a5c6bebaa7d2fa8f119d5469791e24a64eb35aaea8364dfed0b018ee316f7c3b"
+    },
+    "android/app/src/main/res/drawable/ic_film.xml": {
+      "role": "index",
+      "sha256": "f5f0b765062dedd76328248966c9cd39e90f71cb83eb2b38a2975f1106593260",
+      "size": 554,
+      "normalized_sha256": "f5f0b765062dedd76328248966c9cd39e90f71cb83eb2b38a2975f1106593260"
+    },
+    "android/app/src/main/res/drawable/ic_folder.xml": {
+      "role": "index",
+      "sha256": "b480736fe0f79f6dbca30bb05c72a2c969dd0a37ae74ff6abba4c0f11bc57da8",
+      "size": 513,
+      "normalized_sha256": "b480736fe0f79f6dbca30bb05c72a2c969dd0a37ae74ff6abba4c0f11bc57da8"
+    },
+    "android/app/src/main/res/drawable/ic_home.xml": {
+      "role": "index",
+      "sha256": "786176ad80d01790e30166abb9c583f5cf262367c9e0b436d9394f4fabb1237c",
+      "size": 497,
+      "normalized_sha256": "786176ad80d01790e30166abb9c583f5cf262367c9e0b436d9394f4fabb1237c"
+    },
+    "android/app/src/main/res/drawable/ic_list.xml": {
+      "role": "index",
+      "sha256": "d725e46f5ddea3ecc9848bc5e1691a03c428895eb6db570cf75ab39b66a7f467",
+      "size": 494,
+      "normalized_sha256": "d725e46f5ddea3ecc9848bc5e1691a03c428895eb6db570cf75ab39b66a7f467"
+    },
+    "android/app/src/main/res/drawable/ic_play.xml": {
+      "role": "index",
+      "sha256": "cdc9e116e1815fbcfc94068e6be82c35412a1d69991e1e22c1bd282cd394e987",
+      "size": 333,
+      "normalized_sha256": "cdc9e116e1815fbcfc94068e6be82c35412a1d69991e1e22c1bd282cd394e987"
+    },
+    "android/app/src/main/res/drawable/ic_search.xml": {
+      "role": "index",
+      "sha256": "cc9a8778c8ed77941b3c1916510d90aa76b873ac7fe597d9dba57141d8a6e341",
+      "size": 489,
+      "normalized_sha256": "cc9a8778c8ed77941b3c1916510d90aa76b873ac7fe597d9dba57141d8a6e341"
+    },
+    "android/app/src/main/res/drawable/ic_settings.xml": {
+      "role": "index",
+      "sha256": "fbfd4083dafae74ae82732395131ad181a1d0ecf7cc6eadadc770a3eb8cc7916",
+      "size": 586,
+      "normalized_sha256": "fbfd4083dafae74ae82732395131ad181a1d0ecf7cc6eadadc770a3eb8cc7916"
+    },
+    "android/app/src/main/res/drawable/ic_subtitles.xml": {
+      "role": "index",
+      "sha256": "15d6e34b5fd402c68b013bde7c22538a6ad2f59c86d024fad6d1589f93dd7b60",
+      "size": 534,
+      "normalized_sha256": "15d6e34b5fd402c68b013bde7c22538a6ad2f59c86d024fad6d1589f93dd7b60"
+    },
+    "android/app/src/main/res/drawable/ic_tv.xml": {
+      "role": "index",
+      "sha256": "7cb1e241bc9624b06747820fb0bb86aa2cf54d06ff7c77e308e18937cf176c99",
+      "size": 525,
+      "normalized_sha256": "7cb1e241bc9624b06747820fb0bb86aa2cf54d06ff7c77e308e18937cf176c99"
+    },
+    "android/app/src/main/res/drawable/scrim_bottom.xml": {
+      "role": "index",
+      "sha256": "c249a997a991415c38de34a6107a335407ed92f21fe5338542d31c9c0a026e93",
+      "size": 291,
+      "normalized_sha256": "c249a997a991415c38de34a6107a335407ed92f21fe5338542d31c9c0a026e93"
+    },
+    "android/app/src/main/res/drawable/scrim_left.xml": {
+      "role": "index",
+      "sha256": "c1cf67266aba006e620c6bda9a70254da843b0addb2f6e82905cb4ca485cc411",
+      "size": 372,
+      "normalized_sha256": "c1cf67266aba006e620c6bda9a70254da843b0addb2f6e82905cb4ca485cc411"
+    },
+    "android/app/src/main/res/drawable/scrim_player_bottom.xml": {
+      "role": "index",
+      "sha256": "28c1f05afaa0fbf07f28b7388b5deda363aaa6e972acd3e3ce054cb4e85dc798",
+      "size": 236,
+      "normalized_sha256": "28c1f05afaa0fbf07f28b7388b5deda363aaa6e972acd3e3ce054cb4e85dc798"
+    },
+    "android/app/src/main/res/drawable/scrim_player_top.xml": {
+      "role": "index",
+      "sha256": "914cf4e81c9842724a9a107b38310c5c15becbb152cccec878084783ec790409",
+      "size": 237,
+      "normalized_sha256": "914cf4e81c9842724a9a107b38310c5c15becbb152cccec878084783ec790409"
+    },
+    "android/app/src/main/res/layout/activity_login.xml": {
+      "role": "index",
+      "sha256": "5be07fb46cc3a433a483a7b93d855aef82d8668e751d24415528df01a6c4a771",
+      "size": 5732,
+      "normalized_sha256": "5be07fb46cc3a433a483a7b93d855aef82d8668e751d24415528df01a6c4a771"
+    },
+    "android/app/src/main/res/layout/activity_main.xml": {
+      "role": "index",
+      "sha256": "876d479dbaa938fa2c46363749f7a6829f1143e325a4eece33a4b1c635b56e1a",
+      "size": 1320,
+      "normalized_sha256": "876d479dbaa938fa2c46363749f7a6829f1143e325a4eece33a4b1c635b56e1a"
+    },
+    "android/app/src/main/res/layout/activity_player.xml": {
+      "role": "index",
+      "sha256": "72da51fcf0fab4b3018c616662a2e5e0d1b327b13997d1cba4de8bd8fd3039ce",
+      "size": 3903,
+      "normalized_sha256": "72da51fcf0fab4b3018c616662a2e5e0d1b327b13997d1cba4de8bd8fd3039ce"
+    },
+    "android/app/src/main/res/layout/fragment_grid.xml": {
+      "role": "index",
+      "sha256": "393a8924f951dfc48d40e34be8d53eba0e19421f7fd42a749e2d88b9d5239c1e",
+      "size": 3523,
+      "normalized_sha256": "393a8924f951dfc48d40e34be8d53eba0e19421f7fd42a749e2d88b9d5239c1e"
+    },
+    "android/app/src/main/res/layout/fragment_home.xml": {
+      "role": "index",
+      "sha256": "bc345abd901d73c0fb5165dec2f4aa406d31c2ea57b63eec47caca094af42ffd",
+      "size": 6493,
+      "normalized_sha256": "bc345abd901d73c0fb5165dec2f4aa406d31c2ea57b63eec47caca094af42ffd"
+    },
+    "android/app/src/main/res/layout/fragment_library.xml": {
+      "role": "index",
+      "sha256": "d5153c1c1f96c7b808db04a4e8e93c68c0ef590a808792aa50e9bc21160162ed",
+      "size": 5605,
+      "normalized_sha256": "d5153c1c1f96c7b808db04a4e8e93c68c0ef590a808792aa50e9bc21160162ed"
+    },
+    "android/app/src/main/res/layout/fragment_movie.xml": {
+      "role": "index",
+      "sha256": "73516da4b8ab327797effa0cee238f7a9f5a0baa72f83a6b8d452ff300231fbd",
+      "size": 9328,
+      "normalized_sha256": "73516da4b8ab327797effa0cee238f7a9f5a0baa72f83a6b8d452ff300231fbd"
+    },
+    "android/app/src/main/res/layout/fragment_series.xml": {
+      "role": "index",
+      "sha256": "3ce17cf7c915ddc9e545d7d7738042ca3d5d70bf28a93a06e531188403388106",
+      "size": 6210,
+      "normalized_sha256": "3ce17cf7c915ddc9e545d7d7738042ca3d5d70bf28a93a06e531188403388106"
+    },
+    "android/app/src/main/res/layout/fragment_settings.xml": {
+      "role": "index",
+      "sha256": "c0058345ba11be53ac8c3314fd44baf7352c8c985d60db8f7f47915ef27440bb",
+      "size": 3552,
+      "normalized_sha256": "c0058345ba11be53ac8c3314fd44baf7352c8c985d60db8f7f47915ef27440bb"
+    },
+    "android/app/src/main/res/layout/item_card_wide.xml": {
+      "role": "index",
+      "sha256": "fc2b4af271554c6495e5c19c29c3379daf1c18bebe3d29346cc85e2d51295430",
+      "size": 1983,
+      "normalized_sha256": "fc2b4af271554c6495e5c19c29c3379daf1c18bebe3d29346cc85e2d51295430"
+    },
+    "android/app/src/main/res/layout/item_episode.xml": {
+      "role": "index",
+      "sha256": "907924a5cb5b8416cce8efba8507a9bee266823175788b8f59854759b75a1170",
+      "size": 4191,
+      "normalized_sha256": "907924a5cb5b8416cce8efba8507a9bee266823175788b8f59854759b75a1170"
+    },
+    "android/app/src/main/res/layout/item_poster.xml": {
+      "role": "index",
+      "sha256": "8273d86066b8f78783c45d7e0f584e48e093b4cd43f97cedefabeb7b247bf56b",
+      "size": 2630,
+      "normalized_sha256": "8273d86066b8f78783c45d7e0f584e48e093b4cd43f97cedefabeb7b247bf56b"
+    },
+    "android/app/src/main/res/layout/item_track_header.xml": {
+      "role": "index",
+      "sha256": "34668e2ea5349572a8d00af183ad04309182a23bc10d78a7db345cc526f6385d",
+      "size": 446,
+      "normalized_sha256": "34668e2ea5349572a8d00af183ad04309182a23bc10d78a7db345cc526f6385d"
+    },
+    "android/app/src/main/res/layout/item_track_option.xml": {
+      "role": "index",
+      "sha256": "a6165245c11cbea52ff3b37dae067e25e00a963e161ca546fb5a74efb241ca9d",
+      "size": 1473,
+      "normalized_sha256": "a6165245c11cbea52ff3b37dae067e25e00a963e161ca546fb5a74efb241ca9d"
+    },
+    "android/app/src/main/res/layout/player_controls.xml": {
+      "role": "index",
+      "sha256": "a3cb446398fc0a1c30938513273655dfb32040174183f8f9487f7a866e8c8650",
+      "size": 6215,
+      "normalized_sha256": "a3cb446398fc0a1c30938513273655dfb32040174183f8f9487f7a866e8c8650"
+    },
+    "android/app/src/main/res/layout/rail_header.xml": {
+      "role": "index",
+      "sha256": "123e571c91f1c2bbca85f054457100d3c5494cc0f6e52bbfa19f2369eba82189",
+      "size": 920,
+      "normalized_sha256": "123e571c91f1c2bbca85f054457100d3c5494cc0f6e52bbfa19f2369eba82189"
+    },
+    "android/app/src/main/res/layout/section_row.xml": {
+      "role": "index",
+      "sha256": "032df9cc9d2a0a92b4013de57351fbecfb0563a5a211aa25c297a927b7025d08",
+      "size": 1524,
+      "normalized_sha256": "032df9cc9d2a0a92b4013de57351fbecfb0563a5a211aa25c297a927b7025d08"
+    },
+    "android/app/src/main/res/values/attrs.xml": {
+      "role": "index",
+      "sha256": "4e490a9e1f54bb5b141b232e2b92be97e153df96e2a7767715b621730b4f713a",
+      "size": 250,
+      "normalized_sha256": "4e490a9e1f54bb5b141b232e2b92be97e153df96e2a7767715b621730b4f713a"
+    },
+    "android/app/src/main/res/values/colors.xml": {
+      "role": "index",
+      "sha256": "3752337056c95e79935ec6c5af9bca9fd5e921ea318fc57f4b9f84dad5807f13",
+      "size": 858,
+      "normalized_sha256": "3752337056c95e79935ec6c5af9bca9fd5e921ea318fc57f4b9f84dad5807f13"
+    },
+    "android/app/src/main/res/values/strings.xml": {
+      "role": "index",
+      "sha256": "c44502d3d17e8d21abcce45886d1ceb7fc107a69bad0779475fae6fe83e23d15",
+      "size": 1949,
+      "normalized_sha256": "c44502d3d17e8d21abcce45886d1ceb7fc107a69bad0779475fae6fe83e23d15"
+    },
+    "android/app/src/main/res/values/themes.xml": {
+      "role": "index",
+      "sha256": "7be7a9be52c8cfd2be7e9e79fa62108cc422a7bdb9cf394f50f88d6b14c685f0",
+      "size": 4186,
+      "normalized_sha256": "7be7a9be52c8cfd2be7e9e79fa62108cc422a7bdb9cf394f50f88d6b14c685f0"
+    },
+    "android/app/src/main/res/xml/network_security_config.xml": {
+      "role": "index",
+      "sha256": "62f86d628269beeb73d2e3b83bf68632bb740b2ec693ce0349244340203da6cb",
+      "size": 793,
+      "normalized_sha256": "62f86d628269beeb73d2e3b83bf68632bb740b2ec693ce0349244340203da6cb"
+    },
+    "android/app/src/test/java/com/jellyfinextra/player/data/SubtitleChooserTest.kt": {
+      "role": "index",
+      "sha256": "7b0d03d1fd08f095111bda20e18f291381758ab27410a97452885bd445aad5f3",
+      "size": 2942,
+      "normalized_sha256": "7b0d03d1fd08f095111bda20e18f291381758ab27410a97452885bd445aad5f3"
+    },
+    "android/build.gradle.kts": {
+      "role": "index",
+      "sha256": "0e5cdcc2f085842694fd25f1e6df6631b22658eb26eea68c2ceca08a88057bb6",
+      "size": 217,
+      "normalized_sha256": "0e5cdcc2f085842694fd25f1e6df6631b22658eb26eea68c2ceca08a88057bb6"
+    },
+    "android/gradle.properties": {
+      "role": "index",
+      "sha256": "8248c4a16d1ccd10213a27ab96d6d27acbff9b93c01b725c940e4071da6240a5",
+      "size": 133,
+      "normalized_sha256": "8248c4a16d1ccd10213a27ab96d6d27acbff9b93c01b725c940e4071da6240a5"
+    },
+    "android/gradle/libs.versions.toml": {
+      "role": "index",
+      "sha256": "024c5c9b6c46ae565f9603edc6d8aaa28013f703c24752e08b0b0a635b79e092",
+      "size": 2264,
+      "normalized_sha256": "024c5c9b6c46ae565f9603edc6d8aaa28013f703c24752e08b0b0a635b79e092"
+    },
+    "android/gradle/wrapper/gradle-wrapper.jar": {
+      "role": "index",
+      "sha256": "238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5",
+      "size": 47623
+    },
+    "android/gradle/wrapper/gradle-wrapper.properties": {
+      "role": "index",
+      "sha256": "e81b90975868be2513ca00d6a5a01303a406a5cb01a306210b887e983e4b17ae",
+      "size": 368,
+      "normalized_sha256": "e81b90975868be2513ca00d6a5a01303a406a5cb01a306210b887e983e4b17ae"
+    },
+    "android/gradlew": {
+      "role": "index",
+      "sha256": "a5a5c199ba02189ae8c46a334223371a20599d9c298ef65e7540ede4a3f72d59",
+      "size": 8656,
+      "normalized_sha256": "a5a5c199ba02189ae8c46a334223371a20599d9c298ef65e7540ede4a3f72d59"
+    },
+    "android/gradlew.bat": {
+      "role": "index",
+      "sha256": "f17917f8dbe61182b149273ee78090fec1197442c3f38276af907bfa5190db16",
+      "size": 4888,
+      "normalized_sha256": "31ec098bd961c460b62875950c3eff5c8213bcb0bbde38d769b88512877fd21f"
+    },
+    "android/settings.gradle.kts": {
+      "role": "index",
+      "sha256": "d179ac0ea4b7df09155ecb5e4f3d71c706f23c80098c063700a0eb4ef9a92dec",
+      "size": 340,
+      "normalized_sha256": "d179ac0ea4b7df09155ecb5e4f3d71c706f23c80098c063700a0eb4ef9a92dec"
+    },
+    "aoci.code.txt": {
+      "role": "index",
+      "sha256": "8d25fa396897b92137bb50f97f08918cb3e358c4004def82d89a6887ffcabf13",
+      "size": 51856,
+      "normalized_sha256": "8d25fa396897b92137bb50f97f08918cb3e358c4004def82d89a6887ffcabf13"
+    },
+    "aoci.meta.txt": {
+      "role": "index",
+      "sha256": "ebafbe54981dfb23686171bb5253ded8c2bbf9c697b73a1b1af9283d686a5cc4",
+      "size": 2307,
+      "normalized_sha256": "ebafbe54981dfb23686171bb5253ded8c2bbf9c697b73a1b1af9283d686a5cc4"
+    },
+    "aoci.txt": {
+      "role": "index",
+      "sha256": "f20c9cb6eba49ab0a59f59dc64cecfddac3aa5e78f2c2a19468a92646523999a",
+      "size": 303,
+      "normalized_sha256": "f20c9cb6eba49ab0a59f59dc64cecfddac3aa5e78f2c2a19468a92646523999a"
+    },
+    "devenv/Dockerfile": {
+      "role": "index",
+      "sha256": "f6dc160d2b2f8ab92e67bd8b1d3483f5fb29a6556726bde7456501eff6f6b77d",
+      "size": 3373,
+      "normalized_sha256": "f6dc160d2b2f8ab92e67bd8b1d3483f5fb29a6556726bde7456501eff6f6b77d"
+    },
+    "devenv/SETUP.md": {
+      "role": "index",
+      "sha256": "886d455496257afb2da160ef255e4c1faef2e87d986953f0f014aaa800a01911",
+      "size": 5180,
+      "normalized_sha256": "886d455496257afb2da160ef255e4c1faef2e87d986953f0f014aaa800a01911"
+    },
+    "devenv/compose.ios.yaml": {
+      "role": "index",
+      "sha256": "602d7257d5a9551fcce540a81642eb4237cb4781d97eefd68068b40dc1719c7c",
+      "size": 625,
+      "normalized_sha256": "602d7257d5a9551fcce540a81642eb4237cb4781d97eefd68068b40dc1719c7c"
+    },
+    "devenv/compose.yaml": {
+      "role": "index",
+      "sha256": "64cddee6b3a1cc5cdb5ad7b16bef5578a23e36d88ed35708e76cb88d09e4859b",
+      "size": 2014,
+      "normalized_sha256": "64cddee6b3a1cc5cdb5ad7b16bef5578a23e36d88ed35708e76cb88d09e4859b"
+    },
+    "ios/.gitignore": {
+      "role": "index",
+      "sha256": "473ba4db9522c3e616e919300c85dd00a14bc26014bb7449fa5e09964e20337a",
+      "size": 18,
+      "normalized_sha256": "473ba4db9522c3e616e919300c85dd00a14bc26014bb7449fa5e09964e20337a"
+    },
+    "ios/Makefile": {
+      "role": "index",
+      "sha256": "990d0be899cf63aaa2dd9a10b934c23bab913d63d27c8d70e3e703cf235722b2",
+      "size": 686,
+      "normalized_sha256": "990d0be899cf63aaa2dd9a10b934c23bab913d63d27c8d70e3e703cf235722b2"
+    },
+    "ios/Resources/AppIcon29x29.png": {
+      "role": "index",
+      "sha256": "2315261273e5fd719a42fdbcdcd7fd7a0d49e22d95523dc8b57066842509f3da",
+      "size": 169
+    },
+    "ios/Resources/AppIcon29x29@2x.png": {
+      "role": "index",
+      "sha256": "98ab0f899af8686c434e9f708d2dfdb78d85d1d46bdc949df86af91bcef49d59",
+      "size": 274
+    },
+    "ios/Resources/AppIcon40x40.png": {
+      "role": "index",
+      "sha256": "060776a22c5652e3d5025432ca02a9b40e240d2c194b23f819c201bf54380f92",
+      "size": 202
+    },
+    "ios/Resources/AppIcon40x40@2x.png": {
+      "role": "index",
+      "sha256": "fb133da6df0afc06b028a8d21c3dc37d57ad79c4f3d0ab39c0fd7c4fa462cea7",
+      "size": 326
+    },
+    "ios/Resources/AppIcon76x76.png": {
+      "role": "index",
+      "sha256": "37d9cf8cb0f9dcb2c091bb2e562181aedb3f80dd153ef1642880569f4e6a36ac",
+      "size": 314
+    },
+    "ios/Resources/AppIcon76x76@2x.png": {
+      "role": "index",
+      "sha256": "4d18ba709b182f85221072e37ef0d230e616b235e40afcb5656959b362928d4c",
+      "size": 560
+    },
+    "ios/Resources/Info.plist": {
+      "role": "index",
+      "sha256": "19ce78c9e4ee8097f2975289dc3c0879b197432f06c407e551cd6bd963e4786a",
+      "size": 2461,
+      "normalized_sha256": "19ce78c9e4ee8097f2975289dc3c0879b197432f06c407e551cd6bd963e4786a"
+    },
+    "ios/Resources/LaunchImage-Landscape@2x~ipad.png": {
+      "role": "index",
+      "sha256": "187ee7d61ba142a5e2eb4622d418232ffac8c7728b84faf03de92aad38d9c3bb",
+      "size": 11567
+    },
+    "ios/Resources/LaunchImage-Landscape~ipad.png": {
+      "role": "index",
+      "sha256": "0464171f4b66b093543e82702580be09a9f45648d894ac13beff3fa2150eae7e",
+      "size": 3439
+    },
+    "ios/Sources/App/JXAppDelegate.h": {
+      "role": "index",
+      "sha256": "adabba871bb7e070bb5a1a3a673bf29101815ded142e4f2bd63b497320164b40",
+      "size": 141,
+      "normalized_sha256": "adabba871bb7e070bb5a1a3a673bf29101815ded142e4f2bd63b497320164b40"
+    },
+    "ios/Sources/App/JXAppDelegate.m": {
+      "role": "index",
+      "sha256": "2e474ea208d712940a1a16e92a05d4010b0ac0091eb976b92f8b66396949b7dc",
+      "size": 992,
+      "normalized_sha256": "2e474ea208d712940a1a16e92a05d4010b0ac0091eb976b92f8b66396949b7dc"
+    },
+    "ios/Sources/App/main.m": {
+      "role": "index",
+      "sha256": "96febe92892e9f275234e901bae2199ad2221561657904effbb2f760fdebb185",
+      "size": 196,
+      "normalized_sha256": "96febe92892e9f275234e901bae2199ad2221561657904effbb2f760fdebb185"
+    },
+    "ios/Sources/Model/JXFormat.h": {
+      "role": "index",
+      "sha256": "6f6629843dc279dbe56ceedb4dbf4a9889430cebc555a26e9056f8333594e409",
+      "size": 796,
+      "normalized_sha256": "6f6629843dc279dbe56ceedb4dbf4a9889430cebc555a26e9056f8333594e409"
+    },
+    "ios/Sources/Model/JXFormat.m": {
+      "role": "index",
+      "sha256": "cca8e902c89eeee7accc570fc0ebc3c15afa03da9b7d10ea1dad4a622ff7d5e9",
+      "size": 2314,
+      "normalized_sha256": "cca8e902c89eeee7accc570fc0ebc3c15afa03da9b7d10ea1dad4a622ff7d5e9"
+    },
+    "ios/Sources/Model/JXItem.h": {
+      "role": "index",
+      "sha256": "745cf47c9b7c3b8a46b3e847377098917d2f0537d845ce39edaf04e6e2cc846c",
+      "size": 2116,
+      "normalized_sha256": "745cf47c9b7c3b8a46b3e847377098917d2f0537d845ce39edaf04e6e2cc846c"
+    },
+    "ios/Sources/Model/JXItem.m": {
+      "role": "index",
+      "sha256": "c585b217708f1e1f3438dacbf40a9e0090dbfd10f1eb531a798b21f49cfef226",
+      "size": 3589,
+      "normalized_sha256": "c585b217708f1e1f3438dacbf40a9e0090dbfd10f1eb531a798b21f49cfef226"
+    },
+    "ios/Sources/Model/JXSettings.h": {
+      "role": "index",
+      "sha256": "49434d6be55fcde258e178c5c162a1634ea4e0e3337e0162deb57444acd81a38",
+      "size": 1010,
+      "normalized_sha256": "49434d6be55fcde258e178c5c162a1634ea4e0e3337e0162deb57444acd81a38"
+    },
+    "ios/Sources/Model/JXSettings.m": {
+      "role": "index",
+      "sha256": "b1eb326cb992542107d30b7f9fcbeb37eb93a7d509bbbd68af76e967ae17653c",
+      "size": 1895,
+      "normalized_sha256": "b1eb326cb992542107d30b7f9fcbeb37eb93a7d509bbbd68af76e967ae17653c"
+    },
+    "ios/Sources/Model/JXTracks.h": {
+      "role": "index",
+      "sha256": "0d5306e9f440062715bfa4e2ec4b1b2f9894d5cae88198ca5edc2c23e94c3302",
+      "size": 1753,
+      "normalized_sha256": "0d5306e9f440062715bfa4e2ec4b1b2f9894d5cae88198ca5edc2c23e94c3302"
+    },
+    "ios/Sources/Model/JXTracks.m": {
+      "role": "index",
+      "sha256": "8d0eb4ce6d6675b8512d02743b7c9716c376c613e2cd3f8afe2c989deb314917",
+      "size": 5423,
+      "normalized_sha256": "8d0eb4ce6d6675b8512d02743b7c9716c376c613e2cd3f8afe2c989deb314917"
+    },
+    "ios/Sources/Net/JXEndpoints.h": {
+      "role": "index",
+      "sha256": "147df964cd99e7db458a80ba36c9755d993ea2019d4121017254b03add009a33",
+      "size": 712,
+      "normalized_sha256": "147df964cd99e7db458a80ba36c9755d993ea2019d4121017254b03add009a33"
+    },
+    "ios/Sources/Net/JXEndpoints.m": {
+      "role": "index",
+      "sha256": "22778401ac37c0d0515ce8dfa9c9195a3ce61e99875523a884cbd0ac687c95ad",
+      "size": 1888,
+      "normalized_sha256": "22778401ac37c0d0515ce8dfa9c9195a3ce61e99875523a884cbd0ac687c95ad"
+    },
+    "ios/Sources/Net/JXHTTP.h": {
+      "role": "index",
+      "sha256": "7cd8d9ccba8ae216e98d92642ef2206305172c32968e310b9848d00c63664837",
+      "size": 986,
+      "normalized_sha256": "7cd8d9ccba8ae216e98d92642ef2206305172c32968e310b9848d00c63664837"
+    },
+    "ios/Sources/Net/JXHTTP.m": {
+      "role": "index",
+      "sha256": "d417e4780c709870be4709f29900ccefed8860bcad45ff52cdbe5226a1829e00",
+      "size": 3520,
+      "normalized_sha256": "d417e4780c709870be4709f29900ccefed8860bcad45ff52cdbe5226a1829e00"
+    },
+    "ios/Sources/Net/JXJellyfin.h": {
+      "role": "index",
+      "sha256": "2cc50b857a0381b2779b0db7e4f67b079958916e86e0619829aebd5d4806c2ad",
+      "size": 2966,
+      "normalized_sha256": "2cc50b857a0381b2779b0db7e4f67b079958916e86e0619829aebd5d4806c2ad"
+    },
+    "ios/Sources/Net/JXJellyfin.m": {
+      "role": "index",
+      "sha256": "223c47581614ff5461df323b367b88cddf9955c410dc1efc35a4fc29293a792a",
+      "size": 10152,
+      "normalized_sha256": "223c47581614ff5461df323b367b88cddf9955c410dc1efc35a4fc29293a792a"
+    },
+    "ios/Sources/Net/JXXcode.h": {
+      "role": "index",
+      "sha256": "28619bd5a2243d96982414e393371dfcb4f0dde5e634dfc48fee9ee4c5a74859",
+      "size": 1126,
+      "normalized_sha256": "28619bd5a2243d96982414e393371dfcb4f0dde5e634dfc48fee9ee4c5a74859"
+    },
+    "ios/Sources/Net/JXXcode.m": {
+      "role": "index",
+      "sha256": "3d99f3a76f5a02ae16d9070277458a35ba3d8a43fdcf3398862db87ff76bff84",
+      "size": 2956,
+      "normalized_sha256": "3d99f3a76f5a02ae16d9070277458a35ba3d8a43fdcf3398862db87ff76bff84"
+    },
+    "ios/Sources/Player/JXPlayerViewController.h": {
+      "role": "index",
+      "sha256": "07e075c737ad7180164cb5bc1207e11f0db578e40fd916471dd7f738a060eddd",
+      "size": 812,
+      "normalized_sha256": "07e075c737ad7180164cb5bc1207e11f0db578e40fd916471dd7f738a060eddd"
+    },
+    "ios/Sources/Player/JXPlayerViewController.m": {
+      "role": "index",
+      "sha256": "a909221297bb7b97f3deee6ac7129193b2621ded91a4ca8f999b137168ac2d66",
+      "size": 42343,
+      "normalized_sha256": "a909221297bb7b97f3deee6ac7129193b2621ded91a4ca8f999b137168ac2d66"
+    },
+    "ios/Sources/Player/JXSubtitles.h": {
+      "role": "index",
+      "sha256": "effbbc6d2896d96181e390fe651f52ee8d2bc8c20fda9ff81f3afd15d0876c5c",
+      "size": 660,
+      "normalized_sha256": "effbbc6d2896d96181e390fe651f52ee8d2bc8c20fda9ff81f3afd15d0876c5c"
+    },
+    "ios/Sources/Player/JXSubtitles.m": {
+      "role": "index",
+      "sha256": "3b5f6681cfb53f129508ae93c87f155ea7d264017e206baeb36d32cbf8c52810",
+      "size": 3389,
+      "normalized_sha256": "3b5f6681cfb53f129508ae93c87f155ea7d264017e206baeb36d32cbf8c52810"
+    },
+    "ios/Sources/UI/JXCells.h": {
+      "role": "index",
+      "sha256": "dd8500655eedfe5b51dfb735b77c826d228388c0ea16316abdfce3ea4e0c7bfa",
+      "size": 1082,
+      "normalized_sha256": "dd8500655eedfe5b51dfb735b77c826d228388c0ea16316abdfce3ea4e0c7bfa"
+    },
+    "ios/Sources/UI/JXCells.m": {
+      "role": "index",
+      "sha256": "0ba2a36d50fa791baea5976cf6b8edeae8bf131652da6944d8fa63d2fdfe8334",
+      "size": 9031,
+      "normalized_sha256": "0ba2a36d50fa791baea5976cf6b8edeae8bf131652da6944d8fa63d2fdfe8334"
+    },
+    "ios/Sources/UI/JXChips.h": {
+      "role": "index",
+      "sha256": "d654b2e045fe56e1aeea6b0f7b5b5df582fc0209bf06b24974be6fc72e3f14a3",
+      "size": 306,
+      "normalized_sha256": "d654b2e045fe56e1aeea6b0f7b5b5df582fc0209bf06b24974be6fc72e3f14a3"
+    },
+    "ios/Sources/UI/JXChips.m": {
+      "role": "index",
+      "sha256": "952c91101d258cf966a3dedf6fd1e4e99cc85354ec66c32ecadaebedb2c474ec",
+      "size": 2288,
+      "normalized_sha256": "952c91101d258cf966a3dedf6fd1e4e99cc85354ec66c32ecadaebedb2c474ec"
+    },
+    "ios/Sources/UI/JXFolderViewController.h": {
+      "role": "index",
+      "sha256": "4c0b8c669f9ef96deccf3c36813b6140355d291d4baabad025acbe4f84833bf9",
+      "size": 232,
+      "normalized_sha256": "4c0b8c669f9ef96deccf3c36813b6140355d291d4baabad025acbe4f84833bf9"
+    },
+    "ios/Sources/UI/JXFolderViewController.m": {
+      "role": "index",
+      "sha256": "a4e27a16c454039fa0424dd03f0465612aa1bd74ac4767b0fe3a5a0dc2793188",
+      "size": 6854,
+      "normalized_sha256": "a4e27a16c454039fa0424dd03f0465612aa1bd74ac4767b0fe3a5a0dc2793188"
+    },
+    "ios/Sources/UI/JXHomeViewController.h": {
+      "role": "index",
+      "sha256": "d5d204b21b3252c97bbb675e0275b19e407ea7c7d5723be5ef23f3de008dec42",
+      "size": 200,
+      "normalized_sha256": "d5d204b21b3252c97bbb675e0275b19e407ea7c7d5723be5ef23f3de008dec42"
+    },
+    "ios/Sources/UI/JXHomeViewController.m": {
+      "role": "index",
+      "sha256": "f240dcc996846d88ab43be31063c92852d66bcbddde9b9fbc21c06b39e5c0b80",
+      "size": 10471,
+      "normalized_sha256": "f240dcc996846d88ab43be31063c92852d66bcbddde9b9fbc21c06b39e5c0b80"
+    },
+    "ios/Sources/UI/JXIcons.h": {
+      "role": "index",
+      "sha256": "3cada690232bd6e1356f5c3d1bb85a793bae158b5c17112bc9b5cc9859bec2fc",
+      "size": 574,
+      "normalized_sha256": "3cada690232bd6e1356f5c3d1bb85a793bae158b5c17112bc9b5cc9859bec2fc"
+    },
+    "ios/Sources/UI/JXIcons.m": {
+      "role": "index",
+      "sha256": "3ca6571fd935b891c15ada4e2a2175aa08631d5c4e8e03950779465b25b613ec",
+      "size": 4677,
+      "normalized_sha256": "3ca6571fd935b891c15ada4e2a2175aa08631d5c4e8e03950779465b25b613ec"
+    },
+    "ios/Sources/UI/JXLibraryViewController.h": {
+      "role": "index",
+      "sha256": "24177ef0449285aa25dda7e6d8cd55f6e6b5653a5d6bbe8322a46b09d0379ed6",
+      "size": 206,
+      "normalized_sha256": "24177ef0449285aa25dda7e6d8cd55f6e6b5653a5d6bbe8322a46b09d0379ed6"
+    },
+    "ios/Sources/UI/JXLibraryViewController.m": {
+      "role": "index",
+      "sha256": "d7b9ff4065eb2eba79941b821073782ca25c0a37b6bca8840c93f40963061100",
+      "size": 6964,
+      "normalized_sha256": "d7b9ff4065eb2eba79941b821073782ca25c0a37b6bca8840c93f40963061100"
+    },
+    "ios/Sources/UI/JXLoginViewController.h": {
+      "role": "index",
+      "sha256": "0af185afa5c5661b71a1fa945c68548cb41c6c73d64e1da3dd04ba7e330398cb",
+      "size": 344,
+      "normalized_sha256": "0af185afa5c5661b71a1fa945c68548cb41c6c73d64e1da3dd04ba7e330398cb"
+    },
+    "ios/Sources/UI/JXLoginViewController.m": {
+      "role": "index",
+      "sha256": "a2bbc50df2ceb721aeee488bfeb88c1e24a0abe34a0f4c58a5c1856bbcaad89b",
+      "size": 7196,
+      "normalized_sha256": "a2bbc50df2ceb721aeee488bfeb88c1e24a0abe34a0f4c58a5c1856bbcaad89b"
+    },
+    "ios/Sources/UI/JXMovieViewController.h": {
+      "role": "index",
+      "sha256": "bd0e17c3dde2d04b15b3d0a13ad35d14aa2efeb8e6d2d14b30caa1de6396cac0",
+      "size": 225,
+      "normalized_sha256": "bd0e17c3dde2d04b15b3d0a13ad35d14aa2efeb8e6d2d14b30caa1de6396cac0"
+    },
+    "ios/Sources/UI/JXMovieViewController.m": {
+      "role": "index",
+      "sha256": "1e82d686ffaca1774757e9f0c0db0c7db4b615a4965e43bd2b0a8b6f3ab503a5",
+      "size": 14395,
+      "normalized_sha256": "1e82d686ffaca1774757e9f0c0db0c7db4b615a4965e43bd2b0a8b6f3ab503a5"
+    },
+    "ios/Sources/UI/JXRootViewController.h": {
+      "role": "index",
+      "sha256": "ffa11d716107a41a61326a4fd241814a4393e1f94dcfe9485cd35d0ad62dced7",
+      "size": 795,
+      "normalized_sha256": "ffa11d716107a41a61326a4fd241814a4393e1f94dcfe9485cd35d0ad62dced7"
+    },
+    "ios/Sources/UI/JXRootViewController.m": {
+      "role": "index",
+      "sha256": "65136a73cebca8205678082b8f693a7a2c5b56e541b2e393b87d3134b4e98263",
+      "size": 12616,
+      "normalized_sha256": "65136a73cebca8205678082b8f693a7a2c5b56e541b2e393b87d3134b4e98263"
+    },
+    "ios/Sources/UI/JXSeriesViewController.h": {
+      "role": "index",
+      "sha256": "32e08aa6b007ce9137c9838b59dba5a7a556a0031adfe43db3cbb213377c9d16",
+      "size": 295,
+      "normalized_sha256": "32e08aa6b007ce9137c9838b59dba5a7a556a0031adfe43db3cbb213377c9d16"
+    },
+    "ios/Sources/UI/JXSeriesViewController.m": {
+      "role": "index",
+      "sha256": "65f02c474aca89b567458e8650719bbee6f09cbd3ab669d50374d9716c7a143d",
+      "size": 14945,
+      "normalized_sha256": "65f02c474aca89b567458e8650719bbee6f09cbd3ab669d50374d9716c7a143d"
+    },
+    "ios/Sources/UI/JXSettingsViewController.h": {
+      "role": "index",
+      "sha256": "0ef3c8a4c648d12b09f5be55b9390a54aeba95a4989a5d3f1fa7151690de9430",
+      "size": 147,
+      "normalized_sha256": "0ef3c8a4c648d12b09f5be55b9390a54aeba95a4989a5d3f1fa7151690de9430"
+    },
+    "ios/Sources/UI/JXSettingsViewController.m": {
+      "role": "index",
+      "sha256": "cb69fcdcb67cf03eecab122108bf6d059684d197dbb31f01c137f0745f1c3383",
+      "size": 5216,
+      "normalized_sha256": "cb69fcdcb67cf03eecab122108bf6d059684d197dbb31f01c137f0745f1c3383"
+    },
+    "ios/Sources/UI/JXTheme.h": {
+      "role": "index",
+      "sha256": "f56b34f75f69c7b4567d5de74fdfc7630ece24b266590468e8ae27df0b0bc7a5",
+      "size": 1465,
+      "normalized_sha256": "f56b34f75f69c7b4567d5de74fdfc7630ece24b266590468e8ae27df0b0bc7a5"
+    },
+    "ios/Sources/UI/JXTheme.m": {
+      "role": "index",
+      "sha256": "2a66f6093334b01a4f47e81e792b1258fa9a01525b35319ff50cc8c579284722",
+      "size": 3704,
+      "normalized_sha256": "2a66f6093334b01a4f47e81e792b1258fa9a01525b35319ff50cc8c579284722"
+    },
+    "ios/Sources/UI/JXTrackPicker.h": {
+      "role": "index",
+      "sha256": "eb1490ac550ed6687e0c53e853d7b4017916b14b713b0b7175a53c694da72631",
+      "size": 666,
+      "normalized_sha256": "eb1490ac550ed6687e0c53e853d7b4017916b14b713b0b7175a53c694da72631"
+    },
+    "ios/Sources/UI/JXTrackPicker.m": {
+      "role": "index",
+      "sha256": "52b95aca0e794d41c6109247d94043c224ace00b3a06f694b11dbab3acf68c37",
+      "size": 2227,
+      "normalized_sha256": "52b95aca0e794d41c6109247d94043c224ace00b3a06f694b11dbab3acf68c37"
+    },
+    "ios/Sources/UI/UIImageView+JX.h": {
+      "role": "index",
+      "sha256": "16dd5dcfade8d0b87cb00685fdaf131669a2823eb3072ea3dfd058ed3875828d",
+      "size": 333,
+      "normalized_sha256": "16dd5dcfade8d0b87cb00685fdaf131669a2823eb3072ea3dfd058ed3875828d"
+    },
+    "ios/Sources/UI/UIImageView+JX.m": {
+      "role": "index",
+      "sha256": "d09727faf87717ab67dd4ff8fb4f69832b769c32dc119bcacd324a4e7ab8870f",
+      "size": 2071,
+      "normalized_sha256": "d09727faf87717ab67dd4ff8fb4f69832b769c32dc119bcacd324a4e7ab8870f"
+    },
+    "ios/control": {
+      "role": "index",
+      "sha256": "3987d8c3ad826e3156fec5e133ab19cb6eb2a451f669da5138304c63a86eca0a",
+      "size": 257,
+      "normalized_sha256": "3987d8c3ad826e3156fec5e133ab19cb6eb2a451f669da5138304c63a86eca0a"
+    },
+    "ios/tools/make_images.py": {
+      "role": "index",
+      "sha256": "9bc266c5b80a27abe33672bf6799fd1d272332aaa38adf94fe0b6af8211ff579",
+      "size": 2590,
+      "normalized_sha256": "9bc266c5b80a27abe33672bf6799fd1d272332aaa38adf94fe0b6af8211ff579"
+    },
+    "server/cmd/fakejf/main.go": {
+      "role": "index",
+      "sha256": "a2e61450e3ede4c8f74935cc20de5d359beb659c1ab5d6d7a3ad2e599b3f6ac1",
+      "size": 2174,
+      "normalized_sha256": "a2e61450e3ede4c8f74935cc20de5d359beb659c1ab5d6d7a3ad2e599b3f6ac1",
+      "format_sha256": "a2e61450e3ede4c8f74935cc20de5d359beb659c1ab5d6d7a3ad2e599b3f6ac1",
+      "format_kind": "gofmt"
+    },
+    "server/cmd/xcode/config.go": {
+      "role": "index",
+      "sha256": "66017d8588bc8e4e8314e1886b84228f709d61f1c6d0ef90c8acb9997c782489",
+      "size": 2545,
+      "normalized_sha256": "66017d8588bc8e4e8314e1886b84228f709d61f1c6d0ef90c8acb9997c782489",
+      "format_sha256": "66017d8588bc8e4e8314e1886b84228f709d61f1c6d0ef90c8acb9997c782489",
+      "format_kind": "gofmt"
+    },
+    "server/cmd/xcode/job_other.go": {
+      "role": "index",
+      "sha256": "5ededc62016ed2366bbe898cff708e160b808ea066737c7ecf2c720d461960d3",
+      "size": 82,
+      "normalized_sha256": "5ededc62016ed2366bbe898cff708e160b808ea066737c7ecf2c720d461960d3",
+      "format_sha256": "5ededc62016ed2366bbe898cff708e160b808ea066737c7ecf2c720d461960d3",
+      "format_kind": "gofmt"
+    },
+    "server/cmd/xcode/job_windows.go": {
+      "role": "index",
+      "sha256": "8250b36115200be1cb777d572582c11866ccfaa69c5a165215c85dd0998ff603",
+      "size": 1131,
+      "normalized_sha256": "8250b36115200be1cb777d572582c11866ccfaa69c5a165215c85dd0998ff603",
+      "format_sha256": "8250b36115200be1cb777d572582c11866ccfaa69c5a165215c85dd0998ff603",
+      "format_kind": "gofmt"
+    },
+    "server/cmd/xcode/main.go": {
+      "role": "index",
+      "sha256": "c845784e52d8aa1ca44ec3bb8564a7502b3f74d3f6b72e9ae42b81f222869c0f",
+      "size": 2834,
+      "normalized_sha256": "c845784e52d8aa1ca44ec3bb8564a7502b3f74d3f6b72e9ae42b81f222869c0f",
+      "format_sha256": "c845784e52d8aa1ca44ec3bb8564a7502b3f74d3f6b72e9ae42b81f222869c0f",
+      "format_kind": "gofmt"
+    },
+    "server/go.mod": {
+      "role": "index",
+      "sha256": "ffc5e98add054f115e015aefe5e78c7ae926ccc9980729e2b019e53fea4d8266",
+      "size": 74,
+      "normalized_sha256": "ffc5e98add054f115e015aefe5e78c7ae926ccc9980729e2b019e53fea4d8266"
+    },
+    "server/go.sum": {
+      "role": "index",
+      "sha256": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64",
+      "size": 153,
+      "normalized_sha256": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64"
+    },
+    "server/internal/api/api.go": {
+      "role": "index",
+      "sha256": "3db6768b79a7c653eeafcbcf8637c6a561596854ac8fad4da8857d5e652f14da",
+      "size": 11030,
+      "normalized_sha256": "3db6768b79a7c653eeafcbcf8637c6a561596854ac8fad4da8857d5e652f14da",
+      "format_sha256": "3db6768b79a7c653eeafcbcf8637c6a561596854ac8fad4da8857d5e652f14da",
+      "format_kind": "gofmt"
+    },
+    "server/internal/api/api_test.go": {
+      "role": "observe",
+      "sha256": "d7a7675ca5b16f2a30ee24a77ed90157e34a328773d982bcd2f1d765270d936a",
+      "size": 8617,
+      "normalized_sha256": "d7a7675ca5b16f2a30ee24a77ed90157e34a328773d982bcd2f1d765270d936a",
+      "format_sha256": "d7a7675ca5b16f2a30ee24a77ed90157e34a328773d982bcd2f1d765270d936a",
+      "format_kind": "gofmt"
+    },
+    "server/internal/dashboard/dashboard.go": {
+      "role": "index",
+      "sha256": "8ed47afafa91170a91485edcc7619446cbb53a7a4d8faab68a8e922de4d8925a",
+      "size": 6672,
+      "normalized_sha256": "8ed47afafa91170a91485edcc7619446cbb53a7a4d8faab68a8e922de4d8925a",
+      "format_sha256": "8ed47afafa91170a91485edcc7619446cbb53a7a4d8faab68a8e922de4d8925a",
+      "format_kind": "gofmt"
+    },
+    "server/internal/dashboard/dashboard.html": {
+      "role": "index",
+      "sha256": "2819f84f847129bbccfd8a90ed430df95fba75e2a05473744afb12b065c4b399",
+      "size": 20814,
+      "normalized_sha256": "2819f84f847129bbccfd8a90ed430df95fba75e2a05473744afb12b065c4b399"
+    },
+    "server/internal/dashboard/dashboard_test.go": {
+      "role": "observe",
+      "sha256": "bcf4fbf8e0ce2cbfc0d1b6eaaeb8ceaa99d842db5721900c654fd5b6d44c5a35",
+      "size": 3420,
+      "normalized_sha256": "bcf4fbf8e0ce2cbfc0d1b6eaaeb8ceaa99d842db5721900c654fd5b6d44c5a35",
+      "format_sha256": "bcf4fbf8e0ce2cbfc0d1b6eaaeb8ceaa99d842db5721900c654fd5b6d44c5a35",
+      "format_kind": "gofmt"
+    },
+    "server/internal/dashboard/disk_other.go": {
+      "role": "index",
+      "sha256": "652e1f49d2e8d0cf9f518fe2df9db5d20b53466b4774280ef31f346bed2518f3",
+      "size": 247,
+      "normalized_sha256": "652e1f49d2e8d0cf9f518fe2df9db5d20b53466b4774280ef31f346bed2518f3",
+      "format_sha256": "652e1f49d2e8d0cf9f518fe2df9db5d20b53466b4774280ef31f346bed2518f3",
+      "format_kind": "gofmt"
+    },
+    "server/internal/dashboard/disk_windows.go": {
+      "role": "index",
+      "sha256": "8a58361a8e09482f80976f023505b3078a8cfb7a1cd97dc42b1a90b5714dce78",
+      "size": 547,
+      "normalized_sha256": "8a58361a8e09482f80976f023505b3078a8cfb7a1cd97dc42b1a90b5714dce78",
+      "format_sha256": "8a58361a8e09482f80976f023505b3078a8cfb7a1cd97dc42b1a90b5714dce78",
+      "format_kind": "gofmt"
+    },
+    "server/internal/ffmpeg/args.go": {
+      "role": "index",
+      "sha256": "c97f8be4d7f38b8f1d002f347085a01bdd94925c6bf7d89c4dd980b9a6f13722",
+      "size": 6737,
+      "normalized_sha256": "c97f8be4d7f38b8f1d002f347085a01bdd94925c6bf7d89c4dd980b9a6f13722",
+      "format_sha256": "c97f8be4d7f38b8f1d002f347085a01bdd94925c6bf7d89c4dd980b9a6f13722",
+      "format_kind": "gofmt"
+    },
+    "server/internal/ffmpeg/args_test.go": {
+      "role": "observe",
+      "sha256": "6c178f3a535f9cb05adf61880890fbd09750ba04803cec77f83f148aca0259ee",
+      "size": 6142,
+      "normalized_sha256": "6c178f3a535f9cb05adf61880890fbd09750ba04803cec77f83f148aca0259ee",
+      "format_sha256": "6c178f3a535f9cb05adf61880890fbd09750ba04803cec77f83f148aca0259ee",
+      "format_kind": "gofmt"
+    },
+    "server/internal/gpu/gpu.go": {
+      "role": "index",
+      "sha256": "4d1d4a972c81920e3b05ce5653c5506aa5c647ffeca796bc4a82ec7e0c6faca8",
+      "size": 3372,
+      "normalized_sha256": "4d1d4a972c81920e3b05ce5653c5506aa5c647ffeca796bc4a82ec7e0c6faca8",
+      "format_sha256": "4d1d4a972c81920e3b05ce5653c5506aa5c647ffeca796bc4a82ec7e0c6faca8",
+      "format_kind": "gofmt"
+    },
+    "server/internal/gpu/gpu_test.go": {
+      "role": "observe",
+      "sha256": "235e89473326c59a467e9ef2d29a4f7b9cd432bf58c640ce666e36bbffeb759a",
+      "size": 717,
+      "normalized_sha256": "235e89473326c59a467e9ef2d29a4f7b9cd432bf58c640ce666e36bbffeb759a",
+      "format_sha256": "235e89473326c59a467e9ef2d29a4f7b9cd432bf58c640ce666e36bbffeb759a",
+      "format_kind": "gofmt"
+    },
+    "server/internal/jellyfin/client.go": {
+      "role": "index",
+      "sha256": "caa45e7a34322d6c0761f337b77d43eb023d914d9c0612a0ce04c66e313e9abc",
+      "size": 6026,
+      "normalized_sha256": "caa45e7a34322d6c0761f337b77d43eb023d914d9c0612a0ce04c66e313e9abc",
+      "format_sha256": "caa45e7a34322d6c0761f337b77d43eb023d914d9c0612a0ce04c66e313e9abc",
+      "format_kind": "gofmt"
+    },
+    "server/internal/jellyfin/client_test.go": {
+      "role": "observe",
+      "sha256": "9b160ee7c5a6cd1ad6981385bee2a9ab764e3a33a0191583399837007d7e84bb",
+      "size": 2266,
+      "normalized_sha256": "9b160ee7c5a6cd1ad6981385bee2a9ab764e3a33a0191583399837007d7e84bb",
+      "format_sha256": "9b160ee7c5a6cd1ad6981385bee2a9ab764e3a33a0191583399837007d7e84bb",
+      "format_kind": "gofmt"
+    },
+    "server/internal/logring/logring.go": {
+      "role": "index",
+      "sha256": "ca5ba47b307baff299a7ad68334e37f1e5a43347941b71d618d2f5214dc2f6c4",
+      "size": 1032,
+      "normalized_sha256": "ca5ba47b307baff299a7ad68334e37f1e5a43347941b71d618d2f5214dc2f6c4",
+      "format_sha256": "ca5ba47b307baff299a7ad68334e37f1e5a43347941b71d618d2f5214dc2f6c4",
+      "format_kind": "gofmt"
+    },
+    "server/internal/logring/logring_test.go": {
+      "role": "observe",
+      "sha256": "e09871da42eb975889527722b6f249ce857c2dd0813d8d1be759c6c3dadbacbb",
+      "size": 479,
+      "normalized_sha256": "e09871da42eb975889527722b6f249ce857c2dd0813d8d1be759c6c3dadbacbb",
+      "format_sha256": "e09871da42eb975889527722b6f249ce857c2dd0813d8d1be759c6c3dadbacbb",
+      "format_kind": "gofmt"
+    },
+    "server/internal/profile/profile.go": {
+      "role": "index",
+      "sha256": "5ea66b43a397a72d1b28a79b1e6ba3d02ceb717ea3931817f0c1feba75f2a0d1",
+      "size": 8070,
+      "normalized_sha256": "5ea66b43a397a72d1b28a79b1e6ba3d02ceb717ea3931817f0c1feba75f2a0d1",
+      "format_sha256": "5ea66b43a397a72d1b28a79b1e6ba3d02ceb717ea3931817f0c1feba75f2a0d1",
+      "format_kind": "gofmt"
+    },
+    "server/internal/profile/profile_test.go": {
+      "role": "observe",
+      "sha256": "58c2680ab7d7a9ea266ed67a9925145fcbbb4039028321239383c7647ac2823e",
+      "size": 7077,
+      "normalized_sha256": "58c2680ab7d7a9ea266ed67a9925145fcbbb4039028321239383c7647ac2823e",
+      "format_sha256": "58c2680ab7d7a9ea266ed67a9925145fcbbb4039028321239383c7647ac2823e",
+      "format_kind": "gofmt"
+    },
+    "server/internal/session/manager.go": {
+      "role": "index",
+      "sha256": "4555576b030b8fb6aeedda2950fd1ad436b96c827ef08742b403082e7c01f6a9",
+      "size": 13113,
+      "normalized_sha256": "4555576b030b8fb6aeedda2950fd1ad436b96c827ef08742b403082e7c01f6a9",
+      "format_sha256": "4555576b030b8fb6aeedda2950fd1ad436b96c827ef08742b403082e7c01f6a9",
+      "format_kind": "gofmt"
+    },
+    "server/internal/session/manager_test.go": {
+      "role": "observe",
+      "sha256": "adcbc842467dd580055265c673be058a7c2b9be397d0c314b4299220d99d5f54",
+      "size": 8529,
+      "normalized_sha256": "adcbc842467dd580055265c673be058a7c2b9be397d0c314b4299220d99d5f54",
+      "format_sha256": "adcbc842467dd580055265c673be058a7c2b9be397d0c314b4299220d99d5f54",
+      "format_kind": "gofmt"
+    },
+    "server/internal/session/stats.go": {
+      "role": "index",
+      "sha256": "4d5002fd81e540a2767167d8bfb6640b2630f56281dc296ca1c36b7da35efb94",
+      "size": 5913,
+      "normalized_sha256": "4d5002fd81e540a2767167d8bfb6640b2630f56281dc296ca1c36b7da35efb94",
+      "format_sha256": "4d5002fd81e540a2767167d8bfb6640b2630f56281dc296ca1c36b7da35efb94",
+      "format_kind": "gofmt"
+    },
+    "server/internal/source/proxy.go": {
+      "role": "index",
+      "sha256": "705f98bdd12a6f344b41b9dac2038eba527ab227f76b9bed4ef3773a47457d92",
+      "size": 5602,
+      "normalized_sha256": "705f98bdd12a6f344b41b9dac2038eba527ab227f76b9bed4ef3773a47457d92",
+      "format_sha256": "705f98bdd12a6f344b41b9dac2038eba527ab227f76b9bed4ef3773a47457d92",
+      "format_kind": "gofmt"
+    },
+    "server/internal/source/proxy_test.go": {
+      "role": "observe",
+      "sha256": "cb120b3275eb6ef145e8847590258e5db846ea591c4364976588aebc2125270d",
+      "size": 1681,
+      "normalized_sha256": "cb120b3275eb6ef145e8847590258e5db846ea591c4364976588aebc2125270d",
+      "format_sha256": "cb120b3275eb6ef145e8847590258e5db846ea591c4364976588aebc2125270d",
+      "format_kind": "gofmt"
+    },
+    "server/xcode.example.json": {
+      "role": "index",
+      "sha256": "1dfa29abc676cd67d975cba728f411797eb986ab4deffeeca928a8babaadde44",
+      "size": 281,
+      "normalized_sha256": "1dfa29abc676cd67d975cba728f411797eb986ab4deffeeca928a8babaadde44"
+    },
+    "tools/jf-login.sh": {
+      "role": "index",
+      "sha256": "697d13067b56f1e71bcf836557cd2c6f6a6d22e8d9bf2408b8a3e1375018d993",
+      "size": 1332,
+      "normalized_sha256": "697d13067b56f1e71bcf836557cd2c6f6a6d22e8d9bf2408b8a3e1375018d993"
+    }
+  },
+  "managed_scope": {
+    "version": "managed-scope-baseline/v1",
+    "policy_identity": "c81414aa1ad20edc6cdd8c9d904678ca476240ca1a991b5d31759dcae114efd1",
+    "observe_change_policy": "review_required",
+    "budget_policy_identity": "15e9b37a6c57e9bf03c9df3d0d049eb5b9a7f5540f9d34960408114e2538a32d",
+    "budget_policy": {
+      "version": "cognition-budget-policy/v1",
+      "mode": "enforce",
+      "whole_index": {
+        "target_tokens": 200000,
+        "warning_tokens": 300000,
+        "max_tokens": 400000
+      },
+      "r": [
+        {
+          "min_c": 1,
+          "max_c": 4,
+          "target_tokens": 25,
+          "max_tokens": 50
+        },
+        {
+          "min_c": 5,
+          "max_c": 7,
+          "target_tokens": 45,
+          "max_tokens": 90
+        },
+        {
+          "min_c": 8,
+          "max_c": 8,
+          "target_tokens": 70,
+          "max_tokens": 140
+        },
+        {
+          "min_c": 9,
+          "max_c": 9,
+          "target_tokens": 90,
+          "max_tokens": 180
+        }
+      ],
+      "s": [
+        {
+          "min_c": 1,
+          "max_c": 4,
+          "target_tokens": 20,
+          "max_tokens": 40
+        },
+        {
+          "min_c": 5,
+          "max_c": 7,
+          "target_tokens": 40,
+          "max_tokens": 80
+        },
+        {
+          "min_c": 8,
+          "max_c": 8,
+          "target_tokens": 70,
+          "max_tokens": 140
+        },
+        {
+          "min_c": 9,
+          "max_c": 9,
+          "target_tokens": 100,
+          "max_tokens": 200
+        }
+      ]
+    },
+    "apply_authorization_mode": "auto"
+  }
+}

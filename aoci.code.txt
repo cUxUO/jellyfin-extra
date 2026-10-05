@@ -1,0 +1,249 @@
+#AOCI-CODE-VOLUME: 1
+
+===/home/Jack/桌面/coding/jellyfin-extra/===
+.gitattributes[FV3T]: F:強制所有文字檔以 LF 檢出，二進位檔自動偵測不動 | R:- | A:- | S:AOCI 以原始位元組建基準；拿掉會讓 Windows autocrlf 檢出後整棵樹被判為過期
+.gitignore[FV4T]: F:根目錄版控忽略：建置輸出 /build/、xcode.json、CLAUDE.local.md、機器綁定的 .mcp.json | R:- | A:- | S:xcode.json 與 CLAUDE.local.md 含真實位址與帳號，不可移出忽略清單
+AGENTS.md[SG5S]: F:AOCI 管理區塊：說明代理如何建立、重用與維護本專案的 aoci 索引及任務收尾規則 | R:code:CLAUDE.md | A:aoci_rules,aoci_overview,aoci_maintain,aoci_update_entry | S:-
+CLAUDE.md[SG8S]: F:專案權威說明：系統架構、轉碼伺服器／Android／iOS 的建置部署指令、實測裝置限制與權限邊界 | R:code:AGENTS.md,code:server/xcode.example.json | A:專案目標,Windows 轉碼伺服器,Android 播放程式,iOS 播放程式,權限邊界 | S:真實 IP、網域與 token 只放不進版控的 CLAUDE.local.md；在 iPad 執行任何指令前須先徵得使用者同意；Windows 只能動 C:\dev\jellyfin-extra-test；不得修改 Jellyfin 主機、NAS 與反向代理
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/===
+.gitignore[FV2T]: F:Android 專案忽略 Gradle 快取、build 輸出、local.properties 與 APK | R:- | A:- | S:-
+build.gradle.kts[FV5T]: F:根專案外掛宣告：AGP 與 Kotlin 外掛只放上 classpath、不套用 | R:code:android/gradle/libs.versions.toml | A:plugins | S:Kotlin 外掛 apply false 是為了讓 AGP 9 內建 Kotlin 改用 2.4 編譯器（Coil 3.6 需要），不可刪
+gradle.properties[FV3T]: F:Gradle JVM 記憶體與編碼、啟用 AndroidX、非遞移 R 類別、Kotlin 程式風格 | R:- | A:- | S:-
+gradlew[XV2M]: F:Gradle 官方產生的 POSIX wrapper 啟動腳本 | R:code:android/gradle/wrapper/gradle-wrapper.properties | A:- | S:-
+gradlew.bat[XV2S]: F:Gradle 官方產生的 Windows wrapper 啟動腳本 | R:code:android/gradle/wrapper/gradle-wrapper.properties | A:- | S:-
+settings.gradle.kts[FV3T]: F:外掛與依賴的倉庫設定、專案名稱與 :app 模組 | R:code:android/app/build.gradle.kts | A:pluginManagement,dependencyResolutionManagement | S:倉庫只能在這裡宣告（FAIL_ON_PROJECT_REPOS）
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/===
+build.gradle.kts[FV7T]: F:App 模組建置：namespace、SDK 版本、desugaring 與相依（Media3、OkHttp、Conscrypt、Material、Coil） | R:code:android/gradle/libs.versions.toml,code:android/build.gradle.kts | A:android,dependencies | S:compileSdk 37 是 androidx.core 1.19 的要求；minSdk 24，java.time 等靠 core library desugaring，不可假設 API 26+
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/===
+AndroidManifest.xml[FU6T]: F:宣告 App 類別、MainActivity（啟動器）、LoginActivity、全螢幕 PlayerActivity、INTERNET 權限與網路安全設定 | R:code:android/app/src/main/java/com/jellyfinextra/player/App.kt,code:android/app/src/main/res/xml/network_security_config.xml | A:App,MainActivity,LoginActivity,PlayerActivity | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/===
+App.kt[RG7T]: F:Application：持有 Settings、共用 OkHttp、appScope、目前 Jellyfin 位址與播放收尾 Job，並設定 Coil 圖片快取 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/Settings.kt | A:App,app,appScope,jellyfinBase,playbackCleanup | S:列表重新載入前須 join playbackCleanup，否則停止回報未送出、進度是舊的；圖片記憶體快取壓在 20%（heap 只有 128MB）
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/data/===
+AudioTrack.kt[DB3T]: F:Jellyfin 音軌資料：Index、顯示名稱、是否預設 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt | A:AudioTrack | S:切換音軌要重建轉碼 session
+Settings.kt[DC6T]: F:SharedPreferences 存使用者設定與登入狀態：內網／外部位址、裝置規格 profile、token、userId、DeviceId | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Endpoints.kt,code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt | A:Settings,PROFILES,saveLogin,logout,deviceId | S:profile 名稱須對應 server/internal/profile；P028 預設 zenpad10；DeviceId 安裝後固定
+SubtitleTrack.kt[DB7T]: F:字幕串流模型與預設字幕挑選規則：偏好語言的文字字幕、中文依地區分繁簡、扣分部分字幕，否則用強制／預設 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:ios/Sources/Model/JXTracks.m | A:SubtitleTrack,SubtitleChooser.choose,isImage,playable | S:圖形字幕只能由轉碼伺服器燒錄，外掛圖形字幕伺服器讀不到故不可播；iOS 的 JXSubtitleChooser 須維持同一規則
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/net/===
+Endpoints.kt[IN8T]: F:內網優先探測：依序試內網與外部位址（Jellyfin 探 System/Info/Public、轉碼伺服器探 healthz），回傳第一個可連的基底網址 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/App.kt | A:Endpoints.jellyfin,Endpoints.xcode,firstReachable | S:外部轉碼伺服器位址是外部網址加 /xcode/（NPM 子路徑）；xcode 回傳 null 代表 Windows 未開，播放須退回 Jellyfin 直接播放；內網必須排第一（iPad 解析不到網域、ZenPad 系統 TLS 不支援 P-384）
+Http.kt[IN8T]: F:共用 OkHttp（Conscrypt TLS、逾時）、探測用短逾時 client、Jellyfin 驗證標頭、基底網址正規化與 fetch 的 HTTP 錯誤轉換 | R:code:android/app/src/main/java/com/jellyfinextra/player/App.kt,code:android/app/src/main/res/xml/network_security_config.xml | A:Http.client,useConscrypt,authHeader,baseUrl,fetch,HttpException | S:系統 TLS 只到 1.2 且只有 P-256，對網域的 P-384 憑證必定握手失敗，故 TLS 走內建 Conscrypt，但信任仍用系統 TrustManager 以套用 network_security_config；所有連線（含 ExoPlayer、Coil）都要用這個 client；讀取逾時 40 秒是為了等轉碼 session 建立
+JellyfinApi.kt[IN8M]: F:播放程式用的 Jellyfin 12.1 API 子集：登入、首頁與媒體庫清單、詳情、PlaybackInfo 音軌字幕、WebVTT、圖片網址、直接播放與播放回報 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/AudioTrack.kt | A:JellyfinApi,Item,mediaInfo,subtitleVtt,imageUrl,reportProgress | S:subtitleVtt 不設讀取逾時：內嵌字幕要 Jellyfin 讀完整個檔案（60GB 約 8 分鐘），中途放棄會讓它停止抽取；圖片一律帶 maxWidth 向 Jellyfin 要縮圖且不需驗證；集數的海報與背景用所屬影集的
+XcodeApi.kt[IN8T]: F:轉碼伺服器 API：建立 session（profile、起點、燒錄字幕、音軌）與刪除，解析輸出規格與播放清單路徑 | R:code:server/internal/api/api.go,code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt | A:XcodeApi.create,XcodeApi.delete,Session | S:回傳的播放清單是相對路徑，須接在轉碼伺服器基底網址（可能是 /xcode/）後；401/404/422/503 轉成使用者看得懂的訊息
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/ui/===
+Cards.kt[EU5S]: F:直式海報卡與橫式卡的 RecyclerView Adapter，依顯示寬度向 Jellyfin 載圖並綁定進度條與徽章 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/Format.kt | A:PosterAdapter,WideCardAdapter,loadImage,bindProgress | S:圖片用 RGB_565 解碼以省記憶體
+Format.kt[CU4T]: F:Jellyfin tick 時間、片長、剩餘時間、進度千分比、集數標籤與資訊列的格式化 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt | A:formatTicks,formatDuration,episodeLabel,displayTitle,metaLine | S:-
+GridFragments.kt[EU5S]: F:海報格線頁骨架，以及資料夾／播放清單內容頁與搜尋頁（輸入停頓 0.4 秒自動搜尋） | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:GridFragment,FolderFragment,SearchFragment | S:-
+HomeFragment.kt[EU6S]: F:首頁：主打項目（繼續觀看第一部，沒有就用最新電影）加繼續觀看、下一集與各媒體庫最新加入列 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt | A:HomeFragment,bindHero | S:回到畫面時先等 app.playbackCleanup 再重載，進度才是最新
+LibraryFragment.kt[EU6S]: F:媒體庫海報格線：電影／節目庫可排序與依類型篩選，播放清單庫只列內容並顯示中文標題；含格線間距 GridGap | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt | A:LibraryFragment.of,loadItems,GridGap | S:-
+LoginActivity.kt[EI6T]: F:連線設定與登入：儲存位址與裝置規格，探測 Jellyfin 後以帳密登入、保存 token 並進入主畫面 | R:code:android/app/src/main/java/com/jellyfinextra/player/data/Settings.kt,code:android/app/src/main/java/com/jellyfinextra/player/net/Endpoints.kt | A:LoginActivity | S:只保存 token，不保存密碼
+MainActivity.kt[AU8S]: F:主畫面：未登入導向登入，探測 Jellyfin 後依 UserViews 建左側導覽列，管理內容區返回堆疊與項目開啟／播放路由 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/LibraryFragment.kt,code:android/app/src/main/java/com/jellyfinextra/player/net/Endpoints.kt | A:openItem,play,showView,push,logout,jellyfinApi | S:導覽列最多放 4 個媒體庫；建選單時首項自動選取不會觸發監聽，首頁要直接 showRoot；userViews 回 401 時登出；集數點擊直接播放而非開詳情
+MovieFragment.kt[EU6S]: F:電影詳情：背景與資訊、繼續／從頭播放、標記已看，播放前可選音軌與字幕 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/TrackPicker.kt | A:MovieFragment.of,bindTracks | S:預設音軌與字幕只在第一次載入時決定，之後保留使用者的選擇
+PlaybackFileLog.kt[XO4T]: F:debug 版播放紀錄：解碼器、格式、掉幀、狀態與錯誤寫入 files/playback.log，每次播放覆寫 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:PlaybackFileLog | S:這台平板 logcat 很快被洗掉，確認硬解要讀此檔
+PlayerActivity.kt[AU9L]: F:播放畫面：建立轉碼 session（離線時直接播放原始檔）、ExoPlayer 播 HLS、音軌／字幕面板、在目前位置重建 session、回報播放進度 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/XcodeApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/SubtitleOverlay.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt | A:PlayerActivity.intent,restartSession,applySubtitle,applyAudio,AUDIO_DEFAULT,SUBTITLE_AUTO | S:文字字幕由 SubtitleOverlay 自畫、不經轉碼；只有燒錄字幕狀態或音軌改變才重建 session，新 session 就緒後才刪舊的；直接播放時不能燒錄圖形字幕也不能換音軌；onDestroy 的停止回報與刪除 session 放在 app.playbackCleanup，列表會等它；片尾 10 秒內的播放錯誤當作播完
+SeriesFragment.kt[EU6M]: F:影集頁：影集資訊、繼續／播放下一集按鈕、季切換與集數列表（點集數直接播放）、全部標記已看 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt,code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:SeriesFragment.of,EpisodeAdapter | S:預設季依序取參數指定、下一集所在季、第一個正片季
+SettingsFragment.kt[EC3T]: F:設定頁：顯示帳號、使用中與設定的位址、裝置規格與版本，可進連線設定或登出 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LoginActivity.kt | A:SettingsFragment | S:-
+SubtitleOverlay.kt[EU7T]: F:自行顯示文字字幕：解析 WebVTT，依播放位置每 100ms 更新，控制列出現時整層上移 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:SubtitleOverlay.show,setRaised,clear,attach | S:不經 ExoPlayer 字幕軌，字幕晚到或切換不必重建播放；不套用 VTT 內嵌樣式，cue 依開始時間排序
+TrackPicker.kt[EU4T]: F:詳情頁播放前選音軌／字幕的單選對話框，圖形字幕標註會燒進畫面 | R:code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt | A:TrackPicker.audio,TrackPicker.subtitle,subtitleLabel | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/ui/widget/===
+RatioImageView.kt[CU3T]: F:高度依寬度固定比例的圓角圖片（海報 1.5、橫式 0.5625） | R:code:android/app/src/main/res/values/attrs.xml | A:RatioImageView | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/color/===
+chip_bg.xml[FU2T]: F:篩選與季別 chip 的背景：選中琥珀色，否則透明 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LibraryFragment.kt | A:- | S:-
+chip_stroke.xml[FU2T]: F:chip 外框色：選中琥珀色，否則進度條軌道色 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LibraryFragment.kt | A:- | S:-
+chip_text.xml[FU2T]: F:chip 文字色：選中用琥珀上的深色字，否則內文色 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LibraryFragment.kt | A:- | S:-
+rail_item.xml[FU2T]: F:左側導覽列項目的圖示與文字色：選中琥珀色，否則次要文字色 | R:code:android/app/src/main/res/layout/activity_main.xml | A:- | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/drawable/===
+bg_badge.xml[FU2T]: F:卡片角落徽章（已看、未看集數）的半透明深色圓角底 | R:code:android/app/src/main/res/layout/item_poster.xml,code:android/app/src/main/res/layout/item_episode.xml | A:- | S:-
+bg_image_placeholder.xml[FU2T]: F:圖片載入前或沒有圖時的圓角佔位底色 | R:code:android/app/src/main/res/layout/item_poster.xml,code:android/app/src/main/res/layout/item_card_wide.xml | A:- | S:-
+bg_logo.xml[FU2T]: F:導覽列頂端標誌的琥珀色圓角方塊底 | R:code:android/app/src/main/res/layout/rail_header.xml | A:- | S:-
+bg_round_accent.xml[FU2T]: F:播放控制列中央播放／暫停鍵的琥珀色圓形底 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
+bg_round_dark.xml[FU2T]: F:圖片上返回鍵與快轉／倒退鍵的半透明深色圓形底 | R:code:android/app/src/main/res/layout/player_controls.xml,code:android/app/src/main/res/layout/fragment_movie.xml | A:- | S:-
+bg_selector_card.xml[FU2T]: F:電影詳情音軌／字幕選擇欄的深色細框圓角底 | R:code:android/app/src/main/res/layout/fragment_movie.xml | A:- | S:-
+bg_track_selected.xml[FU2T]: F:播放畫面側邊面板中已選音軌／字幕列的淡琥珀底 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:- | S:-
+ic_audio.xml[FU1T]: F:音軌按鈕的音波線條圖示 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
+ic_back.xml[FU1T]: F:返回鍵的左箭頭線條圖示 | R:code:android/app/src/main/res/layout/player_controls.xml,code:android/app/src/main/res/layout/fragment_movie.xml | A:- | S:-
+ic_check.xml[FU1T]: F:勾選圖示，用於標記已看與已選軌道 | R:code:android/app/src/main/res/layout/fragment_movie.xml,code:android/app/src/main/res/layout/item_track_option.xml | A:- | S:-
+ic_close.xml[FU1T]: F:關閉側邊面板的叉號圖示 | R:code:android/app/src/main/res/layout/activity_player.xml | A:- | S:-
+ic_film.xml[FU1T]: F:導覽列電影媒體庫的底片圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+ic_folder.xml[FU1T]: F:導覽列其他類型媒體庫的資料夾圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+ic_home.xml[FU1T]: F:導覽列首頁的房子圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+ic_list.xml[FU1T]: F:導覽列播放清單庫的清單圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+ic_play.xml[FU1T]: F:實心播放三角形圖示，用於標誌與播放按鈕 | R:code:android/app/src/main/res/layout/rail_header.xml,code:android/app/src/main/res/layout/fragment_movie.xml | A:- | S:-
+ic_search.xml[FU1T]: F:搜尋的放大鏡線條圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+ic_settings.xml[FU1T]: F:導覽列設定的滑桿圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+ic_subtitles.xml[FU1T]: F:播放控制列字幕按鈕的圖示 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
+ic_tv.xml[FU1T]: F:導覽列節目（影集）媒體庫的電視圖示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt | A:- | S:-
+scrim_bottom.xml[FU2T]: F:背景圖底部漸層到頁面底色 | R:code:android/app/src/main/res/layout/fragment_home.xml,code:android/app/src/main/res/layout/fragment_movie.xml | A:- | S:-
+scrim_left.xml[FU2T]: F:背景圖左側壓暗漸層，讓標題與說明在任何圖上都可讀 | R:code:android/app/src/main/res/layout/fragment_home.xml,code:android/app/src/main/res/layout/fragment_movie.xml | A:- | S:-
+scrim_player_bottom.xml[FU2T]: F:播放控制列底部的黑色漸層 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
+scrim_player_top.xml[FU2T]: F:播放控制列頂部的黑色漸層 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/layout/===
+activity_login.xml[FU4S]: F:登入畫面：520dp 置中一欄的 Material 外框欄位（內網位址、外部網址、帳密）、裝置規格下拉與登入鈕 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LoginActivity.kt | A:lanJellyfin,lanXcode,external,profile,password,login | S:-
+activity_main.xml[FU5T]: F:主畫面版面：左側 NavigationRail（頂端標誌）、Fragment 內容區與載入指示 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MainActivity.kt,code:android/app/src/main/res/layout/rail_header.xml | A:rail,content,loading | S:-
+activity_player.xml[FU6S]: F:播放畫面版面：PlayerView（自訂控制列）、自畫字幕層、狀態文字、右側音軌／字幕面板與遮罩 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt,code:android/app/src/main/res/layout/player_controls.xml | A:playerView,subtitles,subtitleStatus,status,panel,panelList | S:文字字幕畫在獨立的 subtitles 層，不是 PlayerView 內建字幕層
+fragment_grid.xml[FU4T]: F:通用格線頁（資料夾／播放清單內容、搜尋）：返回、標題或搜尋框、格線、載入與訊息 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/GridFragments.kt | A:back,title,searchBox,searchInput,grid,message | S:-
+fragment_home.xml[FU5S]: F:首頁版面：主打區（背景圖、標題、資訊、進度、播放與詳細資訊鈕）與各列容器 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/HomeFragment.kt,code:android/app/src/main/res/layout/section_row.xml | A:hero,heroPlay,heroDetails,sections | S:-
+fragment_library.xml[FU5S]: F:媒體庫版面：標題與數量、排序切換鈕、類型 ChipGroup、海報格線 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LibraryFragment.kt | A:title,count,sort,genres,grid | S:-
+fragment_movie.xml[FU5M]: F:電影詳情版面：全幅背景、資訊欄、播放／從頭／已看鈕、進度列、音軌與字幕選擇欄、片源說明 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/MovieFragment.kt | A:play,fromStart,watched,audioPicker,subtitlePicker,tech | S:-
+fragment_series.xml[FU5S]: F:影集頁版面：背景與資訊、播放與全部已看鈕、季 ChipGroup、集數列表 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt,code:android/app/src/main/res/layout/item_episode.xml | A:play,watched,seasons,episodes | S:-
+fragment_settings.xml[FU3T]: F:設定頁版面：帳號、連線、裝置規格、連線設定與登出鈕、版本 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/SettingsFragment.kt | A:account,connection,profile,editConnection,logout,version | S:-
+item_card_wide.xml[FU3T]: F:橫式卡片：16:9 縮圖、進度條、標題與副標 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt | A:image,progress,title,subtitle | S:-
+item_episode.xml[FU3S]: F:集數列：16:9 劇照（已看徽章、進度條）、標題、資訊與簡介 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt | A:image,badge,progress,title,meta,overview | S:-
+item_poster.xml[FU3T]: F:直式海報卡：2:3 海報、徽章、進度條、標題與副標；寬度由外層決定 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt | A:image,badge,progress,title,subtitle | S:-
+item_track_header.xml[FU2T]: F:播放畫面音軌／字幕面板的分組標題列 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:label | S:-
+item_track_option.xml[FU2T]: F:播放畫面面板的選項列：名稱、附註與勾選 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:label,note,check | S:-
+player_controls.xml[FU7S]: F:Media3 自訂控制列：返回、標題與狀態、音軌／字幕鈕、倒退／播放暫停／快轉、時間軸與時間 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt,code:android/app/src/main/res/layout/activity_player.xml | A:playerBack,playerStatus,playerAudio,playerSubtitles,exo_play_pause,exo_progress | S:exo_rew、exo_ffwd、exo_play_pause 必須是 ImageView 系列（Media3 會強制轉型，用 Button 會閃退），圖示由 Media3 放入
+rail_header.xml[FU2T]: F:導覽列頂端的琥珀色播放標誌 | R:code:android/app/src/main/res/layout/activity_main.xml | A:- | S:外層多包一層，導覽列不採用 header 根元素自身尺寸
+section_row.xml[FU3T]: F:首頁的一列：標題、右側動作（全部）與橫向卡片列表 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/HomeFragment.kt | A:sectionTitle,sectionAction,sectionList | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/values/===
+attrs.xml[FU2T]: F:RatioImageView 的 ratio 屬性（高 = 寬 × ratio） | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/widget/RatioImageView.kt | A:RatioImageView,ratio | S:-
+colors.xml[FU6T]: F:深色底與琥珀強調的全部色票，對應設計稿 | R:code:android/app/src/main/res/values/themes.xml,code:ios/Sources/UI/JXTheme.m | A:bg,surface,text,accent,on_accent,progress_track | S:iOS 的 JXTheme 用同一組色值，改色要兩邊一起改
+strings.xml[FL4T]: F:介面字串：連線設定、登入、播放狀態與字幕載入提示等 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:app_name,preparing,direct_play,subtitle_loading_embedded,playlists_title | S:-
+themes.xml[FU6T]: F:Material3 深色主題（琥珀色為 primary 與 secondary）、全螢幕播放主題、共用文字／按鈕／進度條樣式 | R:code:android/app/src/main/res/values/colors.xml,code:android/app/src/main/AndroidManifest.xml | A:Theme.Player,Theme.Player.Fullscreen,Button.Primary,Button.Outline,Progress.Thin | S:colorSecondary 要維持琥珀色，否則對話框單選鈕會變回預設灰色
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/xml/===
+network_security_config.xml[FS7T]: F:全域允許明文（內網 http），信任系統 CA 加內建的 ISRG Root X1／X2 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/AndroidManifest.xml | A:base-config,trust-anchors | S:內網位址由使用者設定無法建置時列舉，故全域明文；Android 7.0 系統沒有 ISRG Root X1，拿掉內建根憑證外部 https 會失敗
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/test/java/com/jellyfinextra/player/data/===
+SubtitleChooserTest.kt[TB6T]: F:SubtitleChooser 單元測試：台灣地區選繁中、Jellyfin 偏好優先並避開 SDH、部分字幕扣分、圖形字幕只在標示時、外掛圖形字幕永不選 | R:code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt | A:picksTraditionalChineseFromDeviceLocale,jellyfinPreferenceWinsAndSdhIsAvoided,partialTracksLoseToFullOnes,externalImageSubtitlesAreNeverChosen | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/gradle/===
+libs.versions.toml[FV7T]: F:依賴版本目錄：AGP 9.4.1、Kotlin 2.4.20、AndroidX、Media3、OkHttp、Material、Coil、Conscrypt 與外掛 | R:code:android/app/build.gradle.kts,code:android/build.gradle.kts | A:versions,libraries,plugins | S:Kotlin 2.4.20 是 Coil 3.6 的需求（AGP 內建 2.2 不夠）；Conscrypt 是外部 HTTPS 能連線的前提，不可移除
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/gradle/wrapper/===
+gradle-wrapper.properties[FV4T]: F:Gradle wrapper 設定：Gradle 9.8.0 發行版與下載驗證 | R:code:android/gradlew | A:distributionUrl,distributionSha256Sum | S:distributionSha256Sum 要與 distributionUrl 同步更新
+
+===/home/Jack/桌面/coding/jellyfin-extra/devenv/===
+Dockerfile[OV7T]: F:開發容器映像：Ubuntu 22.04、JDK 17、Theos 相依與 ldid、mingw、Go（驗 checksum）、frida-tools、Claude Code，非 root 使用者 dev | R:code:devenv/compose.yaml | A:GO_VERSION,GO_SHA256,UID,FRIDA_TOOLS_VERSION | S:升級 Go 時 GO_VERSION 與 GO_SHA256 要一起改；用 22.04 是因 Theos toolchain 需要 libtinfo5；UID 要與主機使用者一致，掛載檔案與 USB 權限才正常
+SETUP.md[SV5S]: F:主機與開發容器設定步驟：主機套件、建置、使用順序、Android SDK／Theos 安裝、SSH 別名、驗證、權限建議與清理 | R:code:devenv/compose.yaml,code:devenv/Dockerfile | A:- | S:-
+compose.ios.yaml[OV4T]: F:iOS 開發時疊加：掛載主機 usbmuxd socket 給 idevicesyslog 等工具 | R:code:devenv/compose.yaml | A:- | S:usbmuxd 重啟後 socket 重建，容器內掛載失效需 restart
+compose.yaml[OV6T]: F:開發容器服務：專案掛到 /work、工具鏈與快取用具名 volume、掛載主機 ssh-agent socket 與 USB 裝置節點 | R:code:devenv/Dockerfile,code:devenv/compose.ios.yaml | A:dev,volumes | S:啟動前主機必須有 SSH_AUTH_SOCK；cap_drop ALL 加 no-new-privileges，放寬要逐項而非用 privileged
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/===
+.gitignore[FV2T]: F:忽略 Theos 建置目錄 .theos 與 .deb 輸出 packages | R:code:ios/Makefile | A:- | S:-
+Makefile[FV7T]: F:Theos application 建置：arm64、iOS 12.4 SDK、編入 Sources/*/*.m、ARC 與標頭路徑，安裝後執行 uicache | R:code:ios/Resources/Info.plist,code:ios/control | A:ARCHS,TARGET,JellyfinExtra_FILES,JellyfinExtra_CFLAGS,after-install | S:原始碼要放在 Sources 下一層子目錄才會被編入，新子目錄也要加進 -I；iOS 12 是 rootful，不設 THEOS_PACKAGE_SCHEME
+control[OV3T]: F:Debian 套件中繼資料：套件 id、版本、iphoneos-arm、需 iOS 12 | R:code:ios/Makefile | A:Package,Version,Architecture | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/Resources/===
+Info.plist[FU6T]: F:iPad App 宣告：bundle id、僅 iPad 橫向全螢幕、iOS 12.0、圖示與啟動圖、背景音訊、允許任意 HTTP | R:code:ios/Makefile,code:ios/tools/make_images.py | A:CFBundleIdentifier,UILaunchImages~ipad,UIBackgroundModes,NSAppTransportSecurity | S:必須有 UILaunchImages~ipad，否則 App 以縮放相容模式執行；NSAllowsArbitraryLoads 是內網 http 所需
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/App/===
+JXAppDelegate.h[EG2T]: F:App 委派宣告，持有主視窗 | R:code:ios/Sources/App/JXAppDelegate.m | A:JXAppDelegate | S:-
+JXAppDelegate.m[EG5T]: F:啟動時設定圖片 URL 快取、AVAudioSession 播放類別，建立視窗與 JXRootViewController | R:code:ios/Sources/UI/JXRootViewController.m,code:ios/Sources/UI/JXTheme.m | A:application:didFinishLaunchingWithOptions: | S:記憶體快取壓低（iPad Air 1 只有 1GB）
+main.m[EG3T]: F:UIApplicationMain 進入點，指定 JXAppDelegate | R:code:ios/Sources/App/JXAppDelegate.m | A:main | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/Model/===
+JXFormat.h[CU3T]: F:時間、片長、進度、集數標籤與資訊列格式化的宣告與 tick 常數 | R:code:ios/Sources/Model/JXFormat.m | A:JX_TICKS_PER_SECOND,JXFormatTicks,JXFormatDuration,JXEpisodeLabel,JXMetaLine | S:-
+JXFormat.m[CU4T]: F:格式化實作，規則與 Android 的 Format.kt 相同 | R:code:ios/Sources/Model/JXItem.m,code:android/app/src/main/java/com/jellyfinextra/player/ui/Format.kt | A:JXFormatTime,JXFormatRemaining,JXProgress,JXDisplayTitle | S:-
+JXItem.h[DB4T]: F:Jellyfin 項目模型宣告：海報／橫式／背景圖參照、進度與已看狀態 | R:code:ios/Sources/Model/JXItem.m | A:JXItem,JXImageRef,playable,resumable | S:-
+JXItem.m[DB6T]: F:由 Jellyfin BaseItemDto JSON 建立 JXItem，決定海報、橫式與背景圖的來源 | R:code:ios/Sources/Net/JXJellyfin.m,code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt | A:itemWithJSON:,itemsWithJSON: | S:集數海報用影集的、橫圖用劇照；電影與影集橫圖依序 Thumb、背景、主圖，規則要與 Android 一致
+JXSettings.h[DC3T]: F:使用者設定與登入狀態的宣告 | R:code:ios/Sources/Model/JXSettings.m | A:JXSettings,shared,loggedIn | S:-
+JXSettings.m[DC6T]: F:NSUserDefaults 存內網／外部位址、裝置規格（預設 ipad-air1）、token、userId 與 DeviceId | R:code:ios/Sources/Net/JXEndpoints.m,code:ios/Sources/Net/JXHTTP.m | A:shared,saveToken:userId:userName:,logout,deviceId,profile | S:位址由使用者輸入不寫死；DeviceId 首次產生後固定，Jellyfin 以它區分裝置
+JXTracks.h[DB4T]: F:音軌、字幕、片源資訊模型與 JXSubtitleChooser 宣告 | R:code:ios/Sources/Model/JXTracks.m | A:JXAudioTrack,JXSubtitleTrack,JXMediaInfo,JXSubtitleChooser | S:-
+JXTracks.m[DB7S]: F:解析 PlaybackInfo 的音軌、字幕與片源描述，實作預設字幕挑選（規則同 Android SubtitleChooser） | R:code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt,code:ios/Sources/Net/JXJellyfin.m | A:infoWithPlaybackInfo:,choose:preferredLanguage:locale:,isImage,playable | S:繁體判斷除了地區 TW／HK／MO 也看 locale 的 Hant 腳本（zh-Hant 常不帶地區）；與 Android 規則不一致會讓兩端預設字幕不同
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/Net/===
+JXEndpoints.h[IN4T]: F:內網優先位址探測的宣告 | R:code:ios/Sources/Net/JXEndpoints.m | A:jellyfinBase,resolveJellyfin:,resolveXcode: | S:-
+JXEndpoints.m[IN8T]: F:內網優先探測：Jellyfin 探 System/Info/Public、轉碼伺服器探 healthz，每個位址 2.5 秒逾時，回傳第一個可連的 | R:code:ios/Sources/Net/JXHTTP.m,code:ios/Sources/Model/JXSettings.m,code:android/app/src/main/java/com/jellyfinextra/player/net/Endpoints.kt | A:resolveJellyfin:,resolveJellyfinWithLAN:external:completion:,resolveXcode:,firstReachable:path:completion: | S:iPad 解析不到網域，實際上一律走內網；外部轉碼位址是外部網址加 /xcode/；resolveXcode 回 nil 時播放改走 Jellyfin 直接播放
+JXHTTP.h[IN4T]: F:HTTP 共用工具宣告與錯誤網域 | R:code:ios/Sources/Net/JXHTTP.m | A:JXHTTP,JXHTTPErrorDomain | S:-
+JXHTTP.m[IN7T]: F:共用 NSURLSession、Jellyfin 驗證標頭、基底網址正規化，非 2xx 轉 NSError（帶伺服器 error 欄位），回呼一律在主執行緒 | R:code:ios/Sources/Model/JXSettings.m | A:session,authHeaderWithToken:,baseURL:,request:url:body:token:timeout:completion:,getJSON:token:completion: | S:請求逾時 40 秒是為了等轉碼 session 建立（最長約 30 秒）
+JXJellyfin.h[IN5T]: F:Jellyfin API 子集的宣告與排序列舉 | R:code:ios/Sources/Net/JXJellyfin.m | A:JXJellyfin,JXSort,current | S:-
+JXJellyfin.m[IN8S]: F:Jellyfin API 子集（同 Android）：登入、首頁與媒體庫清單、詳情、PlaybackInfo、WebVTT、圖片網址、直接播放與播放回報 | R:code:ios/Sources/Net/JXHTTP.m,code:ios/Sources/Model/JXItem.m,code:ios/Sources/Model/JXTracks.m | A:authenticateUser:password:completion:,mediaInfo:completion:,subtitleVTT:source:index:completion:,imageURL:maxWidth:,directStreamURL:,reportPlayback:item:session:position:paused:method:completion: | S:WebVTT 請求逾時設一小時：內嵌字幕抽取很久，中途放棄會讓 Jellyfin 停止；圖片 API 不需驗證且一律帶 maxWidth
+JXXcode.h[IN4T]: F:轉碼 session 模型與轉碼伺服器 API 宣告 | R:code:ios/Sources/Net/JXXcode.m | A:JXXcodeSession,JXXcode | S:-
+JXXcode.m[IN7T]: F:轉碼伺服器 API：建立／刪除 session，解析輸出規格，錯誤碼轉中文訊息 | R:code:server/internal/api/api.go,code:ios/Sources/Net/JXHTTP.m | A:createSession:profile:startTicks:burnSubtitle:audioIndex:completion:,deleteSession: | S:播放清單是相對路徑，接在基底網址後（經反向代理時是 /xcode/）
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/Player/===
+JXPlayerViewController.h[AU5T]: F:播放畫面宣告與音軌／字幕選擇常數 | R:code:ios/Sources/Player/JXPlayerViewController.m | A:JXPlayerViewController,JXAudioDefault,JXSubtitleAuto,JXSubtitleOff | S:-
+JXPlayerViewController.m[AU9L]: F:播放畫面：建立轉碼 session（離線改直接播放）、AVPlayer 播 HLS、自訂控制列與拖曳、文字字幕、音軌／字幕面板、重建 session、播放回報 | R:code:ios/Sources/Net/JXXcode.m,code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/Player/JXSubtitles.m,code:ios/Sources/Model/JXTracks.m,code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:playURL:headers:at:,restartSessionBurn:audio:,applySubtitle:,applyAudio:,showSubtitleText:,finish | S:建立 AVPlayerItem 後、載入前就 seekToTime，否則先要第 0 段會讓 ffmpeg 從片頭重轉；直接播放用 AVURLAssetHTTPHeaderFieldsKey 帶驗證標頭；字幕用兩層 UILabel（底層只描黑邊、上層白字），同層負 stroke 會吃掉細中文筆畫；finish 先回報停止再發 JXPlaybackDidFinishNotification 讓列表重載
+JXSubtitles.h[KU4T]: F:WebVTT cue 模型與解析／查詢的宣告 | R:code:ios/Sources/Player/JXSubtitles.m | A:JXCue,JXSubtitles | S:-
+JXSubtitles.m[KU6T]: F:最簡 WebVTT 解析（只取時間與文字、去標籤），以二分搜尋找出目前要顯示的字幕 | R:code:ios/Sources/Player/JXPlayerViewController.m | A:parseVTT:,textAt:cues: | S:cue 先依開始時間排序（ASS 轉出的 VTT 不一定有序）；長 cue 可能早於前面的短 cue，查詢時往回看 40 筆
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/UI/===
+JXCells.h[EU4T]: F:海報卡、橫式卡、首頁列與格線版面函式的宣告 | R:code:ios/Sources/UI/JXCells.m | A:JXPosterCell,JXWideCell,JXRowView,JXGridLayout | S:-
+JXCells.m[EU6M]: F:海報卡與橫式卡 cell、首頁橫向列 JXRowView，以及依寬度計算欄數的格線版面 | R:code:ios/Sources/UI/UIImageView+JX.m,code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/Model/JXFormat.m | A:JXPosterCell,JXWideCell,JXRowView,JXGridLayout,JXUpdateGridLayout | S:-
+JXChips.h[EU3T]: F:橫向膠囊選項元件宣告 | R:code:ios/Sources/UI/JXChips.m | A:JXChips,onSelect,selectedIndex | S:-
+JXChips.m[EU4T]: F:橫向捲動的膠囊選項（類型篩選、季），選中填琥珀色 | R:code:ios/Sources/UI/JXTheme.m | A:setTitles:,setSelectedIndex: | S:-
+JXFolderViewController.h[EU3T]: F:資料夾／搜尋格線頁的宣告 | R:code:ios/Sources/UI/JXFolderViewController.m | A:folder:,search | S:-
+JXFolderViewController.m[EU5S]: F:資料夾／播放清單內容與搜尋頁（輸入停頓 0.4 秒自動搜尋） | R:code:ios/Sources/UI/JXCells.m,code:ios/Sources/Net/JXJellyfin.m | A:folder:,search,reload | S:-
+JXHomeViewController.h[EU3T]: F:首頁畫面宣告 | R:code:ios/Sources/UI/JXHomeViewController.m | A:JXHomeViewController | S:-
+JXHomeViewController.m[EU6M]: F:首頁：主打項目（繼續觀看第一部或最新電影）與繼續觀看、下一集、各庫最新加入列 | R:code:ios/Sources/UI/JXCells.m,code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/UI/JXRootViewController.m | A:load,heroFor:api:,heroPlay,heroDetails | S:收到 JXPlaybackDidFinishNotification 時重載以更新進度
+JXIcons.h[CU3T]: F:程式繪製圖示的宣告 | R:code:ios/Sources/UI/JXIcons.m | A:JXIcons | S:-
+JXIcons.m[CU4S]: F:以 UIBezierPath 在 24×24 座標畫線條／實心圖示，回傳跟隨 tintColor 的 template 圖 | R:code:ios/Sources/UI/JXTheme.m | A:iconOfSize:stroke:draw:,playOfSize:,pauseOfSize: | S:-
+JXLibraryViewController.h[EU3T]: F:媒體庫畫面宣告 | R:code:ios/Sources/UI/JXLibraryViewController.m | A:initWithView: | S:-
+JXLibraryViewController.m[EU6S]: F:媒體庫格線：電影／節目庫可排序與類型篩選，播放清單庫只列內容並以中文標題顯示 | R:code:ios/Sources/UI/JXCells.m,code:ios/Sources/UI/JXChips.m,code:ios/Sources/Net/JXJellyfin.m | A:initWithView:,load,showGenres:,sortChanged | S:以 generation 計數丟棄過期回應（換排序或篩選後舊請求才回來）
+JXLoginViewController.h[EI3T]: F:連線設定與登入畫面宣告 | R:code:ios/Sources/UI/JXLoginViewController.m | A:onLoggedIn,onCancel | S:-
+JXLoginViewController.m[EI6S]: F:連線設定與登入：位址、裝置規格、帳密，探測 Jellyfin 後登入並保存 token；從設定進入時可取消 | R:code:ios/Sources/Model/JXSettings.m,code:ios/Sources/Net/JXEndpoints.m,code:ios/Sources/Net/JXJellyfin.m | A:loginTapped,cancelTapped,onLoggedIn,onCancel | S:只保存 token，不保存密碼
+JXMovieViewController.h[EU3T]: F:電影詳情畫面宣告 | R:code:ios/Sources/UI/JXMovieViewController.m | A:initWithItemId: | S:-
+JXMovieViewController.m[EU6M]: F:電影詳情：背景與資訊、繼續／從頭播放、標記已看、播放前選音軌與字幕、片源說明 | R:code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/UI/JXTrackPicker.m,code:ios/Sources/Player/JXPlayerViewController.m | A:initWithItemId:,JXPickCard,pickAudio,pickSubtitle,reloadItem | S:-
+JXRootViewController.h[AU5T]: F:主畫面宣告、播放結束通知與取得主畫面的 JXRoot() | R:code:ios/Sources/UI/JXRootViewController.m | A:JXPlaybackDidFinishNotification,JXRoot,openItem:,playItem:startTicks:audio:subtitle:,presentLogin | S:-
+JXRootViewController.m[AU8M]: F:主畫面：未登入顯示登入，探測後依 UserViews 建左側導覽列，用隱藏導覽列的 UINavigationController 管理頁面並路由開啟與全螢幕播放 | R:code:ios/Sources/UI/JXHomeViewController.m,code:ios/Sources/UI/JXLibraryViewController.m,code:ios/Sources/Player/JXPlayerViewController.m,code:ios/Sources/Net/JXEndpoints.m | A:openItem:,playItem:startTicks:audio:subtitle:,showView:,presentLogin,logout,JXRoot | S:導覽列最多 4 個媒體庫；隱藏導覽列後要把 interactivePopGestureRecognizer.delegate 設為 nil 才能滑動返回；回到前景時重新探測位址；UserViews 回 401 時登出
+JXSeriesViewController.h[EU3T]: F:影集頁宣告 | R:code:ios/Sources/UI/JXSeriesViewController.m | A:initWithSeries:season: | S:-
+JXSeriesViewController.m[EU6M]: F:影集頁：資訊與下一集按鈕、季切換、集數列表（點集數直接播放）、全部標記已看 | R:code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/UI/JXChips.m,code:ios/Sources/UI/JXRootViewController.m | A:initWithSeries:season:,JXEpisodeCell,bindSeasons,loadEpisodes,playNext | S:預設季依序取參數指定、下一集所在季、第一個正片季
+JXSettingsViewController.h[EC2T]: F:設定頁宣告 | R:code:ios/Sources/UI/JXSettingsViewController.m | A:JXSettingsViewController | S:-
+JXSettingsViewController.m[EC4S]: F:設定頁：帳號、使用中的 Jellyfin 位址、轉碼伺服器狀態、外部網址、裝置規格，變更連線設定與登出 | R:code:ios/Sources/UI/JXRootViewController.m,code:ios/Sources/Net/JXEndpoints.m | A:changeConnection,logout | S:-
+JXTheme.h[CU4T]: F:主題色票、字型與共用元件工廠的宣告 | R:code:ios/Sources/UI/JXTheme.m | A:JXTheme,JXColor,JXColorA | S:-
+JXTheme.m[CU6S]: F:色票、字型、琥珀／外框膠囊按鈕、圓形圖示鈕與背景圖壓暗漸層 | R:code:android/app/src/main/res/values/colors.xml | A:accent,primaryButton:icon:,outlineButton:,roundIconButton:size:label:,leftScrim,bottomScrim | S:色值與 Android colors.xml 一致，改色要兩邊一起改
+JXTrackPicker.h[EU3T]: F:音軌／字幕選單宣告 | R:code:ios/Sources/UI/JXTrackPicker.m | A:JXTrackPicker | S:-
+JXTrackPicker.m[EU4T]: F:詳情頁的音軌／字幕彈出選單（iPad popover），圖形字幕標註燒進畫面 | R:code:ios/Sources/Model/JXTracks.m | A:pickAudioFrom:source:tracks:current:onPick:,pickSubtitleFrom:source:tracks:current:onPick:,subtitleLabel: | S:-
+UIImageView+JX.h[CU3T]: F:網路圖片載入分類的宣告 | R:code:ios/Sources/UI/UIImageView+JX.m | A:jx_setImageURL: | S:-
+UIImageView+JX.m[CP6T]: F:網路圖片載入：NSCache（40MB 上限）、背景解碼，cell 重用時取消舊請求並避免錯圖 | R:code:ios/Sources/Net/JXHTTP.m | A:jx_setImageURL: | S:在背景先畫一次，讓主執行緒拿到已解碼點陣圖，避免 iPad Air 1 捲動卡頓
+
+===/home/Jack/桌面/coding/jellyfin-extra/ios/tools/===
+make_images.py[XV3T]: F:純 Python 產生 App 圖示（琥珀底深色播放三角）與 iPad 橫向啟動圖 PNG | R:code:ios/Resources/Info.plist | A:write_png,icon,solid | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/cmd/fakejf/===
+main.go[XQ5T]: F:開發用假 Jellyfin：只實作 Users/Me、PlaybackInfo、Videos/stream，以本機檔案當片源供 xcode 端對端測試 | R:code:server/internal/jellyfin/client.go | A:main,item | S:沒有 Items/{id} 與 System/Info/Public：接 fakejf 時 session 片名顯示 ID、監控頁顯示 Jellyfin 離線；token 預設 devtoken
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/cmd/xcode/===
+config.go[FC7T]: F:讀 xcode.json：預設值、必要欄位檢查，轉成 session.Config | R:code:server/cmd/xcode/main.go,code:server/internal/session/manager.go,code:server/xcode.example.json | A:config,loadConfig,session,StallTimeoutSeconds,LogSource | S:ffmpegPath、workDir 的相對路徑以設定檔目錄為準，不受啟動工作目錄影響；stallTimeoutSeconds 預設 5，0 表示不重試
+job_other.go[RR2T]: F:非 Windows 平台的 killChildrenOnExit 空實作 | R:code:server/cmd/xcode/job_windows.go | A:killChildrenOnExit | S:-
+job_windows.go[RR7T]: F:把 xcode 自身放進 kill-on-close Job Object，讓 ffmpeg 子行程跟著 xcode 結束 | R:code:server/cmd/xcode/main.go | A:killChildrenOnExit | S:Job handle 刻意不關、要活到行程結束；ssh 斷線或 taskkill /f 後 ffmpeg 才不會在背景續轉
+main.go[EG8S]: F:xcode 主程式：讀設定、建 Job Object、Jellyfin client、原始檔 proxy、session 管理器，掛上 API 與監控頁，中斷時停掉所有 ffmpeg | R:code:server/cmd/xcode/config.go,code:server/internal/api/api.go,code:server/internal/dashboard/dashboard.go,code:server/internal/session/manager.go,code:server/internal/source/proxy.go | A:main,run | S:監控頁另外掛在 /dashboard，不經 api 的請求 log（2 秒輪詢會洗掉事件）；log 同時寫入 stderr 與 logring
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/===
+go.mod[FV5T]: F:Go 模組 jellyfin-extra/server，Go 1.27.1，唯一外部依賴 golang.org/x/sys | R:code:server/go.sum | A:module | S:-
+go.sum[FV1T]: F:golang.org/x/sys 的模組校驗和 | R:code:server/go.mod | A:- | S:-
+xcode.example.json[FC4T]: F:xcode.json 範本：監聽位址、Jellyfin 內網網址、ffmpeg 路徑、暫存目錄、名額與各種逾時 | R:code:server/cmd/xcode/config.go | A:jellyfinUrl,maxSessions,stallTimeoutSeconds | S:實際的 xcode.json 不進版控
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/api/===
+api.go[EN9M]: F:播放端 HTTP API：建立 session（驗 token、PlaybackInfo、選片源、建轉碼計畫、取片名）、提供 VOD 播放清單與片段、刪除 session | R:code:server/internal/session/manager.go,code:server/internal/profile/profile.go,code:server/internal/jellyfin/client.go,code:server/internal/ffmpeg/args.go | A:Server.Handler,createSession,serveFile,deleteSession,clientAddr,tokenFrom | S:片段以 128 位元 session ID 當憑證、不驗 token（AVPlayer 不便加標頭）；回傳路徑一律相對，反向代理掛在 /xcode/ 也能用；只燒錄內嵌圖形字幕（文字或外掛圖形字幕回 422）；請求 log 只記方法、路徑與狀態，token 不得入 log
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/dashboard/===
+dashboard.go[EO7M]: F:監控頁伺服：/dashboard 與 /dashboard/data，彙整 session 快照、原始檔讀取量、GPU、Jellyfin 狀態、磁碟與最近事件 | R:code:server/internal/session/stats.go,code:server/internal/gpu/gpu.go,code:server/internal/logring/logring.go,code:server/internal/dashboard/dashboard.html | A:Server.Handler,data,lanOnly,jellyfin,version | S:頁面含使用者與片名，只允許內網直連：帶代理標頭（經 NPM）或非私有位址一律 403；Jellyfin 狀態快取 10 秒
+dashboard.html[EO6M]: F:監控頁前端：每 2 秒輪詢，顯示 GPU／流量卡片與 5 分鐘圖表、各 session 時間軸與統計、累計數據、可篩選的最近事件 | R:code:server/internal/dashboard/dashboard.go | A:render,renderSessions,renderEvents,drawChart,tick | S:要能在 iPad Safari 12、Chrome 64 顯示：不用 ?.、??、Array.flat、flex gap
+disk_other.go[RO2T]: F:非 Windows 以 statfs 取磁碟可用空間 | R:code:server/internal/dashboard/dashboard.go | A:diskFree | S:-
+disk_windows.go[RO3T]: F:Windows 以 GetDiskFreeSpaceExW 取目前使用者可用的磁碟空間 | R:code:server/internal/dashboard/dashboard.go | A:diskFree | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/ffmpeg/===
+args.go[KG9S]: F:由轉碼計畫產生 ffmpeg 參數（NVDEC／CPU 解碼、縮放、tonemap、圖形字幕燒錄、NVENC H.264／HEVC、AAC、HLS）與整部片的 VOD 播放清單 | R:code:server/internal/profile/profile.go,code:server/internal/session/manager.go | A:Args,VODPlaylist,SegmentCount,SegmentName,burnFilter,videoFilter | S:中途啟動用 -ss（必須在 -i 前）加 -output_ts_offset 與 -start_number，時間戳與檔名才對齊整部片；每段用 force_key_frames 強制 IDR；燒錄字幕必須帶 -canvas_size（片源尺寸），否則跳到沒字幕處濾鏡會卡住；-readrate 2 加 30 秒爆發限制轉碼速度；不可在同一個 ffmpeg 輸出字幕（會卡死影像）
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/gpu/===
+gpu.go[IO5S]: F:執行 nvidia-smi 查詢 GPU 使用率、NVENC／NVDEC、顯存、溫度與功耗，結果快取 2 秒 | R:code:server/internal/dashboard/dashboard.go | A:Monitor,Query,Stats,parse | S:消費級顯卡在 Windows 上 encoder.stats.sessionCount 常為 0，不可靠
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/jellyfin/===
+client.go[IN8S]: F:Jellyfin API 子集：CurrentUser（驗 token）、PlaybackInfo、Item 片名、PublicInfo、原始檔串流網址 | R:code:server/internal/api/api.go,code:server/internal/source/proxy.go,code:server/internal/dashboard/dashboard.go | A:Client,CurrentUser,PlaybackInfo,Item,PublicInfo,StreamURL | S:空 token 時不送 Authorization（公開 API 用）；401／403 一律視為 ErrUnauthorized
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/logring/===
+logring.go[CO4T]: F:只保留最後 N 行的 log io.Writer，給監控頁的事件列表 | R:code:server/cmd/xcode/main.go | A:Ring,New,Lines | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/profile/===
+profile.go[DB9M]: F:裝置規格（ipad-air1：H.264 1080p 8Mbps；zenpad10：HEVC 1280×800 4Mbps）與依片源產生轉碼計畫：選影音軌、燒錄字幕、解碼路徑、tonemap、尺寸與位元率 | R:code:server/internal/ffmpeg/args.go,code:server/internal/api/api.go,code:server/internal/jellyfin/client.go | A:Profiles,Build,Plan,Profile,FitBox,inputIndex | S:Jellyfin Index 不等於 ffmpeg 串流編號：外掛字幕也編進 Index（12.1 排最前），要用 inputIndex 換算；NVDEC 不支援 10-bit H.264，改 CPU 解碼；HDR 只支援 GPU tonemap；外掛圖形字幕伺服器讀不到不能燒；iPad A7 沒有 HEVC 硬解
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/session/===
+manager.go[AW9L]: F:轉碼 session 生命週期：建立與名額、依請求轉出片段、拖曳時從該段重啟 ffmpeg、停滯重試、閒置回收與清理暫存 | R:code:server/internal/ffmpeg/args.go,code:server/internal/source/proxy.go,code:server/internal/session/stats.go,code:server/internal/api/api.go | A:Manager,Start,Segment,startRunAttempt,retryIfStalled,reapIdle | S:請求的片段在 ffmpeg 進度後 2 段內就等，否則從該段重啟；一段都沒轉出超過 StallTimeout 就從同段重啟，最多 2 次（FFmpeg 經 HTTP 跳轉大型 MKV 時 Cues 可能不完整）；啟動中的也佔名額；清理只碰 32 位 hex 名稱的目錄
+stats.go[AO6S]: F:session 與累計計數（重啟、停滯重試、送出片段與位元組、播放位置），提供監控頁 Snapshot 與暫存用量 | R:code:server/internal/session/manager.go,code:server/internal/dashboard/dashboard.go | A:Snapshot,RecordServed,SessionInfo,Totals,WorkDirUsage | S:Snapshot 不更新最後存取時間，否則監控頁輪詢會讓閒置 session 永不回收
+
+===/home/Jack/桌面/coding/jellyfin-extra/server/internal/source/===
+proxy.go[IN8M]: F:127.0.0.1 上的原始檔 proxy：依 session 轉發 Jellyfin 串流並附 token，計算讀取量，可選擇記錄每個請求 | R:code:server/internal/jellyfin/client.go,code:server/internal/session/manager.go | A:Proxy,Register,Unregister,BytesRead,TotalRead,Log | S:只聽 loopback；token 只在 proxy 加上，不會出現在 ffmpeg 命令列或 log；Range 原樣轉送，ffmpeg 跳轉靠它
+
+===/home/Jack/桌面/coding/jellyfin-extra/tools/===
+jf-login.sh[XI4T]: F:互動輸入密碼登入 Jellyfin，把 token 存到 ~/.config/jellyfin-extra/token（權限 600）供開發測試 | R:code:CLAUDE.md | A:- | S:token 不可印出或寫進其他檔案，讀取時用 $(cat …)
