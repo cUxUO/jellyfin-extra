@@ -225,6 +225,14 @@ func TestFromCapsAndLadder(t *testing.T) {
 	if c := top.CodecsAttr(); c != "avc1.64001f,mp4a.40.2" {
 		t.Errorf("codecs = %s", c)
 	}
+	// 新手機常回報 8192×8192：照收，輸出仍限制在 1080p
+	p, err = FromCaps("phone", Capabilities{Decoders: []Decoder{{"h264", 8192, 8192}, {"hevc", 8192, 8192}}})
+	if err != nil || p.VideoCodec != "hevc" || p.MaxWidth != 1920 || p.MaxHeight != 1088 {
+		t.Errorf("phone profile = %+v, %v", p, err)
+	}
+	if _, err := FromCaps("x", Capabilities{Decoders: []Decoder{{"h264", 20000, 1080}}}); err == nil {
+		t.Error("absurd size accepted")
+	}
 	if _, err := FromCaps("x", Capabilities{Decoders: []Decoder{{"av1", 1920, 1080}}}); err == nil {
 		t.Error("no usable decoder accepted")
 	}
