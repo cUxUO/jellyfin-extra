@@ -76,11 +76,12 @@ type createRequest struct {
 }
 
 type videoInfo struct {
-	Width    int   `json:"width"`
-	Height   int   `json:"height"`
-	Bitrate  int64 `json:"bitrate"`
-	HWDecode bool  `json:"hwDecode"`
-	Tonemap  bool  `json:"tonemap"`
+	Codec    string `json:"codec"` // h264 或 hevc
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+	Bitrate  int64  `json:"bitrate"`
+	HWDecode bool   `json:"hwDecode"`
+	Tonemap  bool   `json:"tonemap"`
 }
 
 type createResponse struct {
@@ -178,7 +179,7 @@ func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		AudioStreamIndex:    plan.AudioIndex,
 		SubtitleStreamIndex: plan.SubtitleIndex,
 		Video: videoInfo{
-			Width: plan.Width, Height: plan.Height, Bitrate: plan.VideoBitrate,
+			Codec: plan.VideoCodec, Width: plan.Width, Height: plan.Height, Bitrate: plan.VideoBitrate,
 			HWDecode: plan.HWDecode, Tonemap: plan.Tonemap,
 		},
 	})

@@ -27,6 +27,8 @@ class XcodeApi(
         val audioIndex: Int,
         /** GPU（NVDEC）解碼；false 表示片源格式要用 CPU 解碼。 */
         val hwDecode: Boolean,
+        /** 輸出的影像編碼：h264 或 hevc（依裝置規格）。 */
+        val codec: String,
     )
 
     /**
@@ -68,6 +70,7 @@ class XcodeApi(
             burnedSubtitle = o.optInt("subtitleStreamIndex", -1),
             audioIndex = o.optInt("audioStreamIndex", -1),
             hwDecode = video.optBoolean("hwDecode", true),
+            codec = video.optString("codec", "h264"),
         )
     }
 

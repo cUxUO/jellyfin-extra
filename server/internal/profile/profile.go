@@ -14,8 +14,9 @@ type Profile struct {
 	Name            string
 	MaxWidth        int
 	MaxHeight       int
-	H264Profile     string
-	H264Level       string
+	VideoCodec      string // "h264" 或 "hevc"
+	CodecProfile    string // 編碼器的 -profile:v，例如 high、main
+	CodecLevel      string
 	MaxVideoBitrate int64 // 在 MaxWidth×MaxHeight 時的目標位元率
 	AudioBitrate    int64
 }
@@ -24,13 +25,14 @@ var Profiles = map[string]Profile{
 	// A7：H.264 硬解到 1080p，沒有 HEVC 硬解
 	"ipad-air1": {
 		Name: "ipad-air1", MaxWidth: 1920, MaxHeight: 1080,
-		H264Profile: "high", H264Level: "4.1",
+		VideoCodec: "h264", CodecProfile: "high", CodecLevel: "4.1",
 		MaxVideoBitrate: 8_000_000, AudioBitrate: 192_000,
 	},
-	// MT8163，螢幕 1280×800，送更大的解析度只是浪費頻寬
+	// MT8163，螢幕 1280×800，送更大的解析度只是浪費頻寬。
+	// 有 HEVC 硬解（OMX.MTK.VIDEO.DECODER.HEVC，到 1920×1088，8-bit Main），同位元率下畫質比 H.264 好
 	"zenpad10": {
 		Name: "zenpad10", MaxWidth: 1280, MaxHeight: 800,
-		H264Profile: "high", H264Level: "4.0",
+		VideoCodec: "hevc", CodecProfile: "main", CodecLevel: "4",
 		MaxVideoBitrate: 4_000_000, AudioBitrate: 128_000,
 	},
 }
@@ -61,8 +63,9 @@ type Plan struct {
 	AudioBitrate  int64
 	HWDecode      bool // NVDEC 解碼，整條濾鏡留在 GPU 上
 	Tonemap       bool // HDR 轉 SDR
-	H264Profile   string
-	H264Level     string
+	VideoCodec    string
+	CodecProfile  string
+	CodecLevel    string
 }
 
 const minVideoBitrate = 1_000_000
@@ -94,8 +97,9 @@ func Build(p Profile, src jellyfin.MediaSource, req Request) (Plan, error) {
 		SubtitleInput: -1,
 		HWDecode:      nvdecSupports(video),
 		Tonemap:       strings.EqualFold(video.VideoRange, "HDR"),
-		H264Profile:   p.H264Profile,
-		H264Level:     p.H264Level,
+		VideoCodec:    p.VideoCodec,
+		CodecProfile:  p.CodecProfile,
+		CodecLevel:    p.CodecLevel,
 		AudioBitrate:  p.AudioBitrate,
 	}
 	if plan.Tonemap && !plan.HWDecode {

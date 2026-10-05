@@ -68,12 +68,16 @@ func Args(j Job) []string {
 	if p.SubtitleInput < 0 {
 		a = append(a, "-vf", videoFilter(p))
 	}
+	encoder := "h264_nvenc"
+	if p.VideoCodec == "hevc" {
+		encoder = "hevc_nvenc" // 輸出是 8-bit yuv420p，Main profile
+	}
 	a = append(a,
-		"-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr",
+		"-c:v", encoder, "-preset", "p4", "-rc", "vbr",
 		"-b:v", strconv.FormatInt(p.VideoBitrate, 10),
 		"-maxrate", strconv.FormatInt(p.VideoBitrate*3/2, 10),
 		"-bufsize", strconv.FormatInt(p.VideoBitrate*2, 10),
-		"-profile:v", p.H264Profile, "-level:v", p.H264Level,
+		"-profile:v", p.CodecProfile, "-level:v", p.CodecLevel,
 		"-spatial-aq", "1",
 		// 每段開頭都是 IDR，和 fps 無關；t 從這次啟動的 0 起算，起點本身是段落邊界，所以仍對齊整部片
 		"-force_key_frames", fmt.Sprintf("expr:gte(t,n_forced*%d)", seg), "-forced-idr", "1",

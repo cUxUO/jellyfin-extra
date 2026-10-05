@@ -77,7 +77,7 @@ func newTestManager(t *testing.T, mode string, max int) (*Manager, *fakeRegistry
 	return m, reg
 }
 
-var plan = profile.Plan{Width: 1280, Height: 720, VideoBitrate: 3_000_000, AudioIndex: -1, AudioInput: -1, SubtitleIndex: -1, SubtitleInput: -1, H264Profile: "high", H264Level: "4.0"}
+var plan = profile.Plan{Width: 1280, Height: 720, VideoBitrate: 3_000_000, AudioIndex: -1, AudioInput: -1, SubtitleIndex: -1, SubtitleInput: -1, CodecProfile: "high", CodecLevel: "4.0"}
 
 // 300 秒的片，每段 3 秒，共 100 段
 func params(startSeconds float64) Params {

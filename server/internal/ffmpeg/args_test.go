@@ -21,7 +21,7 @@ func basePlan() profile.Plan {
 	return profile.Plan{
 		VideoIndex: 1, AudioIndex: 3, VideoInput: 1, AudioInput: 3, SubtitleIndex: -1, SubtitleInput: -1, Width: 1280, Height: 720,
 		VideoBitrate: 4_000_000, AudioBitrate: 128_000,
-		HWDecode: true, H264Profile: "high", H264Level: "4.0",
+		HWDecode: true, VideoCodec: "h264", CodecProfile: "high", CodecLevel: "4.0",
 	}
 }
 
@@ -60,6 +60,19 @@ func TestArgsHardwarePath(t *testing.T) {
 	// ffmpeg 自己的清單不對外，播放端拿的是伺服器產生的 index.m3u8
 	if a[len(a)-1] != "ffmpeg.m3u8" || value(a, "-hls_segment_filename") != SegmentPattern {
 		t.Errorf("outputs: %v", a[len(a)-3:])
+	}
+}
+
+func TestArgsVideoCodec(t *testing.T) {
+	a := Args(Job{Input: "in", Plan: basePlan()})
+	if value(a, "-c:v") != "h264_nvenc" || value(a, "-profile:v") != "high" || value(a, "-level:v") != "4.0" {
+		t.Errorf("h264: c:v=%s profile=%s level=%s", value(a, "-c:v"), value(a, "-profile:v"), value(a, "-level:v"))
+	}
+	p := basePlan()
+	p.VideoCodec, p.CodecProfile, p.CodecLevel = "hevc", "main", "4"
+	a = Args(Job{Input: "in", Plan: p})
+	if value(a, "-c:v") != "hevc_nvenc" || value(a, "-profile:v") != "main" || value(a, "-level:v") != "4" {
+		t.Errorf("hevc: c:v=%s profile=%s level=%s", value(a, "-c:v"), value(a, "-profile:v"), value(a, "-level:v"))
 	}
 }
 

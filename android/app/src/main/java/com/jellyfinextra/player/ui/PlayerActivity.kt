@@ -196,11 +196,11 @@ class PlayerActivity : AppCompatActivity() {
         .setMimeType(MimeTypes.APPLICATION_M3U8)
         .build()
 
-    /** 標題下的狀態，例如「720p · GPU 轉碼」。 */
+    /** 標題下的狀態，例如「800p · HEVC · GPU 轉碼」。 */
     private fun updateStatusLine() {
         val s = session
         playerView.findViewById<TextView>(R.id.playerStatus).text = when {
-            s != null -> "${s.height}p · ${if (s.hwDecode) "GPU" else "CPU"} 轉碼"
+            s != null -> "${s.height}p · ${if (s.codec == "hevc") "HEVC" else "H.264"} · ${if (s.hwDecode) "GPU" else "CPU"} 轉碼"
             else -> "直接播放"
         }
     }

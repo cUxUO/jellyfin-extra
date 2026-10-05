@@ -161,3 +161,16 @@ func TestBuildBurnSubtitle(t *testing.T) {
 		}
 	}
 }
+
+func TestProfileVideoCodec(t *testing.T) {
+	src := source(jellyfin.MediaStream{Type: "Video", Index: 0, Codec: "h264", Width: 1920, Height: 1080})
+	for name, want := range map[string]string{"ipad-air1": "h264", "zenpad10": "hevc"} {
+		plan, err := Build(Profiles[name], src, Request{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if plan.VideoCodec != want {
+			t.Errorf("%s: VideoCodec = %q, want %q", name, plan.VideoCodec, want)
+		}
+	}
+}
