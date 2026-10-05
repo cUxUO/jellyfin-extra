@@ -45,8 +45,12 @@
 }
 
 - (void)deleteSession:(NSString *)sessionId {
+	[self deleteSession:sessionId completion:nil];
+}
+
+- (void)deleteSession:(NSString *)sessionId completion:(void (^)(void))completion {
 	[JXHTTP request:@"DELETE" url:[self url:[NSString stringWithFormat:@"v1/sessions/%@", sessionId]] body:nil token:nil timeout:10
-	     completion:^(NSData *data, NSError *error) {}];
+	     completion:^(NSData *data, NSError *error) { if (completion) completion(); }];
 }
 
 - (NSError *)describe:(NSError *)e {

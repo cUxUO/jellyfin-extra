@@ -51,7 +51,8 @@ class JellyfinApi(
         val backdrop: ImageRef? = null,
     ) {
         val playable: Boolean get() = !isFolder && type in PLAYABLE_TYPES
-        val resumable: Boolean get() = positionTicks > 0 && !played
+        /** 重看已看過的項目時 Jellyfin 仍保留 Played，只要有位置就能續播（同 Jellyfin 網頁版）。 */
+        val resumable: Boolean get() = positionTicks > 0
 
         companion object {
             private val PLAYABLE_TYPES = setOf("Movie", "Episode", "Video", "MusicVideo")

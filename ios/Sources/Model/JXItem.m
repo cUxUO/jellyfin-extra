@@ -31,8 +31,9 @@ static long long L(NSDictionary *o, NSString *key) {
 	return !self.isFolder && [@[@"Movie", @"Episode", @"Video", @"MusicVideo"] containsObject:self.type ?: @""];
 }
 
+// 重看已看過的項目時 Jellyfin 仍保留 Played，只要有位置就能續播（同 Jellyfin 網頁版）
 - (BOOL)resumable {
-	return self.positionTicks > 0 && !self.played;
+	return self.positionTicks > 0;
 }
 
 + (instancetype)itemWithJSON:(NSDictionary *)o {

@@ -122,6 +122,8 @@ adb logcat --pid=$(adb shell pidof -s <package>) -d
 - `Player/`：`JXPlayerViewController`（AVPlayer、自訂控制列、右側音軌／字幕面板、播放回報）、`JXSubtitles`（WebVTT 解析）。文字字幕用兩層 UILabel：底層只畫黑邊、上層白字（同一層用負的 stroke 會吃掉細的中文筆畫，看起來發灰）。
 - 圖示與啟動圖由 `tools/make_images.py` 產生（純 Python），放在 `Resources/`；用 `UILaunchImages~ipad` 才會以原生解析度執行。
 - 開播位置：建立 AVPlayerItem 後、載入前就 `seekToTime`，避免先向轉碼伺服器要第 0 段（會讓 ffmpeg 從片頭重轉）。
+- 進背景（Home、鎖定）時回報進度並關掉轉碼 session（不佔 GPU 名額），回前景在同一位置建新 session、停在暫停等使用者按播放。新項目就緒前 `position` 回傳目標位置，不會把 0 回報給 Jellyfin。
+- 確認播放流程：debug 版把生命週期、session 建立／刪除、播放狀態寫進 app 容器的 `Library/Caches/com.jellyfinextra.player/playback.log`（每次播放覆寫）。容器路徑是 UUID，用 `ssh ipad find /var/mobile/Containers/Data/Application -name playback.log` 找。
 
 ```bash
 cd ios

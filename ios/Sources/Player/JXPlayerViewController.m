@@ -1,3 +1,4 @@
+#import "JXPlaybackLog.h"
 #import "JXPlayerViewController.h"
 #import <AVFoundation/AVFoundation.h>
 #import "JXEndpoints.h"
@@ -77,6 +78,9 @@ static const double kEndTolerance = 10;
 	BOOL _reportedStart, _finishing, _failed, _scrubbing, _controlsVisible;
 	NSTimer *_progressTimer, *_hideTimer;
 	double _pendingSeek; // 新項目就緒後要確認的位置，-1 表示沒有
+	double _suspendedAt; // 進背景時關掉轉碼 session 的位置，-1 表示沒有；回前景時從這裡重建
+	NSInteger _suspendedBurn; // 關掉的 session 燒錄的字幕，重建時沿用
+	BOOL _restoring;
 
 	JXVideoView *_video;
 	UIView *_controls;
@@ -107,6 +111,7 @@ static const double kEndTolerance = 10;
 		_playMethod = @"Transcode";
 		_playSessionId = [NSUUID.UUID.UUIDString stringByReplacingOccurrencesOfString:@"-" withString:@""].lowercaseString;
 		_pendingSeek = -1;
+		_suspendedAt = -1;
 	}
 	return self;
 }
@@ -228,7 +233,11 @@ static const double kEndTolerance = 10;
 	[nc addObserver:self selector:@selector(didEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
 	[nc addObserver:self selector:@selector(failedToEnd:) name:AVPlayerItemFailedToPlayToEndTimeNotification object:nil];
 	[nc addObserver:self selector:@selector(willResignActive) name:UIApplicationWillResignActiveNotification object:nil];
+	[nc addObserver:self selector:@selector(didEnterBackground) name:UIApplicationDidEnterBackgroundNotification object:nil];
+	[nc addObserver:self selector:@selector(willEnterForeground) name:UIApplicationWillEnterForegroundNotification object:nil];
 
+	JXPlaybackLogReset();
+	JXPlaybackLog(@"open item=%@ start=%.1fs", _item.itemId, (double)_startTicks / JX_TICKS_PER_SECOND);
 	[self prepare];
 }
 
@@ -439,6 +448,7 @@ static const double kEndTolerance = 10;
 			              completion:^(JXXcodeSession *session, NSError *error) {
 				typeof(self) s2 = weakSelf;
 				if (!s2) return;
+				JXPlaybackLog(@"create session: %@ error=%@", session.sessionId, error);
 				if (error) { [s2 fail:error.localizedDescription]; return; }
 				if (s2->_finishing) { [s2->_xcode deleteSession:session.sessionId]; return; }
 				s2->_session = session;
@@ -467,6 +477,10 @@ static const double kEndTolerance = 10;
 
 /// 換上新的播放來源並從 position 秒開始。轉碼與直接播放的時間軸都是整部片。
 - (void)playURL:(NSURL *)url headers:(NSDictionary *)headers at:(double)position {
+	[self playURL:url headers:headers at:position autoplay:YES];
+}
+
+- (void)playURL:(NSURL *)url headers:(NSDictionary *)headers at:(double)position autoplay:(BOOL)autoplay {
 	NSDictionary *opts = headers ? @{@"AVURLAssetHTTPHeaderFieldsKey": headers} : nil;
 	AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:opts];
 	AVPlayerItem *item = [AVPlayerItem playerItemWithAsset:asset];
@@ -487,7 +501,7 @@ static const double kEndTolerance = 10;
 	} else {
 		[_player replaceCurrentItemWithPlayerItem:item];
 	}
-	[_player play];
+	if (autoplay) [_player play];
 }
 
 - (void)observeItem:(AVPlayerItem *)item {
@@ -509,6 +523,7 @@ static const double kEndTolerance = 10;
 - (void)itemStatusChanged {
 	AVPlayerItem *item = _player.currentItem;
 	if (item != _observedItem || _finishing) return;
+	JXPlaybackLog(@"item status=%ld error=%@", (long)item.status, item.error);
 	if (item.status == AVPlayerItemStatusReadyToPlay) {
 		// 預先定位若沒生效（例如某些來源載入後才接受定位），這裡補一次
 		if (_pendingSeek > 0 && fabs(CMTimeGetSeconds(item.currentTime) - _pendingSeek) > 3) {
@@ -523,6 +538,7 @@ static const double kEndTolerance = 10;
 - (void)timeControlChanged {
 	if (_finishing) return;
 	AVPlayerTimeControlStatus st = _player.timeControlStatus;
+	JXPlaybackLog(@"timeControl=%ld pos=%.1f", (long)st, self.position);
 	BOOL waiting = st == AVPlayerTimeControlStatusWaitingToPlayAtSpecifiedRate;
 	if (st == AVPlayerTimeControlStatusPlaying) {
 		if (!_failed) [self setStatus:nil spinning:NO];
@@ -561,6 +577,7 @@ static const double kEndTolerance = 10;
 }
 
 - (void)fail:(NSString *)message {
+	JXPlaybackLog(@"fail: %@", message);
 	_failed = YES;
 	[_player pause];
 	[self setStatus:message spinning:NO];
@@ -568,12 +585,79 @@ static const double kEndTolerance = 10;
 }
 
 - (void)willResignActive {
+	JXPlaybackLog(@"willResignActive pos=%.1f", self.position);
 	[_player pause];
+}
+
+/// 進背景（按 Home、鎖定）時關掉轉碼 session，不在背景佔用 GPU 名額；回到前景再從同一位置建立新的。
+/// 直接播放沒有 session，只暫停。
+- (void)didEnterBackground {
+	JXPlaybackLog(@"didEnterBackground finishing=%d session=%@ xcode=%d suspendedAt=%.1f",
+	              _finishing, _session.sessionId, _xcode != nil, _suspendedAt);
+	if (_finishing || !_session || !_xcode || _suspendedAt >= 0) return;
+	double position = self.position;
+	[_player pause];
+	_suspendedAt = position; // 之後 self.position 回傳這個值，回報與控制列不會變成 0
+	_suspendedBurn = _session.burnedSubtitle;
+	NSString *sessionId = _session.sessionId;
+	_session = nil;
+	_pendingSeek = -1;
+	[self observeItem:nil];
+	[_player replaceCurrentItemWithPlayerItem:nil]; // 不讓播放器再向已關掉的 session 要片段
+
+	// 回報與刪除要在 app 被暫停前送出
+	UIApplication *app = UIApplication.sharedApplication;
+	__block UIBackgroundTaskIdentifier task = UIBackgroundTaskInvalid;
+	__block NSInteger pending = 2;
+	void (^done)(void) = ^{
+		if (--pending > 0 || task == UIBackgroundTaskInvalid) return;
+		[app endBackgroundTask:task];
+		task = UIBackgroundTaskInvalid;
+	};
+	task = [app beginBackgroundTaskWithExpirationHandler:^{
+		[app endBackgroundTask:task];
+		task = UIBackgroundTaskInvalid;
+	}];
+	if (_reportedStart) [self report:@"Progress" completion:done]; else done();
+	[_xcode deleteSession:sessionId completion:^{
+		JXPlaybackLog(@"deleted %@", sessionId);
+		done();
+	}];
+}
+
+- (void)willEnterForeground {
+	JXPlaybackLog(@"willEnterForeground finishing=%d suspendedAt=%.1f restoring=%d", _finishing, _suspendedAt, _restoring);
+	if (_finishing || _suspendedAt < 0 || _restoring) return;
+	_restoring = YES;
+	double position = _suspendedAt;
+	[self setStatus:@"準備轉碼中…" spinning:YES];
+	[self setControlsVisible:YES animated:NO];
+	__weak typeof(self) weakSelf = self;
+	JXXcode *xcode = _xcode;
+	[xcode createSession:_item.itemId profile:JXSettings.shared.profile startTicks:(long long)(position * JX_TICKS_PER_SECOND)
+	        burnSubtitle:_suspendedBurn audioIndex:_currentAudio completion:^(JXXcodeSession *session, NSError *error) {
+		typeof(self) s = weakSelf;
+		JXPlaybackLog(@"restore session: %@ error=%@", session.sessionId, error);
+		if (!s) { if (session) [xcode deleteSession:session.sessionId]; return; } // 播放畫面已關閉
+		s->_restoring = NO;
+		if (error) { [s fail:error.localizedDescription]; return; }
+		if (s->_finishing) { [s->_xcode deleteSession:session.sessionId]; return; }
+		s->_session = session;
+		s->_currentAudio = session.audioIndex;
+		s->_suspendedAt = -1;
+		[s updateStatusLine];
+		[s setStatus:nil spinning:NO];
+		// 停在離開時的畫面，由使用者按播放
+		[s playURL:session.playlist headers:nil at:position autoplay:NO];
+	}];
 }
 
 #pragma mark - 時間與控制列
 
 - (double)position {
+	if (_suspendedAt >= 0) return _suspendedAt;
+	// 換上新項目（開播、回前景、換音軌字幕）到就緒前 currentTime 還是 0，回報這個值會蓋掉 Jellyfin 的進度
+	if (_pendingSeek >= 0) return _pendingSeek;
 	CMTime t = _player.currentTime;
 	return CMTIME_IS_NUMERIC(t) ? CMTimeGetSeconds(t) : 0;
 }
@@ -668,13 +752,14 @@ static const double kEndTolerance = 10;
 }
 
 - (void)togglePlay {
-	if (!_player || _failed) return;
+	if (!_player || _failed || _suspendedAt >= 0) return;
 	if (_player.rate > 0 || _player.timeControlStatus == AVPlayerTimeControlStatusWaitingToPlayAtSpecifiedRate) [_player pause];
 	else [_player play];
 	[self scheduleHide];
 }
 
 - (void)seekTo:(double)seconds {
+	if (_suspendedAt >= 0) return;
 	double dur = self.duration;
 	seconds = MAX(0, dur > 0 ? MIN(seconds, dur - 1) : seconds);
 	[_player seekToTime:CMTimeMakeWithSeconds(seconds, 600) toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
@@ -945,6 +1030,7 @@ static const double kEndTolerance = 10;
 }
 
 - (void)finish {
+	JXPlaybackLog(@"finish pos=%.1f", self.position);
 	if (_finishing) return;
 	_finishing = YES;
 	[_player pause];

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-05T01:11:11Z",
+  "updated_at": "2026-10-05T01:36:06Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     "CLAUDE.md": {
       "role": "index",
-      "sha256": "f2412f55299da27759c40f23204a1cb804b204b5870efcb093f3878ac0c4691e",
-      "size": 17485,
-      "normalized_sha256": "f2412f55299da27759c40f23204a1cb804b204b5870efcb093f3878ac0c4691e"
+      "sha256": "7516aabb1ca9ce16dbfe668b37682ed43ff7112ccf205372939287aff8fa2927",
+      "size": 18040,
+      "normalized_sha256": "7516aabb1ca9ce16dbfe668b37682ed43ff7112ccf205372939287aff8fa2927"
     },
     "android/.gitignore": {
       "role": "index",
@@ -83,9 +83,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt": {
       "role": "index",
-      "sha256": "af824118c66a8336f0368e2dc2b730c38e8f349bbeebee5c45b9c669f73d654f",
-      "size": 18342,
-      "normalized_sha256": "af824118c66a8336f0368e2dc2b730c38e8f349bbeebee5c45b9c669f73d654f"
+      "sha256": "246b954dfb75486546732018dd8cda804302a868cd4d14d2f9e492b13dc6d1e7",
+      "size": 18461,
+      "normalized_sha256": "246b954dfb75486546732018dd8cda804302a868cd4d14d2f9e492b13dc6d1e7"
     },
     "android/app/src/main/java/com/jellyfinextra/player/net/XcodeApi.kt": {
       "role": "index",
@@ -538,9 +538,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "ea6e51007a9e7173a828ac7b1a4918a851e881e5325fbbc67ce2ca6726ec3545",
-      "size": 51926,
-      "normalized_sha256": "ea6e51007a9e7173a828ac7b1a4918a851e881e5325fbbc67ce2ca6726ec3545"
+      "sha256": "4820d40bf93ea70444b5ed99b9224ddddedb24e23e9a209b0f4039fadd793726",
+      "size": 52479,
+      "normalized_sha256": "4820d40bf93ea70444b5ed99b9224ddddedb24e23e9a209b0f4039fadd793726"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -648,6 +648,18 @@
       "size": 992,
       "normalized_sha256": "2e474ea208d712940a1a16e92a05d4010b0ac0091eb976b92f8b66396949b7dc"
     },
+    "ios/Sources/App/JXPlaybackLog.h": {
+      "role": "index",
+      "sha256": "0dbc3600a7330404c73f88239273c8a8f15c93b9809e75f564d8d2f6a00127d5",
+      "size": 332,
+      "normalized_sha256": "0dbc3600a7330404c73f88239273c8a8f15c93b9809e75f564d8d2f6a00127d5"
+    },
+    "ios/Sources/App/JXPlaybackLog.m": {
+      "role": "index",
+      "sha256": "51836206ce823d120077383d15b9e08b8239dd4185563275b509b86abe80ff36",
+      "size": 1272,
+      "normalized_sha256": "51836206ce823d120077383d15b9e08b8239dd4185563275b509b86abe80ff36"
+    },
     "ios/Sources/App/main.m": {
       "role": "index",
       "sha256": "96febe92892e9f275234e901bae2199ad2221561657904effbb2f760fdebb185",
@@ -674,9 +686,9 @@
     },
     "ios/Sources/Model/JXItem.m": {
       "role": "index",
-      "sha256": "c585b217708f1e1f3438dacbf40a9e0090dbfd10f1eb531a798b21f49cfef226",
-      "size": 3589,
-      "normalized_sha256": "c585b217708f1e1f3438dacbf40a9e0090dbfd10f1eb531a798b21f49cfef226"
+      "sha256": "d1fc1de34a9c5dd3972128fd36d1b22af7e5545894e863525024615b1187b612",
+      "size": 3688,
+      "normalized_sha256": "d1fc1de34a9c5dd3972128fd36d1b22af7e5545894e863525024615b1187b612"
     },
     "ios/Sources/Model/JXSettings.h": {
       "role": "index",
@@ -740,15 +752,15 @@
     },
     "ios/Sources/Net/JXXcode.h": {
       "role": "index",
-      "sha256": "28619bd5a2243d96982414e393371dfcb4f0dde5e634dfc48fee9ee4c5a74859",
-      "size": 1126,
-      "normalized_sha256": "28619bd5a2243d96982414e393371dfcb4f0dde5e634dfc48fee9ee4c5a74859"
+      "sha256": "753eff9d03fccda2d00d280808ab6eb01f523d5ef05fb696555a3c87df4955ba",
+      "size": 1270,
+      "normalized_sha256": "753eff9d03fccda2d00d280808ab6eb01f523d5ef05fb696555a3c87df4955ba"
     },
     "ios/Sources/Net/JXXcode.m": {
       "role": "index",
-      "sha256": "3d99f3a76f5a02ae16d9070277458a35ba3d8a43fdcf3398862db87ff76bff84",
-      "size": 2956,
-      "normalized_sha256": "3d99f3a76f5a02ae16d9070277458a35ba3d8a43fdcf3398862db87ff76bff84"
+      "sha256": "cc4ed5d0e0777b20ae51659cd646e4a9d822114cd30a8903cf5675f83f8edc05",
+      "size": 3122,
+      "normalized_sha256": "cc4ed5d0e0777b20ae51659cd646e4a9d822114cd30a8903cf5675f83f8edc05"
     },
     "ios/Sources/Player/JXPlayerViewController.h": {
       "role": "index",
@@ -758,9 +770,9 @@
     },
     "ios/Sources/Player/JXPlayerViewController.m": {
       "role": "index",
-      "sha256": "a909221297bb7b97f3deee6ac7129193b2621ded91a4ca8f999b137168ac2d66",
-      "size": 42343,
-      "normalized_sha256": "a909221297bb7b97f3deee6ac7129193b2621ded91a4ca8f999b137168ac2d66"
+      "sha256": "f9b099edb49a4e9d480d04068834a7959fa848afe98ec1fe282fc24732d8bfd6",
+      "size": 46665,
+      "normalized_sha256": "f9b099edb49a4e9d480d04068834a7959fa848afe98ec1fe282fc24732d8bfd6"
     },
     "ios/Sources/Player/JXSubtitles.h": {
       "role": "index",

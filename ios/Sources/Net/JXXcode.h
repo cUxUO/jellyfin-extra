@@ -21,4 +21,6 @@
          burnSubtitle:(NSInteger)burnSubtitle audioIndex:(NSInteger)audioIndex
            completion:(void (^)(JXXcodeSession *session, NSError *error))completion;
 - (void)deleteSession:(NSString *)sessionId;
+/// completion 在主執行緒呼叫，不論成功與否。
+- (void)deleteSession:(NSString *)sessionId completion:(void (^)(void))completion;
 @end

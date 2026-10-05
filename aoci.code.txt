@@ -4,7 +4,7 @@
 .gitattributes[FV3T]: F:強制所有文字檔以 LF 檢出，二進位檔自動偵測不動 | R:- | A:- | S:AOCI 以原始位元組建基準；拿掉會讓 Windows autocrlf 檢出後整棵樹被判為過期
 .gitignore[FV4T]: F:根目錄版控忽略：建置輸出 /build/、xcode.json、CLAUDE.local.md、機器綁定的 .mcp.json | R:- | A:- | S:xcode.json 與 CLAUDE.local.md 含真實位址與帳號，不可移出忽略清單
 AGENTS.md[SG5S]: F:AOCI 管理區塊：說明代理如何建立、重用與維護本專案的 aoci 索引及任務收尾規則 | R:code:CLAUDE.md | A:aoci_rules,aoci_overview,aoci_maintain,aoci_update_entry | S:-
-CLAUDE.md[SG8S]: F:專案權威說明：系統架構、轉碼伺服器／Android／iOS 的建置部署指令、實測裝置限制與權限邊界 | R:code:AGENTS.md,code:server/xcode.example.json | A:專案目標,Windows 轉碼伺服器,Android 播放程式,iOS 播放程式,權限邊界 | S:真實 IP、網域與 token 只放不進版控的 CLAUDE.local.md；在 iPad 執行任何指令前須先徵得使用者同意；Windows 只能動 C:\dev\jellyfin-extra-test；不得修改 Jellyfin 主機、NAS 與反向代理
+CLAUDE.md[SG8S]: F:專案權威說明：系統架構、轉碼伺服器／Android／iOS 的建置部署與除錯指令、實測裝置限制與權限邊界 | R:code:AGENTS.md,code:server/xcode.example.json | A:專案目標,Windows 轉碼伺服器,Android 播放程式,iOS 播放程式,權限邊界 | S:真實 IP、網域與 token 只放不進版控的 CLAUDE.local.md；在 iPad 執行任何指令前須先徵得使用者同意；Windows 只能動 C:\dev\jellyfin-extra-test；不得修改 Jellyfin 主機、NAS 與反向代理
 
 ===/home/Jack/桌面/coding/jellyfin-extra/android/===
 .gitignore[FV2T]: F:Android 專案忽略 Gradle 快取、build 輸出、local.properties 與 APK | R:- | A:- | S:-
@@ -31,7 +31,7 @@ SubtitleTrack.kt[DB7T]: F:字幕串流模型與預設字幕挑選規則：偏好
 ===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/net/===
 Endpoints.kt[IN8T]: F:內網優先探測：依序試內網與外部位址（Jellyfin 探 System/Info/Public、轉碼伺服器探 healthz），回傳第一個可連的基底網址 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/App.kt | A:Endpoints.jellyfin,Endpoints.xcode,firstReachable | S:外部轉碼伺服器位址是外部網址加 /xcode/（NPM 子路徑）；xcode 回傳 null 代表 Windows 未開，播放須退回 Jellyfin 直接播放；內網必須排第一（iPad 解析不到網域、ZenPad 系統 TLS 不支援 P-384）
 Http.kt[IN8T]: F:共用 OkHttp（Conscrypt TLS、逾時）、探測用短逾時 client、Jellyfin 驗證標頭、基底網址正規化與 fetch 的 HTTP 錯誤轉換 | R:code:android/app/src/main/java/com/jellyfinextra/player/App.kt,code:android/app/src/main/res/xml/network_security_config.xml | A:Http.client,useConscrypt,authHeader,baseUrl,fetch,HttpException | S:系統 TLS 只到 1.2 且只有 P-256，對網域的 P-384 憑證必定握手失敗，故 TLS 走內建 Conscrypt，但信任仍用系統 TrustManager 以套用 network_security_config；所有連線（含 ExoPlayer、Coil）都要用這個 client；讀取逾時 40 秒是為了等轉碼 session 建立
-JellyfinApi.kt[IN8M]: F:播放程式用的 Jellyfin 12.1 API 子集：登入、首頁與媒體庫清單、詳情、PlaybackInfo 音軌字幕、WebVTT、圖片網址、直接播放與播放回報 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/AudioTrack.kt | A:JellyfinApi,Item,mediaInfo,subtitleVtt,imageUrl,reportProgress | S:subtitleVtt 不設讀取逾時：內嵌字幕要 Jellyfin 讀完整個檔案（60GB 約 8 分鐘），中途放棄會讓它停止抽取；圖片一律帶 maxWidth 向 Jellyfin 要縮圖且不需驗證；集數的海報與背景用所屬影集的
+JellyfinApi.kt[IN8M]: F:播放程式用的 Jellyfin 12.1 API 子集：登入、首頁與媒體庫清單、詳情、PlaybackInfo 音軌字幕、WebVTT、圖片網址、直接播放與播放回報 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/AudioTrack.kt | A:JellyfinApi,Item,mediaInfo,subtitleVtt,imageUrl,reportProgress | S:subtitleVtt 不設讀取逾時：內嵌字幕要 Jellyfin 讀完整個檔案，中途放棄會停止抽取；圖片一律帶 maxWidth；resumable 只看位置不看 Played（重看已看項目時 Played 仍為 true）
 XcodeApi.kt[IN8T]: F:轉碼伺服器 API：建立 session（profile、起點、燒錄字幕、音軌）與刪除，解析輸出規格與播放清單路徑 | R:code:server/internal/api/api.go,code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt | A:XcodeApi.create,XcodeApi.delete,Session | S:回傳的播放清單是相對路徑，須接在轉碼伺服器基底網址（可能是 /xcode/）後；401/404/422/503 轉成使用者看得懂的訊息
 
 ===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/ui/===
@@ -140,12 +140,14 @@ Info.plist[FU6T]: F:iPad App 宣告：bundle id、僅 iPad 橫向全螢幕、iOS
 JXAppDelegate.h[EG2T]: F:App 委派宣告，持有主視窗 | R:code:ios/Sources/App/JXAppDelegate.m | A:JXAppDelegate | S:-
 JXAppDelegate.m[EG5T]: F:啟動時設定圖片 URL 快取、AVAudioSession 播放類別，建立視窗與 JXRootViewController | R:code:ios/Sources/UI/JXRootViewController.m,code:ios/Sources/UI/JXTheme.m | A:application:didFinishLaunchingWithOptions: | S:記憶體快取壓低（iPad Air 1 只有 1GB）
 main.m[EG3T]: F:UIApplicationMain 進入點，指定 JXAppDelegate | R:code:ios/Sources/App/JXAppDelegate.m | A:main | S:-
+JXPlaybackLog.h[XO2T]: F:debug 版播放紀錄函式宣告 | R:code:ios/Sources/App/JXPlaybackLog.m | A:JXPlaybackLogReset,JXPlaybackLog | S:-
+JXPlaybackLog.m[XO3T]: F:debug 版把播放流程寫進 app 容器 Library/Caches/<bundle id>/playback.log，每次播放覆寫；release 版不寫 | R:code:ios/Sources/Player/JXPlayerViewController.m | A:JXPlaybackLogReset,JXPlaybackLog | S:未呼叫 Reset 前的紀錄會被丟掉
 
 ===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/Model/===
 JXFormat.h[CU3T]: F:時間、片長、進度、集數標籤與資訊列格式化的宣告與 tick 常數 | R:code:ios/Sources/Model/JXFormat.m | A:JX_TICKS_PER_SECOND,JXFormatTicks,JXFormatDuration,JXEpisodeLabel,JXMetaLine | S:-
 JXFormat.m[CU4T]: F:格式化實作，規則與 Android 的 Format.kt 相同 | R:code:ios/Sources/Model/JXItem.m,code:android/app/src/main/java/com/jellyfinextra/player/ui/Format.kt | A:JXFormatTime,JXFormatRemaining,JXProgress,JXDisplayTitle | S:-
 JXItem.h[DB4T]: F:Jellyfin 項目模型宣告：海報／橫式／背景圖參照、進度與已看狀態 | R:code:ios/Sources/Model/JXItem.m | A:JXItem,JXImageRef,playable,resumable | S:-
-JXItem.m[DB6T]: F:由 Jellyfin BaseItemDto JSON 建立 JXItem，決定海報、橫式與背景圖的來源 | R:code:ios/Sources/Net/JXJellyfin.m,code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt | A:itemWithJSON:,itemsWithJSON: | S:集數海報用影集的、橫圖用劇照；電影與影集橫圖依序 Thumb、背景、主圖，規則要與 Android 一致
+JXItem.m[DB6T]: F:由 Jellyfin BaseItemDto JSON 建立 JXItem，決定海報、橫式與背景圖的來源與能否續播 | R:code:ios/Sources/Net/JXJellyfin.m,code:android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt | A:itemWithJSON:,itemsWithJSON:,resumable | S:集數海報用影集的、橫圖用劇照，規則要與 Android 一致；resumable 只看位置不看 Played
 JXSettings.h[DC3T]: F:使用者設定與登入狀態的宣告 | R:code:ios/Sources/Model/JXSettings.m | A:JXSettings,shared,loggedIn | S:-
 JXSettings.m[DC6T]: F:NSUserDefaults 存內網／外部位址、裝置規格（預設 ipad-air1）、token、userId 與 DeviceId | R:code:ios/Sources/Net/JXEndpoints.m,code:ios/Sources/Net/JXHTTP.m | A:shared,saveToken:userId:userName:,logout,deviceId,profile | S:位址由使用者輸入不寫死；DeviceId 首次產生後固定，Jellyfin 以它區分裝置
 JXTracks.h[DB4T]: F:音軌、字幕、片源資訊模型與 JXSubtitleChooser 宣告 | R:code:ios/Sources/Model/JXTracks.m | A:JXAudioTrack,JXSubtitleTrack,JXMediaInfo,JXSubtitleChooser | S:-
@@ -159,11 +161,11 @@ JXHTTP.m[IN7T]: F:共用 NSURLSession、Jellyfin 驗證標頭、基底網址正�
 JXJellyfin.h[IN5T]: F:Jellyfin API 子集的宣告與排序列舉 | R:code:ios/Sources/Net/JXJellyfin.m | A:JXJellyfin,JXSort,current | S:-
 JXJellyfin.m[IN8S]: F:Jellyfin API 子集（同 Android）：登入、首頁與媒體庫清單、詳情、PlaybackInfo、WebVTT、圖片網址、直接播放與播放回報 | R:code:ios/Sources/Net/JXHTTP.m,code:ios/Sources/Model/JXItem.m,code:ios/Sources/Model/JXTracks.m | A:authenticateUser:password:completion:,mediaInfo:completion:,subtitleVTT:source:index:completion:,imageURL:maxWidth:,directStreamURL:,reportPlayback:item:session:position:paused:method:completion: | S:WebVTT 請求逾時設一小時：內嵌字幕抽取很久，中途放棄會讓 Jellyfin 停止；圖片 API 不需驗證且一律帶 maxWidth
 JXXcode.h[IN4T]: F:轉碼 session 模型與轉碼伺服器 API 宣告 | R:code:ios/Sources/Net/JXXcode.m | A:JXXcodeSession,JXXcode | S:-
-JXXcode.m[IN7T]: F:轉碼伺服器 API：建立／刪除 session，解析輸出規格，錯誤碼轉中文訊息 | R:code:server/internal/api/api.go,code:ios/Sources/Net/JXHTTP.m | A:createSession:profile:startTicks:burnSubtitle:audioIndex:completion:,deleteSession: | S:播放清單是相對路徑，接在基底網址後（經反向代理時是 /xcode/）
+JXXcode.m[IN7T]: F:轉碼伺服器 API：建立／刪除 session（可等刪除完成），解析輸出規格，錯誤碼轉中文訊息 | R:code:server/internal/api/api.go,code:ios/Sources/Net/JXHTTP.m | A:createSession:profile:startTicks:burnSubtitle:audioIndex:completion:,deleteSession:completion: | S:播放清單是相對路徑，接在基底網址後（經反向代理時是 /xcode/）
 
 ===/home/Jack/桌面/coding/jellyfin-extra/ios/Sources/Player/===
 JXPlayerViewController.h[AU5T]: F:播放畫面宣告與音軌／字幕選擇常數 | R:code:ios/Sources/Player/JXPlayerViewController.m | A:JXPlayerViewController,JXAudioDefault,JXSubtitleAuto,JXSubtitleOff | S:-
-JXPlayerViewController.m[AU9L]: F:播放畫面：建立轉碼 session（離線改直接播放）、AVPlayer 播 HLS、自訂控制列與拖曳、文字字幕、音軌／字幕面板、重建 session、播放回報 | R:code:ios/Sources/Net/JXXcode.m,code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/Player/JXSubtitles.m,code:ios/Sources/Model/JXTracks.m,code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:playURL:headers:at:,restartSessionBurn:audio:,applySubtitle:,applyAudio:,showSubtitleText:,finish | S:建立 AVPlayerItem 後、載入前就 seekToTime，否則先要第 0 段會讓 ffmpeg 從片頭重轉；直接播放用 AVURLAssetHTTPHeaderFieldsKey 帶驗證標頭；字幕用兩層 UILabel（底層只描黑邊、上層白字），同層負 stroke 會吃掉細中文筆畫；finish 先回報停止再發 JXPlaybackDidFinishNotification 讓列表重載
+JXPlayerViewController.m[AU9L]: F:播放畫面：建立轉碼 session（離線改直接播放）、AVPlayer 播 HLS、控制列與拖曳、文字字幕、音軌／字幕面板、重建 session、進背景關 session 回前景重建、播放回報 | R:code:ios/Sources/Net/JXXcode.m,code:ios/Sources/Net/JXJellyfin.m,code:ios/Sources/Player/JXSubtitles.m,code:ios/Sources/Model/JXTracks.m,code:ios/Sources/App/JXPlaybackLog.m,code:android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt | A:playURL:headers:at:autoplay:,restartSessionBurn:audio:,didEnterBackground,willEnterForeground,position,finish | S:載入前就 seekToTime，否則先要第 0 段會讓 ffmpeg 從片頭重轉；新項目就緒前與背景期間 position 回傳目標位置，否則回報 0 會蓋掉進度；進背景的回報與刪除包在 background task；字幕兩層 UILabel（底層黑邊、上層白字），同層負 stroke 會吃掉中文筆畫；finish 先回報停止再發通知讓列表重載
 JXSubtitles.h[KU4T]: F:WebVTT cue 模型與解析／查詢的宣告 | R:code:ios/Sources/Player/JXSubtitles.m | A:JXCue,JXSubtitles | S:-
 JXSubtitles.m[KU6T]: F:最簡 WebVTT 解析（只取時間與文字、去標籤），以二分搜尋找出目前要顯示的字幕 | R:code:ios/Sources/Player/JXPlayerViewController.m | A:parseVTT:,textAt:cues: | S:cue 先依開始時間排序（ASS 轉出的 VTT 不一定有序）；長 cue 可能早於前面的短 cue，查詢時往回看 40 筆
 
