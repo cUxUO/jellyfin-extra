@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-05T18:26:19Z",
+  "updated_at": "2026-10-06T06:58:15Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     "CLAUDE.md": {
       "role": "index",
-      "sha256": "42806fa4f176cbaaf944af49a3f22f64c94a4e9b46f932c0ffb5c73bb02f743d",
-      "size": 24135,
-      "normalized_sha256": "42806fa4f176cbaaf944af49a3f22f64c94a4e9b46f932c0ffb5c73bb02f743d"
+      "sha256": "467d68a322064dc87664f31f0ce969ed670c360183201754a2b0af04bc9b860d",
+      "size": 25384,
+      "normalized_sha256": "467d68a322064dc87664f31f0ce969ed670c360183201754a2b0af04bc9b860d"
     },
     "android/.gitignore": {
       "role": "index",
@@ -119,9 +119,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/net/XcodeApi.kt": {
       "role": "index",
-      "sha256": "90f1cf55c70d85ffcf4aef3082b1787b082db5ed41899715b7fbdb09eb0f6a18",
-      "size": 4546,
-      "normalized_sha256": "90f1cf55c70d85ffcf4aef3082b1787b082db5ed41899715b7fbdb09eb0f6a18"
+      "sha256": "a3b99a5aa4cde3e25bedac19e4ed339aa58ea69a3a9669eda0731a63cb92d9af",
+      "size": 4787,
+      "normalized_sha256": "a3b99a5aa4cde3e25bedac19e4ed339aa58ea69a3a9669eda0731a63cb92d9af"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/Cards.kt": {
       "role": "index",
@@ -185,9 +185,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
       "role": "index",
-      "sha256": "d59976f8d416a860ebd4b61ee68eee0065440f04fe52710647976c9aeabd27ae",
-      "size": 32652,
-      "normalized_sha256": "d59976f8d416a860ebd4b61ee68eee0065440f04fe52710647976c9aeabd27ae"
+      "sha256": "5210dd76bc3dfb347734616714f6bc91eaa9cfc1f643b6a90b40f7f8101998ca",
+      "size": 35832,
+      "normalized_sha256": "5210dd76bc3dfb347734616714f6bc91eaa9cfc1f643b6a90b40f7f8101998ca"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
       "role": "index",
@@ -401,9 +401,9 @@
     },
     "android/app/src/main/res/layout-port/activity_login.xml": {
       "role": "index",
-      "sha256": "f30c6ed3ccbf4100a8e551a70515c1f5d3f69b57840b1723138691fd1328ffc3",
-      "size": 5509,
-      "normalized_sha256": "f30c6ed3ccbf4100a8e551a70515c1f5d3f69b57840b1723138691fd1328ffc3"
+      "sha256": "fc4ea1b8dc2df941b5e18b832fc6c64554615b6da3120034c13c554df40d89c6",
+      "size": 5527,
+      "normalized_sha256": "fc4ea1b8dc2df941b5e18b832fc6c64554615b6da3120034c13c554df40d89c6"
     },
     "android/app/src/main/res/layout-port/activity_main.xml": {
       "role": "index",
@@ -413,9 +413,9 @@
     },
     "android/app/src/main/res/layout-port/fragment_grid.xml": {
       "role": "index",
-      "sha256": "f7a9d5a6e29ea55342ec37d61d953a3656aed955a28d1a7ca78e66f8acebca23",
-      "size": 3704,
-      "normalized_sha256": "f7a9d5a6e29ea55342ec37d61d953a3656aed955a28d1a7ca78e66f8acebca23"
+      "sha256": "fe3001c82a882a1fc137bd3408279e10842a5ff701576626ea3b6fa38f491e59",
+      "size": 3658,
+      "normalized_sha256": "fe3001c82a882a1fc137bd3408279e10842a5ff701576626ea3b6fa38f491e59"
     },
     "android/app/src/main/res/layout-port/fragment_home.xml": {
       "role": "index",
@@ -425,15 +425,15 @@
     },
     "android/app/src/main/res/layout-port/fragment_library.xml": {
       "role": "index",
-      "sha256": "02e43e971f256025d6fa88065a01f1e8ece0eb0c2f2ba83bd095258c91f27ee9",
-      "size": 5455,
-      "normalized_sha256": "02e43e971f256025d6fa88065a01f1e8ece0eb0c2f2ba83bd095258c91f27ee9"
+      "sha256": "bbf9030748c4afe50c2a3bab90d0dabe69e85d3fc06f0d93c7f18b7200655faf",
+      "size": 5783,
+      "normalized_sha256": "bbf9030748c4afe50c2a3bab90d0dabe69e85d3fc06f0d93c7f18b7200655faf"
     },
     "android/app/src/main/res/layout-port/fragment_movie.xml": {
       "role": "index",
-      "sha256": "6717bd6b4695fd75824277e8a068746cda4451697a5006a8a9f8543f67883ea0",
-      "size": 9459,
-      "normalized_sha256": "6717bd6b4695fd75824277e8a068746cda4451697a5006a8a9f8543f67883ea0"
+      "sha256": "5a21d11d068a81fe199e5f585fc57071526f3eced98acdbaf642fb610c058f78",
+      "size": 9678,
+      "normalized_sha256": "5a21d11d068a81fe199e5f585fc57071526f3eced98acdbaf642fb610c058f78"
     },
     "android/app/src/main/res/layout-port/fragment_series.xml": {
       "role": "index",
@@ -461,9 +461,9 @@
     },
     "android/app/src/main/res/layout/activity_login.xml": {
       "role": "index",
-      "sha256": "b216b811e5301214ecf4018fd5d96dc35b6545efa49c93794e13464c5883bc8b",
-      "size": 5336,
-      "normalized_sha256": "b216b811e5301214ecf4018fd5d96dc35b6545efa49c93794e13464c5883bc8b"
+      "sha256": "b0bfda9c815cf5bd62e9deff14b2e1808604d36b66df42b44ef798ff02bcd400",
+      "size": 5354,
+      "normalized_sha256": "b0bfda9c815cf5bd62e9deff14b2e1808604d36b66df42b44ef798ff02bcd400"
     },
     "android/app/src/main/res/layout/activity_main.xml": {
       "role": "index",
@@ -473,9 +473,9 @@
     },
     "android/app/src/main/res/layout/activity_player.xml": {
       "role": "index",
-      "sha256": "72da51fcf0fab4b3018c616662a2e5e0d1b327b13997d1cba4de8bd8fd3039ce",
-      "size": 3903,
-      "normalized_sha256": "72da51fcf0fab4b3018c616662a2e5e0d1b327b13997d1cba4de8bd8fd3039ce"
+      "sha256": "5c67942b0ab57d1dfc4c3cc87be35c193e07560f229e14da7de6168bf904d077",
+      "size": 4095,
+      "normalized_sha256": "5c67942b0ab57d1dfc4c3cc87be35c193e07560f229e14da7de6168bf904d077"
     },
     "android/app/src/main/res/layout/fragment_grid.xml": {
       "role": "index",
@@ -545,9 +545,9 @@
     },
     "android/app/src/main/res/layout/player_controls.xml": {
       "role": "index",
-      "sha256": "11734ff9ec700b78877379bebccbc465752840c9eece9430d2d6a6b7a94b8bd5",
-      "size": 6652,
-      "normalized_sha256": "11734ff9ec700b78877379bebccbc465752840c9eece9430d2d6a6b7a94b8bd5"
+      "sha256": "ceb225b8f7497f28fbf8f94a5018e83a7ecd84a102a9598d6d180b62c0bff93f",
+      "size": 6733,
+      "normalized_sha256": "ceb225b8f7497f28fbf8f94a5018e83a7ecd84a102a9598d6d180b62c0bff93f"
     },
     "android/app/src/main/res/layout/rail_header.xml": {
       "role": "index",
@@ -587,9 +587,9 @@
     },
     "android/app/src/main/res/values/strings.xml": {
       "role": "index",
-      "sha256": "62d1af289e289b5958435c3ab5fd6d58d5c6e073160d3c194c62cc441cdb437f",
-      "size": 1967,
-      "normalized_sha256": "62d1af289e289b5958435c3ab5fd6d58d5c6e073160d3c194c62cc441cdb437f"
+      "sha256": "32e02735e548f0a1b2eb874310452d1f259c8f90b8edb185d3c3bfd16616c72b",
+      "size": 2130,
+      "normalized_sha256": "32e02735e548f0a1b2eb874310452d1f259c8f90b8edb185d3c3bfd16616c72b"
     },
     "android/app/src/main/res/values/themes.xml": {
       "role": "index",
@@ -676,9 +676,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "c23a4bf51d9dc2f82cffdd3b1d71e804cc3f479920837f98a254ef6b6726d05e",
-      "size": 62083,
-      "normalized_sha256": "c23a4bf51d9dc2f82cffdd3b1d71e804cc3f479920837f98a254ef6b6726d05e"
+      "sha256": "33079882bd5c0c6ba9cb0558f81f5c4fb737084665fed3dfd30bf87637c690f5",
+      "size": 63007,
+      "normalized_sha256": "33079882bd5c0c6ba9cb0558f81f5c4fb737084665fed3dfd30bf87637c690f5"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -1114,10 +1114,10 @@
     },
     "server/cmd/xcode/config.go": {
       "role": "index",
-      "sha256": "3a90656dcaad1862f42ee4f3ccb11f6f569960c42ff6df238502a7d1954f8c8e",
-      "size": 2831,
-      "normalized_sha256": "3a90656dcaad1862f42ee4f3ccb11f6f569960c42ff6df238502a7d1954f8c8e",
-      "format_sha256": "3a90656dcaad1862f42ee4f3ccb11f6f569960c42ff6df238502a7d1954f8c8e",
+      "sha256": "9b413aaffe8fe1ce4555fd8dd7c2a3e82c709086c47b86b9276c2260e6a5653a",
+      "size": 3148,
+      "normalized_sha256": "9b413aaffe8fe1ce4555fd8dd7c2a3e82c709086c47b86b9276c2260e6a5653a",
+      "format_sha256": "9b413aaffe8fe1ce4555fd8dd7c2a3e82c709086c47b86b9276c2260e6a5653a",
       "format_kind": "gofmt"
     },
     "server/cmd/xcode/config_test.go": {
@@ -1332,34 +1332,34 @@
     },
     "server/internal/profile/profile.go": {
       "role": "index",
-      "sha256": "aa3411fbc7f4a534ea06cac1d25420aeeb386a685d6a0587309c73c54fef9a6f",
-      "size": 12945,
-      "normalized_sha256": "aa3411fbc7f4a534ea06cac1d25420aeeb386a685d6a0587309c73c54fef9a6f",
-      "format_sha256": "aa3411fbc7f4a534ea06cac1d25420aeeb386a685d6a0587309c73c54fef9a6f",
+      "sha256": "015fe957c87e1e0728e9729fe21621ae2046b57f9a38cc7f5416788d2896a48a",
+      "size": 13189,
+      "normalized_sha256": "015fe957c87e1e0728e9729fe21621ae2046b57f9a38cc7f5416788d2896a48a",
+      "format_sha256": "015fe957c87e1e0728e9729fe21621ae2046b57f9a38cc7f5416788d2896a48a",
       "format_kind": "gofmt"
     },
     "server/internal/profile/profile_test.go": {
       "role": "observe",
-      "sha256": "41667cd62269aadf3f7f8d257ce1009066023ea2d6f68724aac301921cfcba74",
-      "size": 9828,
-      "normalized_sha256": "41667cd62269aadf3f7f8d257ce1009066023ea2d6f68724aac301921cfcba74",
-      "format_sha256": "41667cd62269aadf3f7f8d257ce1009066023ea2d6f68724aac301921cfcba74",
+      "sha256": "2146a0ee66b75535e5f9928aa45e0761a4cd226650b2480a568b10291aaa2b18",
+      "size": 10515,
+      "normalized_sha256": "2146a0ee66b75535e5f9928aa45e0761a4cd226650b2480a568b10291aaa2b18",
+      "format_sha256": "2146a0ee66b75535e5f9928aa45e0761a4cd226650b2480a568b10291aaa2b18",
       "format_kind": "gofmt"
     },
     "server/internal/session/manager.go": {
       "role": "index",
-      "sha256": "1d65e72a3b69f125ca6d817c57f9acea0ec00898047d5baab100979345e6659c",
-      "size": 18599,
-      "normalized_sha256": "1d65e72a3b69f125ca6d817c57f9acea0ec00898047d5baab100979345e6659c",
-      "format_sha256": "1d65e72a3b69f125ca6d817c57f9acea0ec00898047d5baab100979345e6659c",
+      "sha256": "f95986f92a697f42c123ad8a244b44088289711b2999c0848fbb7ef3e6b84a57",
+      "size": 19824,
+      "normalized_sha256": "f95986f92a697f42c123ad8a244b44088289711b2999c0848fbb7ef3e6b84a57",
+      "format_sha256": "f95986f92a697f42c123ad8a244b44088289711b2999c0848fbb7ef3e6b84a57",
       "format_kind": "gofmt"
     },
     "server/internal/session/manager_test.go": {
       "role": "observe",
-      "sha256": "34f9ba166bdb6e4aac71dc7c59c8596a006079e4f0c6b96e1dc9e77ba45901ae",
-      "size": 12065,
-      "normalized_sha256": "34f9ba166bdb6e4aac71dc7c59c8596a006079e4f0c6b96e1dc9e77ba45901ae",
-      "format_sha256": "34f9ba166bdb6e4aac71dc7c59c8596a006079e4f0c6b96e1dc9e77ba45901ae",
+      "sha256": "9c96fa42fcbacd6381fbba51867e52d3be33a8de357bbde77cfefe7814de6111",
+      "size": 13396,
+      "normalized_sha256": "9c96fa42fcbacd6381fbba51867e52d3be33a8de357bbde77cfefe7814de6111",
+      "format_sha256": "9c96fa42fcbacd6381fbba51867e52d3be33a8de357bbde77cfefe7814de6111",
       "format_kind": "gofmt"
     },
     "server/internal/session/stats.go": {
@@ -1372,10 +1372,10 @@
     },
     "server/internal/source/proxy.go": {
       "role": "index",
-      "sha256": "705f98bdd12a6f344b41b9dac2038eba527ab227f76b9bed4ef3773a47457d92",
-      "size": 5602,
-      "normalized_sha256": "705f98bdd12a6f344b41b9dac2038eba527ab227f76b9bed4ef3773a47457d92",
-      "format_sha256": "705f98bdd12a6f344b41b9dac2038eba527ab227f76b9bed4ef3773a47457d92",
+      "sha256": "1067f94d86c4ed0c08bf5a654006e385fda4b3ce6fd74e907c0bd6bd2feca4a9",
+      "size": 5755,
+      "normalized_sha256": "1067f94d86c4ed0c08bf5a654006e385fda4b3ce6fd74e907c0bd6bd2feca4a9",
+      "format_sha256": "1067f94d86c4ed0c08bf5a654006e385fda4b3ce6fd74e907c0bd6bd2feca4a9",
       "format_kind": "gofmt"
     },
     "server/internal/source/proxy_test.go": {
@@ -1388,9 +1388,9 @@
     },
     "server/xcode.example.json": {
       "role": "index",
-      "sha256": "1dfa29abc676cd67d975cba728f411797eb986ab4deffeeca928a8babaadde44",
-      "size": 281,
-      "normalized_sha256": "1dfa29abc676cd67d975cba728f411797eb986ab4deffeeca928a8babaadde44"
+      "sha256": "47d0c2644848049c11efc556f8b77d7b4b10246550da190a0f4cf554438ee233",
+      "size": 304,
+      "normalized_sha256": "47d0c2644848049c11efc556f8b77d7b4b10246550da190a0f4cf554438ee233"
     },
     "tools/jf-login.sh": {
       "role": "index",

@@ -23,6 +23,8 @@
     <string name="direct_play">轉碼伺服器離線，改為直接播放</string>
     <string name="loading_original">載入原始檔中…</string>
     <string name="retry">重試</string>
+    <string name="switch_failed">切換失敗，繼續播放原本的設定（%1$s）</string>
+    <string name="restore_failed">%1$s\n按播放鍵重試</string>
     <string name="subtitles">字幕</string>
     <string name="subtitles_off">關閉字幕</string>
     <string name="subtitle_image_suffix">（圖形，燒進畫面）</string>

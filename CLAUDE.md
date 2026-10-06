@@ -64,7 +64,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
   - `internal/api`：`POST /v1/sessions`、`GET /v1/sessions/{id}/{file}`、`DELETE /v1/sessions/{id}`，回傳相對路徑。
   - `internal/dashboard`：監控頁 `http://<Windows 內網 IP>:8097/dashboard`（每 2 秒向 `/dashboard/data` 取 JSON）：GPU（`internal/gpu` 呼叫 `nvidia-smi`，快取 2 秒）、各 session 的片名／使用者／播放端／輸出規格／播放位置與已轉範圍／轉碼速度／重啟次數／流量、累計數據、最近 200 行 log（`internal/logring`）。頁面含使用者與片名，只開放內網直接連線：帶 `X-Forwarded-For` 等代理標頭（經 NPM 的 `/xcode/dashboard`）或非私有位址一律 403。監控頁的請求不寫入請求 log。頁面要能在 iPad Safari 12、Chrome 64 一類的舊瀏覽器顯示：不用 `?.`、`??`、`Array.flat`、flex `gap`。
   - `internal/jellyfin`：Jellyfin API 子集。`internal/source`：127.0.0.1 上的原始檔 proxy，替 ffmpeg 附 token。
-  - `internal/profile`：裝置規格與轉碼計畫。播放端帶 `capabilities`（實測的硬解器與最大尺寸）時由 `FromCaps` 決定：有 720p 以上的 HEVC 硬解就送 HEVC（`hevc_nvenc`，1080p 約 8 Mbps），否則 H.264（約 10 Mbps），上限 1080p；另可帶 `maxWidth`／`maxHeight`（解析度上限）與 `adaptive`。沒帶時沿用具名 profile：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
+  - `internal/profile`：裝置規格與轉碼計畫。播放端帶 `capabilities`（實測的硬解器與最大尺寸）時由 `FromCaps` 決定：有 720p 以上的 HEVC 硬解就送 HEVC（`hevc_nvenc`，1080p 約 8 Mbps，level 4.1：level 4 的 CPB 上限 12 Mbit 小於 `-bufsize`，nvenc 會拒絕開啟），否則 H.264（約 10 Mbps），上限 1080p；另可帶 `maxWidth`／`maxHeight`（解析度上限）與 `adaptive`。沒帶時沿用具名 profile：`ipad-air1` 送 H.264（High 4.1、1080p、8 Mbps）。`internal/ffmpeg`：產生 ffmpeg 參數。`internal/session`：ffmpeg 生命週期與閒置回收。
 - 測試：`cd server && go test -race ./...`（容器內，Linux）。Windows 專屬程式碼至少要過 `GOOS=windows go vet ./...`。
 - 端對端測試：Windows 測試目錄已有 `clips\`（SDR HEVC 1080p、HDR10 HEVC 4K、10-bit H.264 各 60 秒）、`items.json`、指向 fakejf 的 `xcode.fake.json`。先跑 `fakejf.exe -items items.json`（token `devtoken`，聽 127.0.0.1:18096），再跑 `xcode.exe -notray -config xcode.fake.json`。
 - 真實 Jellyfin（12.1.0）：`xcode.json` 指向內網 8096（不經 NPM）。測試用 token 以 `tools/jf-login.sh <內網網址> <帳號>` 取得，存在容器的 `~/.config/jellyfin-extra/token`；讀取時用 `$(cat ~/.config/jellyfin-extra/token)`，不要印出、不要寫進檔案或 log。
@@ -75,7 +75,8 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - **不要**在轉碼的 ffmpeg 裡順便輸出字幕（多個稀疏的 WebVTT 輸出）：實測會讓影像輸出卡死（ffmpeg 排程器等待落後的字幕輸出）；獨立的純字幕 ffmpeg 行為也不穩定。已試過並放棄，細節見 git 歷史。
 - Jellyfin 抽內嵌文字字幕要讀完整個檔案：1GB 約 10 秒，60GB 藍光原盤約 8 分鐘（之後有快取）；外掛字幕約 0.1 秒。播放程式的請求不設讀取逾時，中途放棄會讓 Jellyfin 停掉抽取。
 - ffmpeg 用 jellyfin-ffmpeg 8.1.3 的 win64 版，放在 `C:\dev\jellyfin-extra-test\ffmpeg\`。
-- 已知上游問題：FFmpeg 經 HTTP 讀大型 MKV 並 `-ss` 跳轉時，延後到跳轉才解析的 Cues 索引有約三到五成機率不完整，只能從較前面的位置循序讀到目標（58GB 的 4K 片要讀好幾 GB，數十秒）。原版 FFmpeg 8.1、9.0 都會，讀本機檔案不會；與 Jellyfin、proxy、解碼、`-readrate`、HTTP 選項無關（2026-10 實測）。目前的對策是 `stallTimeoutSeconds`（預設 5）：一次執行這麼久一段都沒轉出就從同一段重啟，最多重試 2 次；一段都沒轉出就失敗結束（偶發，同一位置再開正常）也算在同一個重試上限內。ffmpeg 錯誤訊息會濾掉 MKV 附件（內嵌字型）的探測警告，否則動畫幾十個字型會把真正的錯誤擠出保留的 4KB。根本解法是改直接讀 NAS（SMB，影片來源介面本來就預留），需要使用者提供分享路徑與帳號；SSH（金鑰登入）的工作階段沒有網路認證，`net view \\NAS` 會被拒。
+- 已知上游問題：FFmpeg 經 HTTP 讀大型 MKV 並 `-ss` 跳轉時，延後到跳轉才解析的 Cues 索引有約三到五成機率不完整，只能從較前面的位置循序讀到目標（58GB 的 4K 片要讀好幾 GB，數十秒）。原版 FFmpeg 8.1、9.0 都會，讀本機檔案不會；與 Jellyfin、proxy、解碼、`-readrate`、HTTP 選項無關（2026-10 實測）。目前的對策是 `stallTimeoutSeconds`（預設 5）：一次執行這麼久一段都沒轉出就從同一段重啟；另有 `ioStallSeconds`（預設 3）：一段都沒轉出、而且這麼久沒從來源讀到任何資料就提早重啟（見下一條）。最多重試 4 次；一段都沒轉出就失敗結束（偶發，同一位置再開正常）也算在同一個重試上限內。ffmpeg 錯誤訊息會濾掉 MKV 附件（內嵌字型）的探測警告，否則動畫幾十個字型會把真正的錯誤擠出保留的 4KB。根本解法是改直接讀 NAS（SMB，影片來源介面本來就預留），需要使用者提供分享路徑與帳號；SSH（金鑰登入）的工作階段沒有網路認證，`net view \\NAS` 會被拒。
+- 另一種跳轉卡住（2026-10 實測，荒野機器人 58GB 4K DV）：ffmpeg 讀完檔尾的 Cues 後就不再發出任何請求、CPU 為 0（proxy 那邊 Cues 早已送完），卡在 `-ss` 開檔階段，連串流資訊都還沒印。只解封裝（`-c:v copy`）沒遇過，帶 GPU 解碼參數時約一半機率；與 `-readrate` 無關。每次重試是獨立的，所以用 `ioStallSeconds` 提早偵測、多試幾次最有效：AC3 音軌在 8 個位置實測 7 次成功（多為 2～6 秒），偶爾仍會五次都失敗回 502。讀取量以 session 計，多軌同時轉時偵測不到，只剩 `stallTimeoutSeconds`。直接打 Jellyfin 重現同樣的 Range 順序不會卡。
 - 除錯：`xcode.json` 加 `"logSource": true` 會記錄每個原始檔請求（Range、狀態、位元組數、耗時，不含 token）。
 - 3070 Ti：NVENC 可編 H.264 / HEVC（不能編 AV1），NVDEC 可解 H.264 / HEVC / VP9 / AV1。消費級驅動有同時編碼數上限。
 - 遠端預設 shell 是 cmd，主控台編碼是 Big5（cp950）：需要中文輸出時先 `chcp 65001`，或用 PowerShell。連線時的 post-quantum 警告是 Windows 內建 OpenSSH 較舊所致，可忽略。
@@ -92,7 +93,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
 - 畫面：`HomeFragment`（主打＋繼續觀看／下一集／各庫最新）、`LibraryFragment`（海報格線、排序、類型篩選）、`MovieFragment`、`SeriesFragment`、`GridFragments`（播放清單、搜尋）、`SettingsFragment`、`LoginActivity`。
 - `PlayerActivity`：自訂 Media3 控制列 `player_controls.xml`（`exo_rew`／`exo_ffwd`／`exo_play_pause` 必須是 ImageView 系列，Media3 會強制轉型）、右側音軌／字幕面板。
 - `net/`（Endpoints 內網優先、JellyfinApi、XcodeApi）、`data/`（Settings、SubtitleTrack／SubtitleChooser、AudioTrack）。
-- 版面：手機（最短邊 < 600dp）直立、平板橫向（`ui/Layout.kt` 的 `applyPageOrientation`，MainActivity 旋轉時重建）。直立版面放 `layout-port/`、`values-port/`（由平板版調整而來，改平板版時一併檢查），平板畫面不受影響；手機用底部導覽列（首頁、媒體庫、搜尋、設定，媒體庫集中在 `LibrariesFragment`）。播放畫面一律橫向。沒有手機時可在 ZenPad 用 `adb shell wm density 320` 模擬（寬 400dp，系統的 ZenUI 鍵盤會因此當掉一次，按關閉即可），測完一定要 `wm density reset`。
+- 版面：手機（最短邊 < 600dp）直立、平板橫向（`ui/Layout.kt` 的 `applyPageOrientation`，MainActivity 旋轉時重建）。直立版面放 `layout-port/`、`values-port/`（由平板版調整而來，改平板版時一併檢查），平板畫面不受影響；手機用底部導覽列（首頁、媒體庫、搜尋、設定，媒體庫集中在 `LibrariesFragment`）。播放畫面一律橫向，延伸到瀏海／挖孔下方（`LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`，影片才會置中），控制列與右側面板依 displayCutout insets 留白。手機實測機：Redmi Note 8T（Android 16、arm64、1080×2340、水滴瀏海，Snapdragon 665：H.264／HEVC 10-bit 硬解到 4K，沒有 AC3 解碼器）。沒有手機時可在 ZenPad 用 `adb shell wm density 320` 模擬（寬 400dp，系統的 ZenUI 鍵盤會因此當掉一次，按關閉即可），測完一定要 `wm density reset`。
 - 視覺：深色底＋琥珀色強調（`values/colors.xml`），對照設計稿 artifact「Jellyfin Extra Android UI」。圖片一律帶 `maxWidth` 向 Jellyfin 要縮圖（heap 只有 128MB）。
 版本：AGP 9.4.1（內建 Kotlin）、Kotlin 編譯器 2.4.20（根目錄 `apply false` 放上 classpath，Coil 3.6 需要）、Gradle 9.8.0（wrapper 已鎖 SHA-256）、compileSdk 37（androidx.core 1.19 要求）、targetSdk 34、minSdk 24。版本集中在 `gradle/libs.versions.toml`。
 

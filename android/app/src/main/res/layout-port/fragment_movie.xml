@@ -57,25 +57,30 @@
                 android:textColor="@color/text_body"
                 android:textSize="15sp" />
 
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <!-- 手機寬度放不下一列三個按鈕：播放鍵獨佔一列，從頭播放與已看在第二列 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/play"
+                style="@style/Button.Primary"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:orientation="horizontal">
+                app:icon="@drawable/ic_play"
+                app:iconGravity="textStart" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/play"
-                    style="@style/Button.Primary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:icon="@drawable/ic_play" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/fromStart"
                     style="@style/Button.Outline"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_weight="1"
                     android:text="從頭播放" />
 
                 <com.google.android.material.button.MaterialButton
@@ -83,7 +88,6 @@
                     style="@style/Widget.Material3.Button.OutlinedButton.Icon"
                     android:layout_width="52dp"
                     android:layout_height="52dp"
-                    android:layout_marginStart="12dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:padding="0dp"

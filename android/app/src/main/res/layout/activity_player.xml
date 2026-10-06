@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/playerRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black">
@@ -32,11 +33,14 @@
         android:textColor="@android:color/white"
         android:visibility="gone" />
 
+    <!-- 放在中央按鈕下方：控制列出現時才不會疊在播放鍵上 -->
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:layout_marginTop="96dp"
+        android:gravity="center"
         android:padding="16dp"
         android:textColor="@android:color/white" />
 

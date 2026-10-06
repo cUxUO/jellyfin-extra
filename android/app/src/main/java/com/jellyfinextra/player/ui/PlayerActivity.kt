@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -116,6 +117,7 @@ class PlayerActivity : AppCompatActivity() {
         panelList.layoutManager = LinearLayoutManager(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemBars()
+        avoidDisplayCutout()
 
         itemId = intent.getStringExtra(EXTRA_ITEM_ID)!!
         startTicks = intent.getLongExtra(EXTRA_START_TICKS, 0)
@@ -279,6 +281,8 @@ class PlayerActivity : AppCompatActivity() {
 
     /** 標題下的狀態，例如「800p · HEVC · GPU 轉碼 · 自動」「直接播放 · HEVC 1080p」。 */
     private fun updateStatusLine() {
+        // 背景期間 session 已關掉，等回前景建好新的再更新，不要誤顯示成直接播放
+        if (suspendedAtMs != null) return
         val s = session
         val text = when {
             s != null -> {
@@ -326,6 +330,11 @@ class PlayerActivity : AppCompatActivity() {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (reportedStart) report { reportProgress(it) }
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            // 回前景重建 session 失敗後，按播放鍵再試一次
+            if (playWhenReady && suspendedAtMs != null && restoreJob?.isActive != true) restoreSession(autoplay = true)
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -379,7 +388,11 @@ class PlayerActivity : AppCompatActivity() {
     private fun showAudioPanel() {
         val tracks = mediaInfo?.audio ?: return
         val rows = mutableListOf<Row>(Row.Header("切換音軌會重新緩衝"))
-        tracks.forEach { t -> rows += Row.Option(t.title, if (t.isDefault) "預設" else "", t.index == currentAudio) { applyAudio(t) } }
+        // Jellyfin 的 DisplayTitle 通常已經帶「預設」
+        tracks.forEach { t ->
+            val note = if (t.isDefault && !t.title.contains("預設") && !t.title.contains("Default", ignoreCase = true)) "預設" else ""
+            rows += Row.Option(t.title, note, t.index == currentAudio) { applyAudio(t) }
+        }
         showPanel("音軌", rows)
     }
 
@@ -457,37 +470,48 @@ class PlayerActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.subtitle_image_needs_xcode, Toast.LENGTH_SHORT).show()
             return
         }
-        currentSubtitle = track
-        subtitleJob?.cancel()
-        subtitleStatus.visibility = View.GONE
-        subtitleOverlay.clear()
+        val previous = currentSubtitle
+        showSubtitle(track)
 
         // 燒錄狀態改變（換成圖形字幕、換另一條圖形字幕、或離開圖形字幕）才需要重建轉碼
         val burnNow = session?.burnedSubtitle ?: -1
         val burnWanted = track?.takeIf { it.isImage }?.index ?: -1
-        if (xcode != null && burnWanted != burnNow) reconfigure(burnWanted.takeIf { it >= 0 }, currentAudio)
+        if (xcode != null && burnWanted != burnNow) reconfigure(burnWanted.takeIf { it >= 0 }, currentAudio) { showSubtitle(previous) }
+    }
+
+    /** 換掉目前顯示的字幕；文字字幕向 Jellyfin 取 WebVTT，圖形字幕由轉碼燒錄。 */
+    private fun showSubtitle(track: SubtitleTrack?) {
+        currentSubtitle = track
+        subtitleJob?.cancel()
+        subtitleStatus.visibility = View.GONE
+        subtitleOverlay.clear()
         if (track != null && !track.isImage) loadTextSubtitle(track)
     }
 
     private fun applyAudio(track: AudioTrack) {
         if (track.index == currentAudio) return
+        val previous = currentAudio
         currentAudio = track.index
-        reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, track.index)
+        reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, track.index) { currentAudio = previous }
     }
 
     private fun applyQuality(q: Quality) {
         if (q == quality) return
+        val previous = quality
         quality = q
-        reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, currentAudio)
+        reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, currentAudio) { quality = previous }
     }
 
-    /** 音軌、燒錄字幕或畫質改變後，決定改成直接播放還是在目前位置重建轉碼 session。 */
-    private fun reconfigure(burnSubtitle: Int?, audioIndex: Int?) {
+    /**
+     * 音軌、燒錄字幕或畫質改變後，決定改成直接播放還是在目前位置重建轉碼 session。
+     * 轉碼建不起來時呼叫 [revert] 還原選擇，原本的播放繼續。
+     */
+    private fun reconfigure(burnSubtitle: Int?, audioIndex: Int?, revert: () -> Unit) {
         val chosenAudio = audioIndex?.takeIf { it != defaultAudio() }
         if (xcode != null && burnSubtitle == null && wantsDirect() && directPlayReason(chosenAudio, currentSubtitle) == null) {
             switchToDirect()
         } else {
-            restartSession(burnSubtitle, audioIndex)
+            restartSession(burnSubtitle, audioIndex, revert)
         }
     }
 
@@ -548,8 +572,11 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /** 在目前位置建立新的轉碼 session（燒錄字幕或音軌改變時），播放器接著播，舊 session 隨後刪除。 */
-    private fun restartSession(burnSubtitle: Int?, audioIndex: Int?) {
+    /**
+     * 在目前位置建立新的轉碼 session（燒錄字幕或音軌改變時），播放器接著播，舊 session 隨後刪除。
+     * 建立失敗時：有 [revert] 就還原選擇、繼續播原本的；沒有（原本的播放已經不能用）才顯示錯誤。
+     */
+    private fun restartSession(burnSubtitle: Int?, audioIndex: Int?, revert: (() -> Unit)? = null) {
         val api = xcode ?: return
         val p = player ?: return
         val old = session
@@ -562,7 +589,15 @@ class PlayerActivity : AppCompatActivity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                fail(e.message ?: e.toString())
+                val message = e.message ?: e.toString()
+                fileLog?.log("restart failed: $message")
+                if (revert == null) {
+                    fail(message)
+                } else {
+                    status.visibility = View.GONE
+                    revert()
+                    Toast.makeText(this@PlayerActivity, getString(R.string.switch_failed, message), Toast.LENGTH_LONG).show()
+                }
                 return@launch
             }
             session = s
@@ -635,7 +670,8 @@ class PlayerActivity : AppCompatActivity() {
         app.appScope.launch { runCatching { api.delete(s.id) } }
     }
 
-    private fun restoreSession() {
+    /** [autoplay]：使用者在重建失敗後按了播放鍵，建好就直接播。 */
+    private fun restoreSession(autoplay: Boolean = false) {
         val positionMs = suspendedAtMs ?: return
         val api = xcode ?: return
         val p = player ?: return
@@ -647,15 +683,16 @@ class PlayerActivity : AppCompatActivity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                fail(e.message ?: e.toString()) // 下次回前景會再試
+                // 按播放鍵（onPlayWhenReadyChanged）或下次回前景會再試
+                fail(getString(R.string.restore_failed, e.message ?: e.toString()))
                 return@launch
             }
             session = s
             currentAudio = s.audioIndex.takeIf { it >= 0 }
             suspendedAtMs = null
             updateStatusLine()
-            // 停在離開時的畫面，由使用者按播放
-            p.playWhenReady = false
+            // 停在離開時的畫面，由使用者按播放（重建期間已經按了播放就直接播）
+            p.playWhenReady = autoplay || p.playWhenReady
             p.setMediaItem(hlsItem(s), positionMs)
             p.prepare()
         }
@@ -682,10 +719,29 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun hideSystemBars() {
+        // 有瀏海或挖孔的手機：影片延伸到整個螢幕寬度並置中，否則會偏向沒有挖孔的一側
+        if (Build.VERSION.SDK_INT >= 28) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
+    /** 控制列與面板避開挖孔（影片本身延伸到挖孔下方）。 */
+    private fun avoidDisplayCutout() {
+        val bars = listOf(R.id.playerTopBar, R.id.playerBottomBar).map { playerView.findViewById<View>(it) }
+        val barPadding = bars.map { it.paddingLeft to it.paddingRight }
+        val panel = findViewById<View>(R.id.panel)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.playerRoot)) { _, insets ->
+            val c = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            bars.forEachIndexed { i, v -> v.setPadding(barPadding[i].first + c.left, v.paddingTop, barPadding[i].second + c.right, v.paddingBottom) }
+            panel.setPadding(0, 0, c.right, 0)
+            insets
         }
     }
 

@@ -5,6 +5,7 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import java.io.IOException
 
 /** Windows 轉碼伺服器的 API，見 server/internal/api。 */
 class XcodeApi(
@@ -75,6 +76,9 @@ class XcodeApi(
             JSONObject(http.fetch(req))
         } catch (e: HttpException) {
             throw HttpException(e.code, describe(e))
+        } catch (e: IOException) {
+            // 連線被拒、逾時等；原始訊息是英文且含位址，播放畫面上不好讀
+            throw IOException("連不到轉碼伺服器或沒有回應", e)
         }
         val video = o.optJSONObject("video") ?: JSONObject()
         return Session(
