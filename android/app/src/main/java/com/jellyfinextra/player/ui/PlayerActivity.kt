@@ -24,6 +24,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -98,6 +99,8 @@ class PlayerActivity : AppCompatActivity() {
     private var fileLog: PlaybackFileLog? = null
     private val playSessionId = UUID.randomUUID().toString()
     private var reportedStart = false
+    /** 直接播放時音訊無解碼器的提示只顯示一次。 */
+    private var warnedNoAudio = false
     private var progressJob: Job? = null
 
     /** 進背景時關掉轉碼 session 的位置；回到前景時從這裡建立新的。null 表示沒有。 */
@@ -195,7 +198,8 @@ class PlayerActivity : AppCompatActivity() {
         fileLog?.log("quality=$quality lan=$onLan direct=${directReason ?: "ok"}")
         if (xcodeBase != null) xcode = XcodeApi(app.http, app.settings, xcodeBase)
         val api = xcode
-        if (api != null && !(wantsDirect() && directReason == null)) {
+        // 「原檔」不管 DirectPlay 的判斷一律直接播放
+        if (api != null && quality != Quality.DIRECT && !(wantsDirect() && directReason == null)) {
             val s = try {
                 api.create(itemId, transcodeOptions(), startTicks, burnSubtitle = subtitle?.takeIf { it.isImage }?.index, audioIndex = audio)
             } catch (e: Exception) {
@@ -255,7 +259,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun defaultAudio(): Int? = mediaInfo?.audio?.let { a -> (a.firstOrNull { it.isDefault } ?: a.firstOrNull())?.index }
 
-    private fun wantsDirect() = quality == Quality.ORIGINAL || (quality == Quality.AUTO && onLan)
+    private fun wantsDirect() = quality == Quality.ORIGINAL || quality == Quality.DIRECT || (quality == Quality.AUTO && onLan)
 
     /** null 表示原始檔能直接播放；[audioIndex] 是使用者選的音軌（null 表示預設）。 */
     private fun directPlayReason(audioIndex: Int?, subtitle: SubtitleTrack?): String? {
@@ -267,7 +271,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun transcodeOptions(): XcodeApi.Options {
         val (w, h) = when (quality) {
             Quality.AUTO -> screenSize()
-            Quality.ORIGINAL -> 0 to 0
+            Quality.ORIGINAL, Quality.DIRECT -> 0 to 0
             else -> quality.maxWidth to quality.maxHeight
         }
         return XcodeApi.Options(Build.MODEL, DeviceCaps.xcodeCapabilities(), w, h, adaptive = quality == Quality.AUTO)
@@ -341,6 +345,24 @@ class PlayerActivity : AppCompatActivity() {
             if (playWhenReady && suspendedAtMs != null && restoreJob?.isActive != true) restoreSession(autoplay = true)
         }
 
+        /**
+         * 直接播放時檢查播放器實際能不能解：影像不支援時播放器照樣「就緒」，只有黑畫面
+         * （例如杜比視界 Profile 7、沒有對應解碼器），所以改轉碼；只有音訊不支援時提示沒有聲音。
+         */
+        override fun onTracksChanged(tracks: Tracks) {
+            if (session != null || playMethod != "DirectPlay" || suspendedAtMs != null) return
+            if (tracks.containsType(C.TRACK_TYPE_VIDEO) && !tracks.isTypeSupported(C.TRACK_TYPE_VIDEO, true)) {
+                fileLog?.log("direct play: video track unsupported")
+                if (xcode != null) fallbackToTranscode("影像格式不支援")
+                return
+            }
+            if (!warnedNoAudio && tracks.containsType(C.TRACK_TYPE_AUDIO) && !tracks.isTypeSupported(C.TRACK_TYPE_AUDIO, true)) {
+                warnedNoAudio = true
+                val codec = mediaInfo?.audio?.firstOrNull { it.index == defaultAudio() }?.codec?.uppercase().orEmpty()
+                Toast.makeText(this@PlayerActivity, getString(R.string.direct_no_audio, codec), Toast.LENGTH_LONG).show()
+            }
+        }
+
         override fun onVideoSizeChanged(videoSize: VideoSize) {
             updateStatusLine() // 自適應切換解析度時更新
         }
@@ -352,6 +374,11 @@ class PlayerActivity : AppCompatActivity() {
             val p = player
             if (p != null && p.duration > 0 && p.currentPosition > p.duration - END_TOLERANCE_MS) {
                 finish()
+                return
+            }
+            // 直接播放失敗（解碼器不支援等）時改用轉碼，不停在錯誤畫面
+            if (session == null && playMethod == "DirectPlay" && xcode != null) {
+                fallbackToTranscode(error.errorCodeName)
                 return
             }
             fail("播放錯誤：${error.errorCodeName}")
@@ -438,6 +465,7 @@ class PlayerActivity : AppCompatActivity() {
             val note = when (q) {
                 Quality.AUTO -> if (onLan && reason == null) "內網直接播放原始檔" else "依網速切換解析度"
                 Quality.ORIGINAL -> if (reason == null) "直接播放原始檔" else "最高畫質轉碼（$reason）"
+                Quality.DIRECT -> if (reason == null) "直接播放原始檔" else "強制播放原始檔，可能無法正常播放（$reason）"
                 else -> ""
             }
             rows += Row.Option(q.label, note, q == quality) { applyQuality(q) }
@@ -504,6 +532,10 @@ class PlayerActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.subtitle_image_needs_xcode, Toast.LENGTH_SHORT).show()
             return
         }
+        if (track?.isImage == true && quality == Quality.DIRECT) {
+            Toast.makeText(this, R.string.direct_no_image_subtitle, Toast.LENGTH_LONG).show()
+            return
+        }
         val previous = currentSubtitle
         showSubtitle(track)
 
@@ -524,6 +556,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun applyAudio(track: AudioTrack) {
         if (track.index == currentAudio) return
+        if (quality == Quality.DIRECT && track.index != defaultAudio()) {
+            Toast.makeText(this, R.string.direct_default_audio_only, Toast.LENGTH_LONG).show()
+            return
+        }
         val previous = currentAudio
         currentAudio = track.index
         reconfigure(session?.burnedSubtitle?.takeIf { it >= 0 }, track.index) { currentAudio = previous }
@@ -542,7 +578,7 @@ class PlayerActivity : AppCompatActivity() {
      */
     private fun reconfigure(burnSubtitle: Int?, audioIndex: Int?, revert: () -> Unit) {
         val chosenAudio = audioIndex?.takeIf { it != defaultAudio() }
-        if (xcode != null && burnSubtitle == null && wantsDirect() && directPlayReason(chosenAudio, currentSubtitle) == null) {
+        if (xcode != null && (quality == Quality.DIRECT || burnSubtitle == null && wantsDirect() && directPlayReason(chosenAudio, currentSubtitle) == null)) {
             switchToDirect()
         } else {
             restartSession(burnSubtitle, audioIndex, revert)
@@ -559,9 +595,18 @@ class PlayerActivity : AppCompatActivity() {
             val p = player ?: return@launch
             if (session == null && playMethod == "DirectPlay" && p.playbackState != Player.STATE_READY && suspendedAtMs == null) {
                 fileLog?.log("direct play not ready after ${DIRECT_PLAY_TIMEOUT_MS}ms, falling back to transcode")
-                restartSession(currentSubtitle?.takeIf { it.isImage }?.index, currentAudio)
+                fallbackToTranscode("${DIRECT_PLAY_TIMEOUT_MS / 1000} 秒內沒有開始播放")
             }
         }
+    }
+
+    /** 直接播放播不起來：改成轉碼（「原檔」改用最高畫質），並告訴使用者原因。 */
+    private fun fallbackToTranscode(why: String) {
+        if (quality == Quality.DIRECT) {
+            quality = Quality.ORIGINAL
+            Toast.makeText(this, getString(R.string.direct_fallback, why), Toast.LENGTH_LONG).show()
+        }
+        restartSession(currentSubtitle?.takeIf { it.isImage }?.index, currentAudio)
     }
 
     /** 改成直接播放原始檔：從目前位置接著播，停掉轉碼 session。 */
@@ -573,6 +618,8 @@ class PlayerActivity : AppCompatActivity() {
         session = null
         playMethod = "DirectPlay"
         currentAudio = defaultAudio()
+        // 直接播放無法燒錄圖形字幕
+        if (currentSubtitle?.isImage == true) showSubtitle(null)
         p.setMediaItem(directItem(jf), positionMs)
         p.prepare()
         updateStatusLine()

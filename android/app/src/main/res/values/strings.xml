@@ -23,6 +23,10 @@
     <string name="direct_play">轉碼伺服器離線，改為直接播放</string>
     <string name="loading_original">載入原始檔中…</string>
     <string name="retry">重試</string>
+    <string name="direct_fallback">原檔無法在這台裝置播放（%1$s），已改為最高畫質轉碼</string>
+    <string name="direct_no_audio">這台裝置無法播放原檔的音訊（%1$s），會沒有聲音；要有聲音請改選其他畫質</string>
+    <string name="direct_no_image_subtitle">原檔播放無法顯示圖形字幕，請改選其他畫質</string>
+    <string name="direct_default_audio_only">原檔播放只能播預設音軌，請改選其他畫質</string>
     <string name="switch_failed">切換失敗，繼續播放原本的設定（%1$s）</string>
     <string name="restore_failed">%1$s\n按播放鍵重試</string>
     <string name="subtitles">字幕</string>

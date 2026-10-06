@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-06T08:03:09Z",
+  "updated_at": "2026-10-06T08:12:12Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     "CLAUDE.md": {
       "role": "index",
-      "sha256": "3ab3b86aa1a5264363c783819ad447804f07fe856941d9522da90e168ed20e5b",
-      "size": 25669,
-      "normalized_sha256": "3ab3b86aa1a5264363c783819ad447804f07fe856941d9522da90e168ed20e5b"
+      "sha256": "94b177231ebd090b556392be32ed3221f0ccddc213638d58fa1c6141026c876f",
+      "size": 26005,
+      "normalized_sha256": "94b177231ebd090b556392be32ed3221f0ccddc213638d58fa1c6141026c876f"
     },
     "android/.gitignore": {
       "role": "index",
@@ -77,9 +77,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/data/Quality.kt": {
       "role": "index",
-      "sha256": "82b14ffddb6987581599ab4fde446d4ac378a1444712ad65036c5951f102402c",
-      "size": 817,
-      "normalized_sha256": "82b14ffddb6987581599ab4fde446d4ac378a1444712ad65036c5951f102402c"
+      "sha256": "0895684756300881253198096c074a048424f3656c6f4cefd8bb18201b29ee55",
+      "size": 1005,
+      "normalized_sha256": "0895684756300881253198096c074a048424f3656c6f4cefd8bb18201b29ee55"
     },
     "android/app/src/main/java/com/jellyfinextra/player/data/Settings.kt": {
       "role": "index",
@@ -191,9 +191,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
       "role": "index",
-      "sha256": "1a622cd2fd27912c994a0f6775d19d59613b1e1dd67ecdf38bfe1d9ccda91053",
-      "size": 37398,
-      "normalized_sha256": "1a622cd2fd27912c994a0f6775d19d59613b1e1dd67ecdf38bfe1d9ccda91053"
+      "sha256": "7586dfe57c3e2b536e141647254720d538b2ba8bc0f3530984e7c7e001276f21",
+      "size": 40265,
+      "normalized_sha256": "7586dfe57c3e2b536e141647254720d538b2ba8bc0f3530984e7c7e001276f21"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
       "role": "index",
@@ -605,9 +605,9 @@
     },
     "android/app/src/main/res/values/strings.xml": {
       "role": "index",
-      "sha256": "32e02735e548f0a1b2eb874310452d1f259c8f90b8edb185d3c3bfd16616c72b",
-      "size": 2130,
-      "normalized_sha256": "32e02735e548f0a1b2eb874310452d1f259c8f90b8edb185d3c3bfd16616c72b"
+      "sha256": "5a6b62609fc465627897ca86cdd54f4f6be92f005da62b54a18044386d74ba23",
+      "size": 2622,
+      "normalized_sha256": "5a6b62609fc465627897ca86cdd54f4f6be92f005da62b54a18044386d74ba23"
     },
     "android/app/src/main/res/values/themes.xml": {
       "role": "index",
@@ -700,9 +700,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "6848ceb67889f395a020f0b07fa0d984936cf60bf995e228726be0f11f85ec10",
-      "size": 65938,
-      "normalized_sha256": "6848ceb67889f395a020f0b07fa0d984936cf60bf995e228726be0f11f85ec10"
+      "sha256": "7f16d0ce18ff686f8e437131fec39331d660e066c15c75104c7738ef7a36a553",
+      "size": 66046,
+      "normalized_sha256": "7f16d0ce18ff686f8e437131fec39331d660e066c15c75104c7738ef7a36a553"
     },
     "aoci.meta.txt": {
       "role": "index",
