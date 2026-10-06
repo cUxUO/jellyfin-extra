@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-06T07:41:12Z",
+  "updated_at": "2026-10-06T07:59:41Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -113,9 +113,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/net/JellyfinApi.kt": {
       "role": "index",
-      "sha256": "dab4a25c6fdd3b2cd3ed3e6eece700286387c7ea1cfa20b47fb31b97298b7358",
-      "size": 19558,
-      "normalized_sha256": "dab4a25c6fdd3b2cd3ed3e6eece700286387c7ea1cfa20b47fb31b97298b7358"
+      "sha256": "701db55416f099952e689b1b6bedfa564e38a8997f4e9b5fb31cd0bd1793d614",
+      "size": 22042,
+      "normalized_sha256": "701db55416f099952e689b1b6bedfa564e38a8997f4e9b5fb31cd0bd1793d614"
     },
     "android/app/src/main/java/com/jellyfinextra/player/net/Updater.kt": {
       "role": "index",
@@ -191,9 +191,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
       "role": "index",
-      "sha256": "194c57112feaab59893d0b81923eff47bb8e37dca3fd3f704d80c602284a101b",
-      "size": 37277,
-      "normalized_sha256": "194c57112feaab59893d0b81923eff47bb8e37dca3fd3f704d80c602284a101b"
+      "sha256": "1a622cd2fd27912c994a0f6775d19d59613b1e1dd67ecdf38bfe1d9ccda91053",
+      "size": 37398,
+      "normalized_sha256": "1a622cd2fd27912c994a0f6775d19d59613b1e1dd67ecdf38bfe1d9ccda91053"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
       "role": "index",
@@ -700,9 +700,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "be1edc8e1a12299331c39c36306bc05a080b91e614ced65b0863a144ac3a1431",
-      "size": 65902,
-      "normalized_sha256": "be1edc8e1a12299331c39c36306bc05a080b91e614ced65b0863a144ac3a1431"
+      "sha256": "6848ceb67889f395a020f0b07fa0d984936cf60bf995e228726be0f11f85ec10",
+      "size": 65938,
+      "normalized_sha256": "6848ceb67889f395a020f0b07fa0d984936cf60bf995e228726be0f11f85ec10"
     },
     "aoci.meta.txt": {
       "role": "index",

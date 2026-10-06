@@ -264,6 +264,8 @@ class JellyfinApi(
         val audio: List<AudioTrack>,
         val subtitles: List<SubtitleTrack>,
         val videoDescription: String?,
+        /** 原檔格式，例如「4K HEVC 10-bit Dolby Vision · MKV · 62 Mbps · TrueHD 7.1」（畫質面板顯示用）。 */
+        val sourceFormat: String = "",
         /** 以下判斷能否直接播放用（[com.jellyfinextra.player.data.DirectPlay]）。 */
         val container: String = "",
         val bitrate: Long = 0,
@@ -295,8 +297,11 @@ class JellyfinApi(
             )
         }
         val video = all.firstOrNull { it.optString("Type") == "Video" }
+        val audioStreams = all.filter { it.optString("Type") == "Audio" }
+        val defaultAudio = audioStreams.firstOrNull { it.optBoolean("IsDefault") } ?: audioStreams.firstOrNull()
         return MediaInfo(
             src.getString("Id"), audio, subs, video?.let { describeVideo(it) },
+            sourceFormat = describeSource(src, video, defaultAudio),
             container = src.optString("Container"),
             bitrate = src.optLong("Bitrate"),
             video = video?.let {
@@ -333,6 +338,52 @@ class JellyfinApi(
         val codec = v.optString("Codec").uppercase().takeIf { range == null && it.isNotEmpty() }
         val depth = v.optInt("BitDepth").takeIf { range == null && it > 8 }?.let { "$it-bit" }
         return listOfNotNull(res.takeIf { it.isNotEmpty() }, range, codec, depth).joinToString(" ")
+    }
+
+    /** 原檔的完整格式：影像（解析度、編碼、位元深度、HDR 類型）· 容器 · 位元率 · 預設音軌。 */
+    private fun describeSource(src: JSONObject, video: JSONObject?, audio: JSONObject?): String {
+        val v = video?.let {
+            val h = it.optInt("Height")
+            val w = it.optInt("Width")
+            val res = when {
+                w >= 3200 || h >= 2000 -> "4K"
+                h >= 1000 || w >= 1800 -> "1080p"
+                h >= 700 -> "720p"
+                h > 0 -> "${h}p"
+                else -> null
+            }
+            val range = when (val t = it.optString("VideoRangeType")) {
+                "SDR", "", "Unknown" -> null
+                "HDR10Plus" -> "HDR10+"
+                else -> if (t.startsWith("DOVI")) "Dolby Vision" else t
+            }
+            val depth = it.optInt("BitDepth").takeIf { d -> d > 8 }?.let { d -> "$d-bit" }
+            listOfNotNull(res, codecName(it.optString("Codec")), depth, range).joinToString(" ")
+        }
+        // Container 可能是逗號分隔的別名清單，例如 mkv,webm
+        val container = src.optString("Container").substringBefore(',').uppercase().takeIf { it.isNotEmpty() }
+        val bitrate = src.optLong("Bitrate").takeIf { it > 0 }?.let { "${(it + 500_000) / 1_000_000} Mbps" }
+        val a = audio?.let {
+            val ch = when (val n = it.optInt("Channels")) {
+                0 -> null
+                1 -> "單聲道"
+                2 -> "立體聲"
+                else -> "${n - 1}.1"
+            }
+            listOfNotNull(codecName(it.optString("Codec")), ch).joinToString(" ")
+        }
+        return listOfNotNull(v, container, bitrate, a).filter { it.isNotEmpty() }.joinToString(" · ")
+    }
+
+    private fun codecName(codec: String): String? = when (codec.lowercase()) {
+        "" -> null
+        "h264" -> "H.264"
+        "hevc" -> "HEVC"
+        "mpeg2video" -> "MPEG-2"
+        "truehd" -> "TrueHD"
+        "eac3" -> "E-AC3"
+        "dca", "dts" -> "DTS"
+        else -> codec.uppercase()
     }
 
     /** 使用者在 Jellyfin 設定的字幕語言偏好（ISO 639-2，例如 chi），沒設定時回傳 null。 */

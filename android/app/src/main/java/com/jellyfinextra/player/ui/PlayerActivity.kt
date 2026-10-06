@@ -431,7 +431,9 @@ class PlayerActivity : AppCompatActivity() {
     private fun showQualityPanel() {
         val maxH = DeviceCaps.maxTranscodeHeight
         val reason = directPlayReason(currentAudio.takeIf { it != defaultAudio() }, currentSubtitle)
-        val rows = mutableListOf<Row>(Row.Header("硬解：${DeviceCaps.describe()}"))
+        val rows = mutableListOf<Row>()
+        mediaInfo?.sourceFormat?.takeIf { it.isNotEmpty() }?.let { rows += Row.Header("原檔：$it") }
+        rows += Row.Header("硬解：${DeviceCaps.describe()}")
         Quality.entries.filter { it.maxHeight <= maxH }.forEach { q ->
             val note = when (q) {
                 Quality.AUTO -> if (onLan && reason == null) "內網直接播放原始檔" else "依網速切換解析度"
