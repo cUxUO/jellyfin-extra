@@ -94,13 +94,15 @@ func FromCaps(name string, c Capabilities) (Profile, error) {
 }
 
 // levelFor 是能涵蓋這個尺寸（30fps）的編碼 level。
+// HEVC 1080p 用 4.1 而不是 4：level 4 的 CPB 上限 12 Mbit，1080p 8 Mbps 的 -bufsize（2 倍）是 16 Mbit，
+// hevc_nvenc 會以「Invalid Level」拒絕開啟（2026-10 實測）；4.1 的上限是 20 Mbit，也涵蓋 1080p60。
 func levelFor(codec string, w, h int) string {
 	px := w * h
 	switch {
 	case codec == "hevc" && px <= 1280*720:
 		return "3.1"
 	case codec == "hevc":
-		return "4"
+		return "4.1"
 	case px <= 1280*720:
 		return "3.1"
 	default:

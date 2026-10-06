@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -63,13 +64,23 @@ func TestHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-type fakeRegistry struct{ registered map[string]bool }
+type fakeRegistry struct {
+	registered map[string]bool
+	reading    atomic.Bool // true 時每次查詢讀取量都增加，模擬 ffmpeg 持續讀來源
+	read       atomic.Int64
+}
 
 func (f *fakeRegistry) Register(id, _, _, _ string) string {
 	f.registered[id] = true
 	return "http://127.0.0.1:1/src/" + id
 }
 func (f *fakeRegistry) Unregister(id string) { delete(f.registered, id) }
+func (f *fakeRegistry) BytesRead(string) int64 {
+	if f.reading.Load() {
+		return f.read.Add(1)
+	}
+	return f.read.Load()
+}
 
 func newTestManager(t *testing.T, mode string, max int) (*Manager, *fakeRegistry) {
 	t.Helper()
@@ -275,6 +286,37 @@ func TestStalledRunIsRestarted(t *testing.T) {
 	}
 	if d := time.Since(start); d > 3*time.Second {
 		t.Fatalf("took %s; stall retry should kick in after StallTimeout", d)
+	}
+}
+
+func TestRunWithoutSourceReadsIsRestartedEarly(t *testing.T) {
+	m, _ := newTestManager(t, "stall-once", 1)
+	m.cfg.StallTimeout = time.Minute // 只靠沒有讀取來判斷
+	m.cfg.IOStallTimeout = 300 * time.Millisecond
+	start := time.Now()
+	s, err := m.Start(context.Background(), params(31))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.mu.Lock()
+	attempt := s.Variants[0].run.attempt
+	s.mu.Unlock()
+	if attempt != 1 {
+		t.Fatalf("attempt = %d, want 1", attempt)
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Fatalf("took %s; restart should kick in after IOStallTimeout", d)
+	}
+}
+
+func TestRunStillReadingIsNotRestartedEarly(t *testing.T) {
+	m, reg := newTestManager(t, "stall-once", 1)
+	reg.reading.Store(true) // 還在讀（例如 Cues 不完整時循序讀到目標），不算沒有讀取
+	m.cfg.StallTimeout = 0
+	m.cfg.IOStallTimeout = 200 * time.Millisecond
+	m.cfg.ReadyTimeout = time.Second
+	if _, err := m.Start(context.Background(), params(31)); !errors.Is(err, ErrNotReady) {
+		t.Fatalf("err = %v, want ErrNotReady (no restart while reading)", err)
 	}
 }
 

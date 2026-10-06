@@ -40,8 +40,9 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 // ffmpeg 至少以 2 倍速前進，等兩段約 3 秒，和重新啟動的成本差不多。
 const lookahead = 2
 
-// maxRetries：一次執行一段都沒轉出就停滯（超過 StallTimeout）或失敗結束時，從同一段重新啟動的次數上限。
-const maxRetries = 2
+// maxRetries：一次執行一段都沒轉出就停滯（超過 StallTimeout 或 IOStallTimeout）或失敗結束時，從同一段重新啟動的次數上限。
+// 卡住的機率每次獨立（大型 MKV 約一半），多試幾次比拉長等待有效；5 次執行約 15～25 秒，仍在 ReadyTimeout 內。
+const maxRetries = 4
 
 type Config struct {
 	FFmpegPath   string
@@ -52,7 +53,11 @@ type Config struct {
 	// StallTimeout：一次 ffmpeg 執行在這段時間內一段都沒轉出就重新啟動（0 表示不重試）。
 	// FFmpeg 經 HTTP 跳轉大型 MKV 時，延後解析的 Cues 索引有機率不完整（上游問題，8.1 與 9.0 皆然），
 	// 只能從較前面的位置循序讀到目標，大檔要讀好幾 GB；同樣的跳轉重新啟動通常就正常。
-	StallTimeout   time.Duration
+	StallTimeout time.Duration
+	// IOStallTimeout：一次 ffmpeg 執行一段都沒轉出、而且這段時間內沒從來源讀到任何資料，就提早重新啟動（0 表示不檢查）。
+	// 另一種上游問題：讀完檔尾的 Cues 後不再發出任何請求、CPU 為 0，等多久都不會動；重新啟動通常就正常。
+	// 讀取量以 session 計，多軌同時轉時其他軌的讀取會蓋過，這時只剩 StallTimeout 有效。
+	IOStallTimeout time.Duration
 	SegmentSeconds int
 }
 
@@ -147,11 +152,14 @@ type run struct {
 	startSeg int
 	started  time.Time
 	attempt  int // 一段都沒轉出而重新啟動的次數（停滯或失敗）
-	cancel   context.CancelFunc
-	done     chan struct{}
-	err      error
-	stderr   *tail
-	next     int // 從 startSeg 起連續存在的下一段，快取用，只在 Session.mu 下讀寫
+	// 最後一次看到來源讀取量變化的時間與當時的值，只在 Session.mu 下讀寫
+	ioAt    time.Time
+	ioBytes int64
+	cancel  context.CancelFunc
+	done    chan struct{}
+	err     error
+	stderr  *tail
+	next    int // 從 startSeg 起連續存在的下一段，快取用，只在 Session.mu 下讀寫
 }
 
 func (r *run) finished() bool {
@@ -351,7 +359,9 @@ func (m *Manager) startRunAttempt(s *Session, v *Variant, startSeg, attempt int)
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r := &run{startSeg: startSeg, started: time.Now(), attempt: attempt, cancel: cancel, done: make(chan struct{}), stderr: &tail{max: 4096}, next: startSeg}
+	now := time.Now()
+	r := &run{startSeg: startSeg, started: now, attempt: attempt, ioAt: now, ioBytes: m.src.BytesRead(s.ID),
+		cancel: cancel, done: make(chan struct{}), stderr: &tail{max: 4096}, next: startSeg}
 	cmd := m.command(ctx, m.cfg.FFmpegPath, args...)
 	proc.NoWindow(cmd)
 	cmd.Dir = v.Dir
@@ -426,10 +436,10 @@ func (m *Manager) waitSegment(ctx context.Context, s *Session, v *Variant, n int
 	}
 }
 
-// retryIfStalled 在 r 超過 StallTimeout 仍一段都沒轉出時，從同一段重新啟動。
+// retryIfStalled 在 r 一段都沒轉出、且超過 StallTimeout 或 IOStallTimeout 沒讀到來源時，從同一段重新啟動。
 // 多個等待者可能同時發現；只有 r 仍是目前的執行時才重新啟動。
 func (m *Manager) retryIfStalled(s *Session, v *Variant, r *run) {
-	if r == nil || m.cfg.StallTimeout <= 0 || r.attempt >= maxRetries || time.Since(r.started) < m.cfg.StallTimeout {
+	if r == nil || r.attempt >= maxRetries || (m.cfg.StallTimeout <= 0 && m.cfg.IOStallTimeout <= 0) {
 		return
 	}
 	s.mu.Lock()
@@ -437,8 +447,21 @@ func (m *Manager) retryIfStalled(s *Session, v *Variant, r *run) {
 	if v.run != r || r.finished() || s.frontier(v, r) > r.startSeg {
 		return
 	}
-	m.log.Printf("session %s: no segment from seg %d after %s, retrying (%d/%d)",
-		s.label(v), r.startSeg, m.cfg.StallTimeout, r.attempt+1, maxRetries)
+	now := time.Now()
+	if b := m.src.BytesRead(s.ID); b != r.ioBytes {
+		r.ioBytes, r.ioAt = b, now
+	}
+	var why string
+	switch {
+	case m.cfg.IOStallTimeout > 0 && now.Sub(r.ioAt) >= m.cfg.IOStallTimeout:
+		why = fmt.Sprintf("no source reads for %s", m.cfg.IOStallTimeout)
+	case m.cfg.StallTimeout > 0 && now.Sub(r.started) >= m.cfg.StallTimeout:
+		why = fmt.Sprintf("after %s", m.cfg.StallTimeout)
+	default:
+		return
+	}
+	m.log.Printf("session %s: no segment from seg %d %s, retrying (%d/%d)",
+		s.label(v), r.startSeg, why, r.attempt+1, maxRetries)
 	if err := m.startRunAttempt(s, v, r.startSeg, r.attempt+1); err != nil {
 		m.log.Printf("session %s: retry: %v", s.label(v), err)
 	}

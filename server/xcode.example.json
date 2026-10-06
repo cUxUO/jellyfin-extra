@@ -7,5 +7,6 @@
   "idleTimeoutSeconds": 120,
   "readyTimeoutSeconds": 30,
   "stallTimeoutSeconds": 5,
+  "ioStallSeconds": 3,
   "segmentSeconds": 3
 }

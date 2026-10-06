@@ -22,7 +22,9 @@ type config struct {
 	ReadyTimeoutSeconds int    `json:"readyTimeoutSeconds"`
 	// StallTimeoutSeconds：ffmpeg 啟動後這麼久一段都沒轉出就重新啟動（0 表示不重試）。
 	StallTimeoutSeconds int `json:"stallTimeoutSeconds"`
-	SegmentSeconds      int `json:"segmentSeconds"`
+	// IOStallSeconds：一段都沒轉出、且這麼久沒從來源讀到資料就提早重新啟動（0 表示不檢查）。
+	IOStallSeconds int `json:"ioStallSeconds"`
+	SegmentSeconds int `json:"segmentSeconds"`
 	// LogSource 記錄每個原始檔請求（除錯用）。
 	LogSource bool `json:"logSource"`
 }
@@ -34,6 +36,7 @@ func loadConfig(path string) (config, error) {
 		IdleTimeoutSeconds:  120,
 		ReadyTimeoutSeconds: 30,
 		StallTimeoutSeconds: 5,
+		IOStallSeconds:      3,
 		SegmentSeconds:      3,
 	}
 	b, err := os.ReadFile(path)
@@ -64,8 +67,8 @@ func loadConfig(path string) (config, error) {
 		return c, errors.New("config: ffmpegPath is required")
 	case c.WorkDir == "":
 		return c, errors.New("config: workDir is required")
-	case c.MaxSessions < 1 || c.IdleTimeoutSeconds < 10 || c.ReadyTimeoutSeconds < 1 || c.StallTimeoutSeconds < 0 || c.SegmentSeconds < 1:
-		return c, errors.New("config: maxSessions, idleTimeoutSeconds (>=10), readyTimeoutSeconds, segmentSeconds must be positive")
+	case c.MaxSessions < 1 || c.IdleTimeoutSeconds < 10 || c.ReadyTimeoutSeconds < 1 || c.StallTimeoutSeconds < 0 || c.IOStallSeconds < 0 || c.SegmentSeconds < 1:
+		return c, errors.New("config: maxSessions, idleTimeoutSeconds (>=10), readyTimeoutSeconds, segmentSeconds must be positive; stall timeouts must not be negative")
 	}
 	return c, nil
 }
@@ -78,6 +81,7 @@ func (c config) session() session.Config {
 		IdleTimeout:    time.Duration(c.IdleTimeoutSeconds) * time.Second,
 		ReadyTimeout:   time.Duration(c.ReadyTimeoutSeconds) * time.Second,
 		StallTimeout:   time.Duration(c.StallTimeoutSeconds) * time.Second,
+		IOStallTimeout: time.Duration(c.IOStallSeconds) * time.Second,
 		SegmentSeconds: c.SegmentSeconds,
 	}
 }

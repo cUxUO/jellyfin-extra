@@ -24,6 +24,8 @@ import (
 type Registry interface {
 	Register(sessionID, itemID, mediaSourceID, token string) (inputURL string)
 	Unregister(sessionID string)
+	// BytesRead 是 session 的 ffmpeg 至今從來源讀到的位元組數，用來判斷 ffmpeg 是否卡住不讀。
+	BytesRead(sessionID string) int64
 }
 
 type entry struct {

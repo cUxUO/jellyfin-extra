@@ -187,7 +187,7 @@ func TestFromCapsAndLadder(t *testing.T) {
 		t.Fatalf("profile = %+v, %v", p, err)
 	}
 	top, err := Build(p, src, Request{})
-	if err != nil || top.Width != 1920 || top.Height != 804 || top.CodecLevel != "4" {
+	if err != nil || top.Width != 1920 || top.Height != 804 || top.CodecLevel != "4.1" {
 		t.Fatalf("top = %dx%d level %s, %v", top.Width, top.Height, top.CodecLevel, err)
 	}
 	plans := Ladder(p, top, 4)
@@ -229,6 +229,15 @@ func TestFromCapsAndLadder(t *testing.T) {
 	p, err = FromCaps("phone", Capabilities{Decoders: []Decoder{{"h264", 8192, 8192}, {"hevc", 8192, 8192}}})
 	if err != nil || p.VideoCodec != "hevc" || p.MaxWidth != 1920 || p.MaxHeight != 1088 {
 		t.Errorf("phone profile = %+v, %v", p, err)
+	}
+	// 4K HDR 片源縮成 1080p HEVC：-bufsize（2 倍位元率）要在 level 的 CPB 上限內，否則 hevc_nvenc 拒絕開啟
+	top, _ = Build(p, source(jellyfin.MediaStream{Type: "Video", Codec: "hevc", Width: 3840, Height: 2160, BitRate: 60_000_000, VideoRange: "HDR"}), Request{MaxWidth: 2340, MaxHeight: 1080})
+	cpb := map[string]int64{"3.1": 10_000_000, "4": 12_000_000, "4.1": 20_000_000}[top.CodecLevel]
+	if top.Width != 1920 || top.Height != 1080 || top.VideoBitrate*2 > cpb {
+		t.Errorf("1080p HEVC = %dx%d level %s bitrate %d", top.Width, top.Height, top.CodecLevel, top.VideoBitrate)
+	}
+	if c := top.CodecsAttr(); c != "hvc1.1.6.L123.90" {
+		t.Errorf("codecs = %s", c)
 	}
 	if _, err := FromCaps("x", Capabilities{Decoders: []Decoder{{"h264", 20000, 1080}}}); err == nil {
 		t.Error("absurd size accepted")
