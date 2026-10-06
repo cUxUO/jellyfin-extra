@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-06T07:59:41Z",
+  "updated_at": "2026-10-06T08:03:09Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -35,9 +35,9 @@
     },
     "android/app/build.gradle.kts": {
       "role": "index",
-      "sha256": "1d5dd1f67555b865208147eb5227839cb879fd1c97b0e119b38ab14a487c543f",
+      "sha256": "54269dad08edffd8411025614f36df1dd45a3694a54141037f681ba512afb6da",
       "size": 3917,
-      "normalized_sha256": "1d5dd1f67555b865208147eb5227839cb879fd1c97b0e119b38ab14a487c543f"
+      "normalized_sha256": "54269dad08edffd8411025614f36df1dd45a3694a54141037f681ba512afb6da"
     },
     "android/app/src/debug/AndroidManifest.xml": {
       "role": "index",
