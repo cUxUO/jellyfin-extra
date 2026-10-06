@@ -18,7 +18,7 @@ settings.gradle.kts[FV3T]: F:外掛與依賴的倉庫設定、專案名稱與 :a
 build.gradle.kts[FV7S]: F:App 模組建置：SDK 版本、版本號、ABI 分包、release 簽章、更新來源 BuildConfig 與相依 | R:code:android/gradle/libs.versions.toml,code:android/gradle.properties | A:android,abiCodes,signing,androidComponents,dependencies | S:versionCode=基礎×10+ABI 碼，Updater 靠個位數判斷 ABI；簽章讀主機掛入的 ~/.config/jellyfin-extra，沒有時 release 直接報錯；minSdk 24 靠 desugaring
 
 ===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/===
-AndroidManifest.xml[FU6T]: F:宣告 App、各 Activity、INTERNET 與安裝更新權限、網路安全設定、更新檔的 FileProvider | R:code:android/app/src/main/res/xml/update_paths.xml,code:android/app/src/main/java/com/jellyfinextra/player/ui/Layout.kt | A:App,MainActivity,PlayerActivity,FileProvider | S:MainActivity 不設方向也不自行處理旋轉（由程式決定、重建載入直立版面）；FileProvider authority 必須是 applicationId.updates
+AndroidManifest.xml[FU6T]: F:宣告 App（含啟動圖示）、各 Activity、INTERNET 與安裝更新權限、網路安全設定、更新檔的 FileProvider | R:code:android/app/src/main/res/xml/update_paths.xml,code:android/app/src/main/java/com/jellyfinextra/player/ui/Layout.kt,code:android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml | A:App,MainActivity,PlayerActivity,FileProvider | S:MainActivity 不設方向也不自行處理旋轉（由程式決定、重建載入直立版面）；FileProvider authority 必須是 applicationId.updates
 
 ===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/java/com/jellyfinextra/player/===
 App.kt[RG7T]: F:Application：持有 Settings、共用 OkHttp、appScope、目前 Jellyfin 位址與播放收尾 Job，並設定 Coil 圖片快取 | R:code:android/app/src/main/java/com/jellyfinextra/player/net/Http.kt,code:android/app/src/main/java/com/jellyfinextra/player/data/Settings.kt | A:App,app,appScope,jellyfinBase,playbackCleanup | S:列表重新載入前須 join playbackCleanup，否則停止回報未送出、進度是舊的；圖片記憶體快取壓在 20%（heap 只有 128MB）
@@ -92,6 +92,7 @@ scrim_left.xml[FU2T]: F:背景圖左側壓暗漸層，讓標題與說明在任�
 scrim_player_bottom.xml[FU2T]: F:播放控制列底部的黑色漸層 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
 scrim_player_top.xml[FU2T]: F:播放控制列頂部的黑色漸層 | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
 ic_quality.xml[FU1T]: F:播放器畫質按鈕的線條圖示（兩條滑桿） | R:code:android/app/src/main/res/layout/player_controls.xml | A:- | S:-
+ic_launcher_foreground.xml[FU3T]: F:啟動圖示前景：108dp 畫布上的深色播放三角形，也用作主題色單色圖示 | R:code:android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml,code:tools/make_android_icons.py | A:- | S:三角形比例要與 iOS 及 Android 7 的 PNG 圖示一致
 
 ===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/layout/===
 activity_login.xml[FU4S]: F:登入畫面：520dp 置中一欄的 Material 外框欄位（內網位址、外部網址、帳密）與登入鈕 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/LoginActivity.kt | A:lanJellyfin,lanXcode,external,username,password,login | S:-
@@ -265,6 +266,7 @@ proxy.go[IN8M]: F:127.0.0.1 上的原始檔 proxy：依 session 轉發 Jellyfin 
 jf-login.sh[XI4T]: F:互動輸入密碼登入 Jellyfin，把 token 存到 ~/.config/jellyfin-extra/token（權限 600）供開發測試 | R:code:CLAUDE.md | A:- | S:token 不可印出或寫進其他檔案，讀取時用 $(cat …)
 make_xcode_icon.py[XV3T]: F:純 Python 產生轉碼伺服器的多尺寸 icon.ico（琥珀圓角方塊加播放三角形） | R:code:server/cmd/xcode/tray_windows.go | A:render,main | S:改圖示後要用 go-winres 重新產生 exe 的 .syso
 publish-android.sh[XV6T]: F:在主機用 gh 把已建置的兩個 release APK 發布成 GitHub Release（tag v版本，打在目前 commit） | R:code:android/gradle.properties,code:android/app/build.gradle.kts | A:- | S:android/ 有未提交變更或 commit 未推送就拒絕；資產名 JellyfinExtra-版本-abi.apk 是 Updater 的比對依據
+make_android_icons.py[XV3T]: F:純 Python 產生 Android 7 用的各密度啟動圖示 PNG（琥珀圓角方塊加播放三角形） | R:code:android/app/src/main/res/drawable/ic_launcher_foreground.xml,code:ios/tools/make_images.py | A:icon,write_png,in_rounded_square,in_triangle | S:-
 
 ===/home/Jack/桌面/coding/jellyfin-extra/server/internal/proc/===
 proc_other.go[RR2T]: F:非 Windows 的 NoWindow 空實作 | R:code:server/internal/proc/proc_windows.go | A:NoWindow | S:-
@@ -293,3 +295,6 @@ dimens.xml[FU2T]: F:手機直立的頁面留白 16dp | R:code:android/app/src/ma
 
 ===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/test/java/com/jellyfinextra/player/ui/===
 FormatTest.kt[TU3T]: F:測試轉碼畫質標籤：寬銀幕、4:3 與編碼對齊後的尺寸屬於哪個檔位 | R:code:android/app/src/main/java/com/jellyfinextra/player/ui/Format.kt | A:resolutionLabelUsesTheBoxTheFrameFitsIn | S:-
+
+===/home/Jack/桌面/coding/jellyfin-extra/android/app/src/main/res/mipmap-anydpi-v26/===
+ic_launcher.xml[FU4T]: F:Android 8 以上的 adaptive 啟動圖示：琥珀色底、播放三角形前景與單色版 | R:code:android/app/src/main/res/drawable/ic_launcher_foreground.xml,code:android/app/src/main/AndroidManifest.xml | A:adaptive-icon | S:Android 7 讀 mipmap-*/ic_launcher.png，由 tools/make_android_icons.py 產生

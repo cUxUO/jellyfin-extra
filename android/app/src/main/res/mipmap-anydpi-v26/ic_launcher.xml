@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 8 以上的啟動圖示；Android 7 用 mipmap-*/ic_launcher.png（tools/make_android_icons.py 產生）。 -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/accent" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- Android 13 以上的主題色圖示 -->
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
