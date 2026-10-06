@@ -33,6 +33,8 @@ static const double kEndTolerance = 10;
 @property (nonatomic, copy) NSString *note;
 @property (nonatomic) BOOL header;
 @property (nonatomic) BOOL selected;
+/// 選了之後面板不關（例如字幕大小，要邊看邊調）。
+@property (nonatomic) BOOL keepOpen;
 @property (nonatomic, copy) void (^onPick)(void);
 @end
 
@@ -696,7 +698,7 @@ static const double kEndTolerance = 10;
 		_subtitleOutline.attributedText = nil;
 		return;
 	}
-	UIFont *font = [UIFont systemFontOfSize:30 weight:UIFontWeightSemibold];
+	UIFont *font = [UIFont systemFontOfSize:round(30 * JXSettings.shared.subtitleScale) weight:UIFontWeightSemibold];
 	NSMutableParagraphStyle *ps = [[NSMutableParagraphStyle alloc] init];
 	ps.alignment = NSTextAlignmentCenter;
 	ps.lineSpacing = 2;
@@ -819,6 +821,10 @@ static const double kEndTolerance = 10;
 }
 
 - (void)showSubtitlePanel {
+	[self showPanel:@"字幕" rows:[self subtitleRows]];
+}
+
+- (NSArray<JXPanelRow *> *)subtitleRows {
 	NSMutableArray<JXPanelRow *> *rows = [NSMutableArray array];
 	__weak typeof(self) weakSelf = self;
 	[rows addObject:[JXPanelRow option:@"關閉" note:nil selected:_currentSubtitle == nil onPick:^{ [weakSelf applySubtitle:nil]; }]];
@@ -835,7 +841,26 @@ static const double kEndTolerance = 10;
 	};
 	if (text.count) { [rows addObject:[JXPanelRow header:@"文字字幕"]]; add(text); }
 	if (image.count) { [rows addObject:[JXPanelRow header:@"圖形字幕（燒進畫面，切換時會重新緩衝）"]]; add(image); }
-	[self showPanel:@"字幕" rows:rows];
+	if (text.count) {
+		// 面板只蓋住右側，調整時看得到左邊的字幕；選了不關面板，可以連續比較
+		[rows addObject:[JXPanelRow header:@"文字字幕大小"]];
+		NSArray<NSString *> *labels = JXSettings.subtitleSizeLabels;
+		NSInteger size = JXSettings.shared.subtitleSize;
+		for (NSInteger i = 0; i < (NSInteger)labels.count; i++) {
+			JXPanelRow *r = [JXPanelRow option:labels[i] note:nil selected:i == size onPick:^{ [weakSelf applySubtitleSize:i]; }];
+			r.keepOpen = YES;
+			[rows addObject:r];
+		}
+	}
+	return rows;
+}
+
+- (void)applySubtitleSize:(NSInteger)size {
+	JXSettings.shared.subtitleSize = size;
+	NSString *text = _subtitleLabel.attributedText.string;
+	if (text.length) [self showSubtitleText:text];
+	_rows = [self subtitleRows];
+	[_panelTable reloadData];
 }
 
 - (void)showAudioPanel {
@@ -919,7 +944,7 @@ static const double kEndTolerance = 10;
 	JXPanelRow *r = _rows[ip.row];
 	[tv deselectRowAtIndexPath:ip animated:YES];
 	if (r.header) return;
-	[self hidePanel];
+	if (!r.keepOpen) [self hidePanel];
 	if (r.onPick) r.onPick();
 }
 

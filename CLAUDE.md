@@ -86,7 +86,7 @@ ssh Windows 'taskkill /f /im xcode.exe'
 ## Android 播放程式
 
 專案在 `android/`：Kotlin、View 系統（不用 Compose，舊平板較輕）、Material Components、Media3 ExoPlayer + OkHttp、Coil 3 載圖、JSON 用內建 `org.json`。
-- 播放方式（`PlayerActivity`）：`DeviceCaps` 以 MediaCodecList 實測硬解能力，送給轉碼伺服器選 HEVC／H.264。畫質（`Quality`，設定頁有預設、播放中可切換）：「自動」在內網且原始檔能直接播放（`DirectPlay`：容器、硬解尺寸／幀率／位元深度、SDR、音訊可解、不需燒錄字幕）時直接播放，否則要求多軌、上限為螢幕大小，ExoPlayer 依網速切換；「原始畫質」能直接播放就直接播放，否則最高畫質轉碼；1080p／720p／480p 是固定解析度轉碼。ExoPlayer 的字幕軌一律停用（字幕由 SubtitleOverlay 畫）。
+- 播放方式（`PlayerActivity`）：`DeviceCaps` 以 MediaCodecList 實測硬解能力，送給轉碼伺服器選 HEVC／H.264。畫質（`Quality`，設定頁有預設、播放中可切換）：「自動」在內網且原始檔能直接播放（`DirectPlay`：容器、硬解尺寸／幀率／位元深度、SDR、音訊可解、不需燒錄字幕）時直接播放，否則要求多軌、上限為螢幕大小，ExoPlayer 依網速切換；「原始畫質」能直接播放就直接播放，否則最高畫質轉碼；1080p／720p／480p 是固定解析度轉碼。ExoPlayer 的字幕軌一律停用（字幕由 SubtitleOverlay 畫）。文字字幕大小（`SubtitleSize`：小／中／大／特大，倍率 0.8～1.5，「中」是原本大小）在設定頁與播放中的字幕面板調整，兩處共用同一個設定；iOS 對應 `JXSettings.subtitleSize`，規則相同。圖形字幕燒在畫面裡，不能調。
 - 自動更新（`net/Updater`、`ui/UpdatePrompt`）：release 版開啟時每天最多一次查 `gradle.properties` 的 `updateRepo`（目前是本 repo，公開）最近的 Release，找有 `JellyfinExtra-<版本>-<abi>.apk` 的最新版，下載、驗 SHA-256 後詢問安裝（系統安裝程式，Android 不允許無聲安裝）；設定頁可手動檢查。
 套件 `com.jellyfinextra.player`：
 - `ui/MainActivity`：左側 NavigationRail（首頁、各媒體庫、搜尋、設定，媒體庫項目依 UserViews 產生）＋ Fragment 內容區；詳情頁走返回堆疊，播放另開 `PlayerActivity`。

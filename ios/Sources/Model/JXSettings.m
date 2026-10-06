@@ -23,6 +23,19 @@
 - (void)setExternal:(NSString *)v { [self set:@"external" value:v]; }
 - (NSString *)profile { return [self.d stringForKey:@"profile"] ?: @"ipad-air1"; }
 - (void)setProfile:(NSString *)v { [self.d setObject:v forKey:@"profile"]; }
++ (NSArray<NSString *> *)subtitleSizeLabels { return @[@"小", @"中", @"大", @"特大"]; }
+
+- (NSInteger)subtitleSize {
+	id v = [self.d objectForKey:@"subtitle_size"];
+	NSInteger i = v ? [v integerValue] : 1;
+	return i >= 0 && i < (NSInteger)JXSettings.subtitleSizeLabels.count ? i : 1;
+}
+- (void)setSubtitleSize:(NSInteger)v { [self.d setInteger:v forKey:@"subtitle_size"]; }
+- (double)subtitleScale {
+	static const double scales[] = {0.8, 1.0, 1.25, 1.5};
+	return scales[self.subtitleSize];
+}
+
 - (NSString *)token { return [self str:@"token"]; }
 - (NSString *)userId { return [self str:@"user_id"]; }
 - (NSString *)userName { return [self str:@"user_name"]; }

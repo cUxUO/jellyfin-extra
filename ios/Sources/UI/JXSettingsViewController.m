@@ -6,6 +6,7 @@
 
 @implementation JXSettingsViewController {
 	UILabel *_xcodeStatus;
+	UILabel *_subtitleSize;
 }
 
 - (UIView *)section:(NSString *)title rows:(NSArray<NSArray<NSString *> *> *)rows {
@@ -22,12 +23,17 @@
 		v.textAlignment = NSTextAlignmentRight;
 		v.lineBreakMode = NSLineBreakByTruncatingMiddle;
 		if ([r[0] isEqualToString:@"轉碼伺服器"]) _xcodeStatus = v;
+		if ([r[0] isEqualToString:@"字幕大小"]) _subtitleSize = v;
 		UIStackView *row = [[UIStackView alloc] initWithArrangedSubviews:@[k, v]];
 		row.layoutMarginsRelativeArrangement = YES;
 		row.layoutMargins = UIEdgeInsetsMake(0, 18, 0, 18);
 		row.spacing = 16;
 		[k setContentHuggingPriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
 		[row.heightAnchor constraintEqualToConstant:52].active = YES;
+		if (v == _subtitleSize) {
+			v.textColor = JXTheme.accent;
+			[row addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(pickSubtitleSize:)]];
+		}
 		[card addArrangedSubview:row];
 	}
 	// UIStackView 在 iOS 12 不畫背景，包一層
@@ -73,7 +79,10 @@
 			@[@"轉碼伺服器", @"檢查中…"],
 			@[@"外部網址", st.external.length ? st.external : @"未設定"],
 		]],
-		[self section:@"播放" rows:@[@[@"裝置規格", st.profile]]],
+		[self section:@"播放" rows:@[
+			@[@"裝置規格", st.profile],
+			@[@"字幕大小", JXSettings.subtitleSizeLabels[st.subtitleSize]],
+		]],
 		buttons,
 		[self section:@"關於" rows:@[@[@"版本", [@"Jellyfin Extra " stringByAppendingString:version]]]],
 	]];
@@ -101,6 +110,28 @@
 		typeof(self) s = weakSelf;
 		if (s) s->_xcodeStatus.text = base ? base.absoluteString : @"離線（改為直接播放）";
 	}];
+}
+
+/// 文字字幕大小；播放中也可在字幕面板調整，兩邊共用同一個值。
+- (void)pickSubtitleSize:(UITapGestureRecognizer *)g {
+	UIAlertController *a = [UIAlertController alertControllerWithTitle:@"字幕大小" message:@"只影響文字字幕；播放中也可在字幕面板調整"
+	                                                    preferredStyle:UIAlertControllerStyleActionSheet];
+	NSArray<NSString *> *labels = JXSettings.subtitleSizeLabels;
+	NSInteger current = JXSettings.shared.subtitleSize;
+	__weak typeof(self) weakSelf = self;
+	for (NSInteger i = 0; i < (NSInteger)labels.count; i++) {
+		NSString *title = i == current ? [labels[i] stringByAppendingString:@" ✓"] : labels[i];
+		[a addAction:[UIAlertAction actionWithTitle:title style:UIAlertActionStyleDefault handler:^(UIAlertAction *x) {
+			JXSettings.shared.subtitleSize = i;
+			typeof(self) s = weakSelf;
+			if (s) s->_subtitleSize.text = labels[i];
+		}]];
+	}
+	[a addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+	// iPad 的 action sheet 要指定來源位置
+	a.popoverPresentationController.sourceView = g.view;
+	a.popoverPresentationController.sourceRect = _subtitleSize.frame;
+	[self presentViewController:a animated:YES completion:nil];
 }
 
 - (void)changeConnection { [JXRoot() presentLogin]; }

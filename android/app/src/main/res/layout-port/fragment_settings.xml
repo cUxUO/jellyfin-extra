@@ -82,6 +82,21 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="字幕大小（文字字幕；播放中也可在字幕面板調整）"
+            android:textColor="@color/text_tertiary"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/subtitleSize"
+            style="@style/Button.Outline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

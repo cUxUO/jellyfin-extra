@@ -42,6 +42,7 @@ import com.jellyfinextra.player.data.DeviceCaps
 import com.jellyfinextra.player.data.DirectPlay
 import com.jellyfinextra.player.data.Quality
 import com.jellyfinextra.player.data.SubtitleChooser
+import com.jellyfinextra.player.data.SubtitleSize
 import com.jellyfinextra.player.data.SubtitleTrack
 import com.jellyfinextra.player.net.Endpoints
 import com.jellyfinextra.player.net.Http
@@ -111,6 +112,7 @@ class PlayerActivity : AppCompatActivity() {
         status = findViewById(R.id.status)
         subtitleStatus = findViewById(R.id.subtitleStatus)
         subtitleOverlay = SubtitleOverlay(findViewById(R.id.subtitles))
+        subtitleOverlay.setScale(app.settings.subtitleSize.scale)
         panelScrim = findViewById(R.id.panelScrim)
         panelTitle = findViewById(R.id.panelTitle)
         panelList = findViewById(R.id.panelList)
@@ -360,11 +362,22 @@ class PlayerActivity : AppCompatActivity() {
 
     private sealed interface Row {
         data class Header(val label: String) : Row
-        data class Option(val label: String, val note: String, val selected: Boolean, val onPick: () -> Unit) : Row
+        /** [keepOpen]：選了之後面板不關（例如字幕大小，要邊看邊調）。 */
+        data class Option(
+            val label: String,
+            val note: String,
+            val selected: Boolean,
+            val keepOpen: Boolean = false,
+            val onPick: () -> Unit,
+        ) : Row
     }
 
     private fun showSubtitlePanel() {
-        val tracks = mediaInfo?.subtitles?.filter { it.playable } ?: return
+        showPanel("字幕", subtitleRows() ?: return)
+    }
+
+    private fun subtitleRows(): List<Row>? {
+        val tracks = mediaInfo?.subtitles?.filter { it.playable } ?: return null
         val cur = currentSubtitle
         val rows = mutableListOf<Row>(Row.Option("關閉", "", cur == null) { applySubtitle(null) })
         val text = tracks.filter { !it.isImage }
@@ -377,7 +390,24 @@ class PlayerActivity : AppCompatActivity() {
             rows += Row.Header("圖形字幕（燒進畫面，切換時會重新緩衝）")
             image.forEach { t -> rows += Row.Option(t.title, subtitleNote(t), t.index == cur?.index) { applySubtitle(t) } }
         }
-        showPanel("字幕", rows)
+        if (text.isNotEmpty()) {
+            // 面板只蓋住右側，調整時看得到左邊的字幕；選了不關面板，可以連續比較
+            val size = app.settings.subtitleSize
+            rows += Row.Header("文字字幕大小")
+            SubtitleSize.entries.forEach { s ->
+                rows += Row.Option(s.label, "", s == size, keepOpen = true) { applySubtitleSize(s) }
+            }
+        }
+        return rows
+    }
+
+    private fun applySubtitleSize(size: SubtitleSize) {
+        app.settings.subtitleSize = size
+        subtitleOverlay.setScale(size.scale)
+        // 換掉面板內容但保留捲動位置，才能接著比較其他大小
+        val scroll = panelList.layoutManager?.onSaveInstanceState()
+        subtitleRows()?.let { panelList.adapter = PanelAdapter(it) { hidePanel() } }
+        panelList.layoutManager?.onRestoreInstanceState(scroll)
     }
 
     /** Jellyfin 的 DisplayTitle 通常已含格式，這裡只補標題沒有的資訊。 */
@@ -457,7 +487,7 @@ class PlayerActivity : AppCompatActivity() {
                     v.findViewById<View>(R.id.check).visibility = if (row.selected) View.VISIBLE else View.INVISIBLE
                     v.setBackgroundResource(if (row.selected) R.drawable.bg_track_selected else 0)
                     v.setOnClickListener {
-                        onPicked()
+                        if (!row.keepOpen) onPicked()
                         row.onPick()
                     }
                 }

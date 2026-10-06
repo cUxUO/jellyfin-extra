@@ -12,6 +12,7 @@ import com.jellyfinextra.player.R
 import com.jellyfinextra.player.app
 import com.jellyfinextra.player.data.DeviceCaps
 import com.jellyfinextra.player.data.Quality
+import com.jellyfinextra.player.data.SubtitleSize
 import com.jellyfinextra.player.net.Updater
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
@@ -22,6 +23,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
         root.findViewById<View>(R.id.logout).setOnClickListener { main.logout() }
         root.findViewById<View>(R.id.quality).setOnClickListener { pickQuality() }
+        root.findViewById<View>(R.id.subtitleSize).setOnClickListener { pickSubtitleSize() }
         root.findViewById<View>(R.id.checkUpdate).setOnClickListener {
             val status = root.findViewById<TextView>(R.id.updateStatus)
             UpdatePrompt.check(requireActivity() as AppCompatActivity, manual = true) { status.text = it }
@@ -35,6 +37,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             .setTitle("預設畫質")
             .setSingleChoiceItems(options.map { it.label }.toTypedArray(), options.indexOf(s.quality)) { d, which ->
                 s.quality = options[which]
+                view?.let { bind(it) }
+                d.dismiss()
+            }
+            .show()
+    }
+
+    private fun pickSubtitleSize() {
+        val s = app.settings
+        val options = SubtitleSize.entries
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("字幕大小")
+            .setSingleChoiceItems(options.map { it.label }.toTypedArray(), options.indexOf(s.subtitleSize)) { d, which ->
+                s.subtitleSize = options[which]
                 view?.let { bind(it) }
                 d.dismiss()
             }
@@ -57,6 +72,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         ).joinToString("\n")
         root.findViewById<TextView>(R.id.decoders).text = DeviceCaps.describe()
         root.findViewById<TextView>(R.id.quality).text = s.quality.label
+        root.findViewById<TextView>(R.id.subtitleSize).text = s.subtitleSize.label
         val abi = runCatching { Updater(requireContext(), app.http).abi }.getOrNull()
         root.findViewById<TextView>(R.id.version).text =
             listOfNotNull("Jellyfin Extra ${BuildConfig.VERSION_NAME}", abi, if (BuildConfig.DEBUG) "debug" else null).joinToString(" · ")

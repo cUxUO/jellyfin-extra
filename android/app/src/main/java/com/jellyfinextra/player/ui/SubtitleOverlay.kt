@@ -36,9 +36,14 @@ class SubtitleOverlay(private val view: SubtitleView) {
                 CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, null,
             )
         )
-        view.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.1f)
+        setScale(1f)
         // VTT 是 Jellyfin 從 ASS 轉來的，原本的位置與樣式已經不準，統一用底部置中
         view.setApplyEmbeddedStyles(false)
+    }
+
+    /** 字幕大小，1 是預設（見 SubtitleSize）。字級是畫面高度的比例，手機與平板看起來一樣大。 */
+    fun setScale(scale: Float) {
+        view.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.1f * scale)
     }
 
     /**

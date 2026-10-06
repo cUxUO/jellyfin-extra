@@ -28,6 +28,11 @@ class Settings(context: Context) {
         get() = Quality.of(prefs.getString(KEY_QUALITY, null))
         set(v) = prefs.edit().putString(KEY_QUALITY, v.name).apply()
 
+    /** 文字字幕大小；播放中也可在字幕面板調整，兩邊共用同一個值。 */
+    var subtitleSize: SubtitleSize
+        get() = SubtitleSize.of(prefs.getString(KEY_SUBTITLE_SIZE, null))
+        set(v) = prefs.edit().putString(KEY_SUBTITLE_SIZE, v.name).apply()
+
     /** 上次檢查更新的時間（毫秒），自動檢查每天最多一次。 */
     var lastUpdateCheck: Long
         get() = prefs.getLong(KEY_LAST_UPDATE_CHECK, 0)
@@ -60,6 +65,7 @@ class Settings(context: Context) {
         private const val KEY_LAN_XCODE = "lan_xcode"
         private const val KEY_EXTERNAL = "external"
         private const val KEY_QUALITY = "quality"
+        private const val KEY_SUBTITLE_SIZE = "subtitle_size"
         private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
         private const val KEY_TOKEN = "token"
         private const val KEY_USER_ID = "user_id"

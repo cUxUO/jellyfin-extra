@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-06T07:16:38Z",
+  "updated_at": "2026-10-06T07:31:52Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     "CLAUDE.md": {
       "role": "index",
-      "sha256": "467d68a322064dc87664f31f0ce969ed670c360183201754a2b0af04bc9b860d",
-      "size": 25384,
-      "normalized_sha256": "467d68a322064dc87664f31f0ce969ed670c360183201754a2b0af04bc9b860d"
+      "sha256": "3ab3b86aa1a5264363c783819ad447804f07fe856941d9522da90e168ed20e5b",
+      "size": 25669,
+      "normalized_sha256": "3ab3b86aa1a5264363c783819ad447804f07fe856941d9522da90e168ed20e5b"
     },
     "android/.gitignore": {
       "role": "index",
@@ -83,9 +83,15 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/data/Settings.kt": {
       "role": "index",
-      "sha256": "fa0f5dcf2576acfb48bfd41b6eb8df63e8893e00c2668bce8a47b5770394e533",
-      "size": 2837,
-      "normalized_sha256": "fa0f5dcf2576acfb48bfd41b6eb8df63e8893e00c2668bce8a47b5770394e533"
+      "sha256": "995b77d137ef9655fbabe3e13a46c7ff732f740e3128967acb22838e8b18d52c",
+      "size": 3183,
+      "normalized_sha256": "995b77d137ef9655fbabe3e13a46c7ff732f740e3128967acb22838e8b18d52c"
+    },
+    "android/app/src/main/java/com/jellyfinextra/player/data/SubtitleSize.kt": {
+      "role": "index",
+      "sha256": "363136e9bd4ab2944baaedd109127561cd5b445ca5f1aa3dbe2b28ece45beed6",
+      "size": 526,
+      "normalized_sha256": "363136e9bd4ab2944baaedd109127561cd5b445ca5f1aa3dbe2b28ece45beed6"
     },
     "android/app/src/main/java/com/jellyfinextra/player/data/SubtitleTrack.kt": {
       "role": "index",
@@ -185,9 +191,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
       "role": "index",
-      "sha256": "ec2eaaf1bd0ed6c26b3d365b6c895617370be03ad67484013d0242da2effafa8",
-      "size": 35972,
-      "normalized_sha256": "ec2eaaf1bd0ed6c26b3d365b6c895617370be03ad67484013d0242da2effafa8"
+      "sha256": "194c57112feaab59893d0b81923eff47bb8e37dca3fd3f704d80c602284a101b",
+      "size": 37277,
+      "normalized_sha256": "194c57112feaab59893d0b81923eff47bb8e37dca3fd3f704d80c602284a101b"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
       "role": "index",
@@ -197,15 +203,15 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SettingsFragment.kt": {
       "role": "index",
-      "sha256": "87712df03cc06bc0b953977b1c53c4d493bc2cda103ef15fe7e20a8339d49f50",
-      "size": 2921,
-      "normalized_sha256": "87712df03cc06bc0b953977b1c53c4d493bc2cda103ef15fe7e20a8339d49f50"
+      "sha256": "67dd389d4044245ec676c107439f732f223f797841b8fc1566260b8e52b0bf01",
+      "size": 3625,
+      "normalized_sha256": "67dd389d4044245ec676c107439f732f223f797841b8fc1566260b8e52b0bf01"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SubtitleOverlay.kt": {
       "role": "index",
-      "sha256": "321a6f7d56acd35ebba8309b589c3e0b07f46caa66c06a52791b9da99bfe269b",
-      "size": 3081,
-      "normalized_sha256": "321a6f7d56acd35ebba8309b589c3e0b07f46caa66c06a52791b9da99bfe269b"
+      "sha256": "76a87e7e0d24f4d9139e2486a30370179e54430a5a59c6d80f2fb9cfadde1571",
+      "size": 3282,
+      "normalized_sha256": "76a87e7e0d24f4d9139e2486a30370179e54430a5a59c6d80f2fb9cfadde1571"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/TrackPicker.kt": {
       "role": "index",
@@ -443,9 +449,9 @@
     },
     "android/app/src/main/res/layout-port/fragment_settings.xml": {
       "role": "index",
-      "sha256": "ede624406748384f73104f50b98f26aee280fe01e14a80ad551c5347c070f6e9",
-      "size": 5173,
-      "normalized_sha256": "ede624406748384f73104f50b98f26aee280fe01e14a80ad551c5347c070f6e9"
+      "sha256": "fb84091c39576bc26de566730e091c60a8f4995df591ce6d0080414bcc952835",
+      "size": 5810,
+      "normalized_sha256": "fb84091c39576bc26de566730e091c60a8f4995df591ce6d0080414bcc952835"
     },
     "android/app/src/main/res/layout-port/item_episode.xml": {
       "role": "index",
@@ -509,9 +515,9 @@
     },
     "android/app/src/main/res/layout/fragment_settings.xml": {
       "role": "index",
-      "sha256": "4753bd95295f416295f05ad5f4fc7a873ffd9597e3b43140575241a57683be10",
-      "size": 5053,
-      "normalized_sha256": "4753bd95295f416295f05ad5f4fc7a873ffd9597e3b43140575241a57683be10"
+      "sha256": "620df2713378b50b6f3078146a3f1dc58315438bdaae2b3537297a430cfa2156",
+      "size": 5690,
+      "normalized_sha256": "620df2713378b50b6f3078146a3f1dc58315438bdaae2b3537297a430cfa2156"
     },
     "android/app/src/main/res/layout/item_card_wide.xml": {
       "role": "index",
@@ -682,9 +688,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "33ba77c380f5ebedf1ea0f35159919860646a982a2b15ee5eb486cbeb8187d3b",
-      "size": 63657,
-      "normalized_sha256": "33ba77c380f5ebedf1ea0f35159919860646a982a2b15ee5eb486cbeb8187d3b"
+      "sha256": "52389bbc27d7e07e8eb7f5bad80be4885986c815b862c294aede2145ac861ecf",
+      "size": 64800,
+      "normalized_sha256": "52389bbc27d7e07e8eb7f5bad80be4885986c815b862c294aede2145ac861ecf"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -836,15 +842,15 @@
     },
     "ios/Sources/Model/JXSettings.h": {
       "role": "index",
-      "sha256": "49434d6be55fcde258e178c5c162a1634ea4e0e3337e0162deb57444acd81a38",
-      "size": 1010,
-      "normalized_sha256": "49434d6be55fcde258e178c5c162a1634ea4e0e3337e0162deb57444acd81a38"
+      "sha256": "3a1ce27671e5af0862f9c860554270ac507f65351b9488fea4d8c24edd04833b",
+      "size": 1401,
+      "normalized_sha256": "3a1ce27671e5af0862f9c860554270ac507f65351b9488fea4d8c24edd04833b"
     },
     "ios/Sources/Model/JXSettings.m": {
       "role": "index",
-      "sha256": "b1eb326cb992542107d30b7f9fcbeb37eb93a7d509bbbd68af76e967ae17653c",
-      "size": 1895,
-      "normalized_sha256": "b1eb326cb992542107d30b7f9fcbeb37eb93a7d509bbbd68af76e967ae17653c"
+      "sha256": "3a0b4809a6a25056ca686d833e825eb42b32f7675546ae5a2486f707a0e09ea1",
+      "size": 2393,
+      "normalized_sha256": "3a0b4809a6a25056ca686d833e825eb42b32f7675546ae5a2486f707a0e09ea1"
     },
     "ios/Sources/Model/JXTracks.h": {
       "role": "index",
@@ -914,9 +920,9 @@
     },
     "ios/Sources/Player/JXPlayerViewController.m": {
       "role": "index",
-      "sha256": "a4fc957bcde7b5832b8591ab61462e7d819fb507aa5be9b884d62a0cac40e9d1",
-      "size": 46705,
-      "normalized_sha256": "a4fc957bcde7b5832b8591ab61462e7d819fb507aa5be9b884d62a0cac40e9d1"
+      "sha256": "382266f8a27a856ad2a43b39739ac9fe642a21ea4eeebec8c8633c44250130a3",
+      "size": 47729,
+      "normalized_sha256": "382266f8a27a856ad2a43b39739ac9fe642a21ea4eeebec8c8633c44250130a3"
     },
     "ios/Sources/Player/JXSubtitles.h": {
       "role": "index",
@@ -1058,9 +1064,9 @@
     },
     "ios/Sources/UI/JXSettingsViewController.m": {
       "role": "index",
-      "sha256": "cb69fcdcb67cf03eecab122108bf6d059684d197dbb31f01c137f0745f1c3383",
-      "size": 5216,
-      "normalized_sha256": "cb69fcdcb67cf03eecab122108bf6d059684d197dbb31f01c137f0745f1c3383"
+      "sha256": "9bd94a5000eab31d224a7791d4887db0649f7abbc35c6870001a3ca75bef5ceb",
+      "size": 6853,
+      "normalized_sha256": "9bd94a5000eab31d224a7791d4887db0649f7abbc35c6870001a3ca75bef5ceb"
     },
     "ios/Sources/UI/JXTheme.h": {
       "role": "index",
