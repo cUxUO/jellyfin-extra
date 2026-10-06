@@ -26,8 +26,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // 發布新版時兩個都要改；versionName 也是 GitHub Release 的 tag（v0.2.0）
-        versionCode = 6
-        versionName = "0.2.4"
+        versionCode = 7
+        versionName = "0.2.5"
         buildConfigField("String", "UPDATE_REPO", "\"${providers.gradleProperty("updateRepo").get()}\"")
     }
 
