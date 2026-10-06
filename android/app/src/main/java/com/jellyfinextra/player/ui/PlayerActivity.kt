@@ -279,7 +279,7 @@ class PlayerActivity : AppCompatActivity() {
         return maxOf(m.widthPixels, m.heightPixels) to minOf(m.widthPixels, m.heightPixels)
     }
 
-    /** 標題下的狀態，例如「800p · HEVC · GPU 轉碼 · 自動」「直接播放 · HEVC 1080p」。 */
+    /** 標題下的狀態，例如「1080p · 1920×802 · HEVC · GPU 轉碼 · 自動」「直接播放 · HEVC 1080p」。 */
     private fun updateStatusLine() {
         // 背景期間 session 已關掉，等回前景建好新的再更新，不要誤顯示成直接播放
         if (suspendedAtMs != null) return
@@ -287,9 +287,11 @@ class PlayerActivity : AppCompatActivity() {
         val text = when {
             s != null -> {
                 // 自適應時顯示播放器目前選的那一軌
-                val height = player?.videoFormat?.height?.takeIf { it > 0 } ?: s.height
+                val format = player?.videoFormat
+                val width = format?.width?.takeIf { it > 0 } ?: s.width
+                val height = format?.height?.takeIf { it > 0 } ?: s.height
                 listOfNotNull(
-                    "${height}p",
+                    resolutionLabel(width, height),
                     if (s.codec == "hevc") "HEVC" else "H.264",
                     "${if (s.hwDecode) "GPU" else "CPU"} 轉碼",
                     if (s.variants > 1) "自動" else null,

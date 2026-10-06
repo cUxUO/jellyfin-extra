@@ -12,6 +12,7 @@ import com.jellyfinextra.player.app
 import com.jellyfinextra.player.net.Endpoints
 import com.jellyfinextra.player.net.HttpException
 import com.jellyfinextra.player.net.JellyfinApi
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -45,7 +46,7 @@ class LoginActivity : AppCompatActivity() {
             login.isEnabled = false
             status.text = getString(R.string.logging_in)
             lifecycleScope.launch {
-                val result = runCatching {
+                val result = catching {
                     val base = Endpoints.jellyfin(app) ?: error("連不到 Jellyfin，請檢查位址")
                     JellyfinApi(app.http, settings, base).authenticate(user, pw)
                 }

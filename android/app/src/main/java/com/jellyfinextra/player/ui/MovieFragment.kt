@@ -16,6 +16,7 @@ import com.jellyfinextra.player.data.SubtitleChooser
 import com.jellyfinextra.player.data.SubtitleTrack
 import com.jellyfinextra.player.net.JellyfinApi
 import com.jellyfinextra.player.net.JellyfinApi.Item
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -50,7 +51,7 @@ class MovieFragment : Fragment(R.layout.fragment_movie) {
         if (!loaded) loading.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
             app.playbackCleanup?.join()
-            val result = runCatching {
+            val result = catching {
                 coroutineScope {
                     val api = requireContext().jellyfinApi()
                     val item = async { api.item(itemId) }
@@ -160,7 +161,7 @@ class MovieFragment : Fragment(R.layout.fragment_movie) {
 
     private fun togglePlayed(root: View, api: JellyfinApi, item: Item) {
         viewLifecycleOwner.lifecycleScope.launch {
-            runCatching { api.setPlayed(item.id, !item.played) }
+            catching { api.setPlayed(item.id, !item.played) }
                 .onSuccess { load(root) }
                 .onFailure { Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show() }
         }

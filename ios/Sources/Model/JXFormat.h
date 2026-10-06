@@ -16,5 +16,7 @@ float JXProgress(JXItem *item);
 NSString *JXEpisodeLabel(JXItem *item);
 /// 卡片標題：集數用影集名稱。
 NSString *JXDisplayTitle(JXItem *item);
+/// 轉碼畫面的畫質，例如「1080p」「1080p · 1920×802」：檔位是放得進的最小 16:9 框，尺寸不同時才附上（同 Android 的 resolutionLabel）。
+NSString *JXResolutionLabel(NSInteger width, NSInteger height);
 /// 年份 · 片長 · 分級 · ★ 評分 · 類型。
 NSString *JXMetaLine(JXItem *item, BOOL includeGenres);

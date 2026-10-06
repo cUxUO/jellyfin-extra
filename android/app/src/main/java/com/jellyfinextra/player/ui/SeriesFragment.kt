@@ -21,6 +21,7 @@ import com.jellyfinextra.player.R
 import com.jellyfinextra.player.app
 import com.jellyfinextra.player.net.JellyfinApi
 import com.jellyfinextra.player.net.JellyfinApi.Item
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -60,7 +61,7 @@ class SeriesFragment : Fragment(R.layout.fragment_series) {
         if (!loaded) loading.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
             app.playbackCleanup?.join()
-            val result = runCatching {
+            val result = catching {
                 coroutineScope {
                     val api = requireContext().jellyfinApi()
                     val series = async { api.item(seriesId) }
@@ -99,7 +100,7 @@ class SeriesFragment : Fragment(R.layout.fragment_series) {
             text = if (s.played) "標記為未看" else "全部標記已看"
             setOnClickListener {
                 viewLifecycleOwner.lifecycleScope.launch {
-                    runCatching { d.api.setPlayed(s.id, !s.played) }
+                    catching { d.api.setPlayed(s.id, !s.played) }
                         .onSuccess { load(root) }
                         .onFailure { Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show() }
                 }
@@ -153,7 +154,7 @@ class SeriesFragment : Fragment(R.layout.fragment_series) {
         val season = seasonId ?: return
         val list = root.findViewById<RecyclerView>(R.id.episodes)
         viewLifecycleOwner.lifecycleScope.launch {
-            runCatching { api.episodes(seriesId, season) }
+            catching { api.episodes(seriesId, season) }
                 .onSuccess { eps -> list.adapter = EpisodeAdapter(api, eps) { ep -> main.play(ep, if (ep.resumable) ep.positionTicks else 0) } }
                 .onFailure { Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show() }
         }

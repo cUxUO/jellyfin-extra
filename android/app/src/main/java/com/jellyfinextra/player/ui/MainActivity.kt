@@ -19,6 +19,7 @@ import com.jellyfinextra.player.net.Endpoints
 import com.jellyfinextra.player.net.HttpException
 import com.jellyfinextra.player.net.JellyfinApi
 import com.jellyfinextra.player.net.JellyfinApi.Item
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.launch
 
 /**
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun setup(firstStart: Boolean) {
         val loading = findViewById<View>(R.id.loading)
         loading.visibility = View.VISIBLE
-        val result = runCatching {
+        val result = catching {
             val base = Endpoints.jellyfin(app) ?: error("連不到 Jellyfin（內網與外部網址都失敗）")
             JellyfinApi(app.http, app.settings, base).userViews()
         }

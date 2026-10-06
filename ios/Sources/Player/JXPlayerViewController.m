@@ -790,9 +790,9 @@ static const double kEndTolerance = 10;
 
 #pragma mark - 狀態列與軌道按鈕
 
-/// 標題下的狀態，例如「1080p · GPU 轉碼」。
+/// 標題下的狀態，例如「1080p · 1920×802 · GPU 轉碼」。
 - (void)updateStatusLine {
-	if (_session) _statusLine.text = [NSString stringWithFormat:@"%ldp · %@ 轉碼", (long)_session.height, _session.hwDecode ? @"GPU" : @"CPU"];
+	if (_session) _statusLine.text = [NSString stringWithFormat:@"%@ · %@ 轉碼", JXResolutionLabel(_session.width, _session.height), _session.hwDecode ? @"GPU" : @"CPU"];
 	else _statusLine.text = @"直接播放";
 }
 

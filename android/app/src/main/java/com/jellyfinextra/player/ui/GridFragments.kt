@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.jellyfinextra.player.R
 import com.jellyfinextra.player.app
 import com.jellyfinextra.player.net.JellyfinApi.Item
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -71,7 +72,7 @@ class FolderFragment : GridFragment() {
         if (!loaded) loading.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
             app.playbackCleanup?.join()
-            val result = runCatching {
+            val result = catching {
                 val api = requireContext().jellyfinApi()
                 if (adapter == null) {
                     adapter = PosterAdapter(api, fill = true) { main.openItem(it) }
@@ -131,7 +132,7 @@ class SearchFragment : GridFragment() {
         }
         searchJob = viewLifecycleOwner.lifecycleScope.launch {
             if (debounce) delay(400)
-            val result = runCatching {
+            val result = catching {
                 val api = requireContext().jellyfinApi()
                 if (adapter == null) {
                     adapter = PosterAdapter(api, fill = true) { main.openItem(it) }

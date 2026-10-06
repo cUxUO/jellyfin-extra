@@ -28,7 +28,7 @@ object Endpoints {
         for (base in bases) {
             val url = base.resolve(probePath) ?: continue
             val ok = withContext(Dispatchers.IO) {
-                runCatching {
+                catching {
                     client.newCall(Request.Builder().url(url).build()).execute().use { it.isSuccessful }
                 }.getOrDefault(false)
             }

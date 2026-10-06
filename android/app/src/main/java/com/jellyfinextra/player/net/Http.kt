@@ -3,6 +3,7 @@ package com.jellyfinextra.player.net
 import android.os.Build
 import com.jellyfinextra.player.BuildConfig
 import com.jellyfinextra.player.data.Settings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -22,6 +23,18 @@ import javax.net.ssl.X509TrustManager
 
 /** 伺服器回傳非 2xx。message 是給使用者看的說明，不含 token。 */
 class HttpException(val code: Int, message: String) : IOException(message)
+
+/**
+ * 同 runCatching，但不攔下協程取消。畫面關掉或重建（手機啟動時從橫向轉成直立）時請求被取消，
+ * runCatching 會把它當成失敗，顯示「Job was cancelled」或在已卸離的 Fragment 上操作畫面。
+ */
+inline fun <T> catching(block: () -> T): Result<T> = try {
+    Result.success(block())
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    Result.failure(e)
+}
 
 object Http {
     private val JSON = "application/json; charset=utf-8".toMediaType()

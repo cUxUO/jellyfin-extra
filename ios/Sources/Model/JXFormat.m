@@ -51,3 +51,18 @@ NSString *JXMetaLine(JXItem *item, BOOL includeGenres) {
 	}
 	return [p componentsJoinedByString:@" · "];
 }
+
+NSString *JXResolutionLabel(NSInteger width, NSInteger height) {
+	// 編碼器會把尺寸對齊到偶數或 16 的倍數，留一點餘裕
+	static const NSInteger tiers[] = {360, 480, 720, 1080, 1440, 2160};
+	NSInteger tier = height;
+	for (size_t i = 0; i < sizeof(tiers) / sizeof(tiers[0]); i++) {
+		if (width <= tiers[i] * 16 / 9 + 2 && height <= tiers[i] + 8) {
+			tier = tiers[i];
+			break;
+		}
+	}
+	BOOL standard = height == tier && width >= tier * 16 / 9 - 2; // 剛好是 16:9 的檔位尺寸
+	if (width <= 0 || standard) return [NSString stringWithFormat:@"%ldp", (long)tier];
+	return [NSString stringWithFormat:@"%ldp · %ld×%ld", (long)tier, (long)width, (long)height];
+}

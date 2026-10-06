@@ -19,6 +19,7 @@ import com.jellyfinextra.player.R
 import com.jellyfinextra.player.app
 import com.jellyfinextra.player.net.JellyfinApi
 import com.jellyfinextra.player.net.JellyfinApi.Item
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -44,8 +45,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         if (!loaded) loading.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
             app.playbackCleanup?.join()
-            val result = runCatching {
-                // coroutineScope：任一請求失敗時把例外交給 runCatching，而不是讓整個畫面的協程失敗
+            val result = catching {
+                // coroutineScope：任一請求失敗時把例外交給 catching，而不是讓整個畫面的協程失敗
                 coroutineScope {
                     val api = requireContext().jellyfinApi()
                     val views = api.userViews().filter { it.collectionType == "movies" || it.collectionType == "tvshows" }

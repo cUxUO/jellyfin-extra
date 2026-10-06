@@ -18,6 +18,7 @@ import com.jellyfinextra.player.app
 import com.jellyfinextra.player.net.JellyfinApi
 import com.jellyfinextra.player.net.JellyfinApi.Item
 import com.jellyfinextra.player.net.JellyfinApi.Sort
+import com.jellyfinextra.player.net.catching
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -73,7 +74,7 @@ class LibraryFragment : Fragment(R.layout.fragment_library) {
             adapter = PosterAdapter(api, fill = true) { main.openItem(it) }
             grid.adapter = adapter
             loadItems(root)
-            if (filterable) runCatching { api.genres(library.id) }.onSuccess { buildGenres(root, it) }
+            if (filterable) catching { api.genres(library.id) }.onSuccess { buildGenres(root, it) }
         }
     }
 
@@ -117,7 +118,7 @@ class LibraryFragment : Fragment(R.layout.fragment_library) {
         if (!loaded) loading.visibility = View.VISIBLE
         loadJob = viewLifecycleOwner.lifecycleScope.launch {
             app.playbackCleanup?.join()
-            val result = runCatching { requireContext().jellyfinApi().library(library, sort, genre) }
+            val result = catching { requireContext().jellyfinApi().library(library, sort, genre) }
             loading.visibility = View.GONE
             result.onSuccess { page ->
                 loaded = true

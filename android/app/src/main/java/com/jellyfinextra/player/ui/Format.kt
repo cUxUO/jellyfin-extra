@@ -42,6 +42,20 @@ fun episodeLabel(item: Item): String {
     return if (season != null && season != 1 && season != 0) "S$season · $ep" else ep
 }
 
+/** 畫質檔位（16:9 框的高度），由小到大。 */
+private val RESOLUTION_TIERS = listOf(360, 480, 720, 1080, 1440, 2160)
+
+/**
+ * 轉碼畫面的畫質，例如「1080p」「1080p · 1920×802」。檔位是放得進的最小 16:9 框
+ * （寬銀幕片 1920×802 也是 1080p，和畫質選項一致），不是剛好 16:9 的檔位尺寸時才附上實際尺寸。
+ */
+fun resolutionLabel(width: Int, height: Int): String {
+    // 編碼器會把尺寸對齊到偶數或 16 的倍數，留一點餘裕
+    val tier = RESOLUTION_TIERS.firstOrNull { width <= it * 16 / 9 + 2 && height <= it + 8 } ?: height
+    val standard = height == tier && width >= tier * 16 / 9 - 2 // 剛好是 16:9 的檔位尺寸
+    return if (width <= 0 || standard) "${tier}p" else "${tier}p · $width×$height"
+}
+
 /** 卡片與詳情頁的標題：集數用影集名稱。 */
 fun displayTitle(item: Item): String = if (item.type == "Episode") item.seriesName ?: item.name else item.name
 
