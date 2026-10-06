@@ -28,7 +28,11 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
@@ -99,6 +103,9 @@ class PlayerActivity : AppCompatActivity() {
     private var fileLog: PlaybackFileLog? = null
     private val playSessionId = UUID.randomUUID().toString()
     private var reportedStart = false
+    /** 實際使用中的解碼器名稱（畫質面板顯示用），解碼器初始化時更新。 */
+    private var videoDecoder: String? = null
+    private var audioDecoder: String? = null
     /** 直接播放時音訊無解碼器的提示只顯示一次。 */
     private var warnedNoAudio = false
     private var progressJob: Job? = null
@@ -230,7 +237,11 @@ class PlayerActivity : AppCompatActivity() {
         val meter = DefaultBandwidthMeter.Builder(this)
             .setInitialBitrateEstimate(if (onLan) 20_000_000L else 3_000_000L)
             .build()
-        val p = ExoPlayer.Builder(this)
+        // 系統解不了的音訊（AC3、DTS、TrueHD 等）交給內建 FFmpeg 軟解；杜比視界沒有對應解碼器時改用 HEVC 解基礎層
+        val renderers = DefaultRenderersFactory(this)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+            .setMediaCodecSelector(DOLBY_VISION_FALLBACK)
+        val p = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setTrackSelector(selector)
             .setBandwidthMeter(meter)
@@ -238,6 +249,15 @@ class PlayerActivity : AppCompatActivity() {
             .setSeekForwardIncrementMs(SEEK_INCREMENT_MS)
             .build()
         fileLog?.let { p.addAnalyticsListener(it) }
+        p.addAnalyticsListener(object : AnalyticsListener {
+            override fun onVideoDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
+                videoDecoder = decoderName
+            }
+
+            override fun onAudioDecoderInitialized(eventTime: AnalyticsListener.EventTime, decoderName: String, initializedTimestampMs: Long, initializationDurationMs: Long) {
+                audioDecoder = decoderName
+            }
+        })
         player = p
         playerView.player = p
         p.addListener(listener)
@@ -460,6 +480,7 @@ class PlayerActivity : AppCompatActivity() {
         val reason = directPlayReason(currentAudio.takeIf { it != defaultAudio() }, currentSubtitle)
         val rows = mutableListOf<Row>()
         mediaInfo?.sourceFormat?.takeIf { it.isNotEmpty() }?.let { rows += Row.Header("原檔：$it") }
+        decoderDescription()?.let { rows += Row.Header("解碼器：$it") }
         rows += Row.Header("硬解：${DeviceCaps.describe()}")
         Quality.entries.filter { it.maxHeight <= maxH }.forEach { q ->
             val note = when (q) {
@@ -471,6 +492,13 @@ class PlayerActivity : AppCompatActivity() {
             rows += Row.Option(q.label, note, q == quality) { applyQuality(q) }
         }
         showPanel("畫質", rows)
+    }
+
+    /** 目前使用的解碼器，例如「影像 c2.qti.hevc.decoder（硬解）· 音訊 ffmpegLib（軟解）」。 */
+    private fun decoderDescription(): String? {
+        fun label(name: String) = "$name（${if (DeviceCaps.isHardwareDecoder(name)) "硬解" else "軟解"}）"
+        return listOfNotNull(videoDecoder?.let { "影像 ${label(it)}" }, audioDecoder?.let { "音訊 ${label(it)}" })
+            .joinToString(" · ").takeIf { it.isNotEmpty() }
     }
 
     private fun showPanel(title: String, rows: List<Row>) {
@@ -827,6 +855,16 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     companion object {
+        /**
+         * 沒有杜比視界解碼器時改用 HEVC 解碼器：Profile 7／8 的基礎層就是 HEVC Main10（等同 HDR10），
+         * 增強層與動態中繼資料會被略過。Media3 自己只會替 Profile 4／8 這樣退回，Profile 7（藍光原盤常見）不會。
+         */
+        private val DOLBY_VISION_FALLBACK = MediaCodecSelector { mimeType, secure, tunneling ->
+            val infos = MediaCodecUtil.getDecoderInfos(mimeType, secure, tunneling)
+            if (infos.isEmpty() && mimeType == MimeTypes.VIDEO_DOLBY_VISION) MediaCodecUtil.getDecoderInfos(MimeTypes.VIDEO_H265, secure, tunneling)
+            else infos
+        }
+
         private const val EXTRA_ITEM_ID = "item_id"
         private const val EXTRA_START_TICKS = "start_ticks"
         private const val EXTRA_TITLE = "title"

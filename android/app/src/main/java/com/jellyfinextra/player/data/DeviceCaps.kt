@@ -4,6 +4,9 @@ import android.media.MediaCodecInfo
 import android.media.MediaCodecInfo.CodecProfileLevel
 import android.media.MediaCodecList
 import android.os.Build
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.decoder.ffmpeg.FfmpegLibrary
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -109,7 +112,28 @@ object DeviceCaps : DirectPlay.Decoders {
         val c = codec.lowercase()
         if (c.startsWith("pcm_")) return true // ExoPlayer 自己處理 PCM
         val mime = AUDIO_MIME[c] ?: return false
-        return decoders.any { info -> info.supportedTypes.any { it.equals(mime, ignoreCase = true) } }
+        // 只在 FFMPEG_AUDIO 的格式用 FFmpeg 補：其他格式（例如 ZenPad 壞掉的 FLAC）播放器仍會先選系統解碼器
+        return decoders.any { info -> info.supportedTypes.any { it.equals(mime, ignoreCase = true) } } || (c in FFMPEG_AUDIO && ffmpeg(mime))
+    }
+
+    /** 系統沒有、改由內建 FFmpeg 軟解的音訊格式（PlayerActivity 以擴充渲染器載入，系統解不了時才用）。 */
+    private val FFMPEG_AUDIO = listOf("ac3", "eac3", "dts", "truehd")
+
+    @OptIn(UnstableApi::class)
+    private fun ffmpeg(mime: String) = runCatching { FfmpegLibrary.isAvailable() && FfmpegLibrary.supportsFormat(mime) }.getOrDefault(false)
+
+    /** 設定頁顯示用，例如「AC3 · E-AC3 · DTS · TRUEHD」；空字串表示沒有。 */
+    fun describeSoftwareAudio(): String = FFMPEG_AUDIO.filter { c ->
+        val mime = AUDIO_MIME.getValue(c)
+        decoders.none { info -> info.supportedTypes.any { it.equals(mime, ignoreCase = true) } } && ffmpeg(mime)
+    }.joinToString(" · ") { if (it == "eac3") "E-AC3" else if (it == "truehd") "TrueHD" else it.uppercase() }
+
+    /** 解碼器名稱是不是硬解；FFmpeg 擴充與系統軟解（c2.android、OMX.google）都算軟解。 */
+    fun isHardwareDecoder(name: String): Boolean {
+        val n = name.lowercase()
+        if (n.startsWith("ffmpeg")) return false
+        val info = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        return if (info != null) isHardware(info) else !(n.startsWith("omx.google.") || n.startsWith("c2.android."))
     }
 
     /** 最大可硬解的高度（轉碼的 H.264／HEVC 取較大者），畫質選單用來隱藏裝置解不了的選項。 */

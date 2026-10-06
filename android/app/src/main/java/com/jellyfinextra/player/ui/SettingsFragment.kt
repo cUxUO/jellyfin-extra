@@ -70,7 +70,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             s.lanXcode.takeIf { it.isNotEmpty() }?.let { "內網轉碼伺服器：$it" },
             s.external.takeIf { it.isNotEmpty() }?.let { "外部網址：$it" },
         ).joinToString("\n")
-        root.findViewById<TextView>(R.id.decoders).text = DeviceCaps.describe()
+        root.findViewById<TextView>(R.id.decoders).text = listOfNotNull(
+            DeviceCaps.describe(),
+            DeviceCaps.describeSoftwareAudio().takeIf { it.isNotEmpty() }?.let { "音訊軟解（FFmpeg）：$it" },
+        ).joinToString("\n")
         root.findViewById<TextView>(R.id.quality).text = s.quality.label
         root.findViewById<TextView>(R.id.subtitleSize).text = s.subtitleSize.label
         val abi = runCatching { Updater(requireContext(), app.http).abi }.getOrNull()

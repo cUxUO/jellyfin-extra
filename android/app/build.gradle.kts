@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.ui)
     implementation(libs.media3.datasource.okhttp)
+    implementation(libs.media3.ffmpeg.decoder)
     implementation(libs.okhttp)
     implementation(libs.conscrypt.android)
     implementation(libs.material)

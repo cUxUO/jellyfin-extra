@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T00:32:20Z",
-  "updated_at": "2026-10-06T08:12:12Z",
+  "updated_at": "2026-10-06T11:22:16Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -23,9 +23,9 @@
     },
     "CLAUDE.md": {
       "role": "index",
-      "sha256": "94b177231ebd090b556392be32ed3221f0ccddc213638d58fa1c6141026c876f",
-      "size": 26005,
-      "normalized_sha256": "94b177231ebd090b556392be32ed3221f0ccddc213638d58fa1c6141026c876f"
+      "sha256": "014a5b769492d73d8974c070698944f3683a5d7a9f04ceebe5213f2697a31c3a",
+      "size": 26747,
+      "normalized_sha256": "014a5b769492d73d8974c070698944f3683a5d7a9f04ceebe5213f2697a31c3a"
     },
     "android/.gitignore": {
       "role": "index",
@@ -35,9 +35,9 @@
     },
     "android/app/build.gradle.kts": {
       "role": "index",
-      "sha256": "54269dad08edffd8411025614f36df1dd45a3694a54141037f681ba512afb6da",
-      "size": 3917,
-      "normalized_sha256": "54269dad08edffd8411025614f36df1dd45a3694a54141037f681ba512afb6da"
+      "sha256": "2f726c2f0dfd0218f728b9ffe77a6d1be828738ca192f49ee06245b9ee81e97a",
+      "size": 3964,
+      "normalized_sha256": "2f726c2f0dfd0218f728b9ffe77a6d1be828738ca192f49ee06245b9ee81e97a"
     },
     "android/app/src/debug/AndroidManifest.xml": {
       "role": "index",
@@ -65,9 +65,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/data/DeviceCaps.kt": {
       "role": "index",
-      "sha256": "c205e48164f4931fd11c25dd80b44bb9de82d5831de44c848de69e767fb8da9c",
-      "size": 6426,
-      "normalized_sha256": "c205e48164f4931fd11c25dd80b44bb9de82d5831de44c848de69e767fb8da9c"
+      "sha256": "6c988d690469f515baa84c4b95aa8932f90f7582f20b6cfc7548795d0d0d8837",
+      "size": 8067,
+      "normalized_sha256": "6c988d690469f515baa84c4b95aa8932f90f7582f20b6cfc7548795d0d0d8837"
     },
     "android/app/src/main/java/com/jellyfinextra/player/data/DirectPlay.kt": {
       "role": "index",
@@ -191,9 +191,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/PlayerActivity.kt": {
       "role": "index",
-      "sha256": "7586dfe57c3e2b536e141647254720d538b2ba8bc0f3530984e7c7e001276f21",
-      "size": 40265,
-      "normalized_sha256": "7586dfe57c3e2b536e141647254720d538b2ba8bc0f3530984e7c7e001276f21"
+      "sha256": "c63832ad6929cba95cf1a76ee658c258a70d1975f3406bb63f8237f675fa80eb",
+      "size": 42820,
+      "normalized_sha256": "c63832ad6929cba95cf1a76ee658c258a70d1975f3406bb63f8237f675fa80eb"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SeriesFragment.kt": {
       "role": "index",
@@ -203,9 +203,9 @@
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SettingsFragment.kt": {
       "role": "index",
-      "sha256": "67dd389d4044245ec676c107439f732f223f797841b8fc1566260b8e52b0bf01",
-      "size": 3625,
-      "normalized_sha256": "67dd389d4044245ec676c107439f732f223f797841b8fc1566260b8e52b0bf01"
+      "sha256": "6a1af3850047fc51bf005a2a42aa35ddb8fbe718a6ea346d12c78046067edd7a",
+      "size": 3799,
+      "normalized_sha256": "6a1af3850047fc51bf005a2a42aa35ddb8fbe718a6ea346d12c78046067edd7a"
     },
     "android/app/src/main/java/com/jellyfinextra/player/ui/SubtitleOverlay.kt": {
       "role": "index",
@@ -665,9 +665,9 @@
     },
     "android/gradle/libs.versions.toml": {
       "role": "index",
-      "sha256": "024c5c9b6c46ae565f9603edc6d8aaa28013f703c24752e08b0b0a635b79e092",
-      "size": 2264,
-      "normalized_sha256": "024c5c9b6c46ae565f9603edc6d8aaa28013f703c24752e08b0b0a635b79e092"
+      "sha256": "553220cd7d6d03d8e5c0ad388fcb649281507a14f0e56319e99f9de499a69ad8",
+      "size": 2563,
+      "normalized_sha256": "553220cd7d6d03d8e5c0ad388fcb649281507a14f0e56319e99f9de499a69ad8"
     },
     "android/gradle/wrapper/gradle-wrapper.jar": {
       "role": "index",
@@ -700,9 +700,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "7f16d0ce18ff686f8e437131fec39331d660e066c15c75104c7738ef7a36a553",
-      "size": 66046,
-      "normalized_sha256": "7f16d0ce18ff686f8e437131fec39331d660e066c15c75104c7738ef7a36a553"
+      "sha256": "75f4f84bc2888bedb48e65aee58b5808c6fe95e400fa0010a5cd7c8ef7643e8b",
+      "size": 66186,
+      "normalized_sha256": "75f4f84bc2888bedb48e65aee58b5808c6fe95e400fa0010a5cd7c8ef7643e8b"
     },
     "aoci.meta.txt": {
       "role": "index",
